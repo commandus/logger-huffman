@@ -7,6 +7,7 @@
  */
 #include <string>
 #include <iostream>
+#include <sstream>
 #include "argtable3/argtable3.h"
 #include "logger-huffman.h"
 
@@ -22,7 +23,7 @@ const std::string programName = "logger-huffman-print";
 
 class LoggerHuffmanPrintConfiguration {
 public:
-    std::string value           // packet data
+    std::string value;          // packet data
     int mode;                   // 0- binary from stdin, 1- hex in command line parameter
     int verbosity;              // verbosity level
     bool hasValue;
@@ -62,8 +63,7 @@ int parseCmd(
         if (a_value_hex->count) {
             std::stringstream ss(*a_value_hex->sval);
             ss >> std::hex >> config->value;
-        } else
-            config->value = 0;
+        }
     }
     if (a_value_hex->count == 0) {
         // read from stdin

@@ -27,7 +27,7 @@ build system.
 
 Make sure you have automake installed:
 ```
-apt install autoconf build-essential libtool libprotobuf-dev
+apt install autoconf build-essential libtool
 ```
 
 ### Automake/Autotools

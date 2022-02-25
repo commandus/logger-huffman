@@ -1,9 +1,9 @@
 SUBDIRS = .
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS=-std=c++11
-AM_CXXFLAGS=-std=c++11
-COMMON_CPP_FLAGS = -Ithird_party -D_GLIBCXX_USE_CXX11_ABI=0 -DDEBUG_PRINT
+COMMON_CPP_FLAGS = -std=c++11 -Ithird_party -D_GLIBCXX_USE_CXX11_ABI=0 -DDEBUG_PRINT
+AM_CPPFLAGS= $(COMMON_CPP_FLAGS)
+AM_CXXFLAGS= $(COMMON_CPP_FLAGS)
 
 #
 # Binaries
@@ -26,7 +26,7 @@ L_LOGGER_HUFFMAN = -L. -llogger-huffman
 $(bin_PROGRAMS): $(lib_LIBRARIES)
 
 nobase_dist_include_HEADERS = \
-	logger-huffamn.h utilcompress.h \
+	logger-huffman.h utilcompress.h \
 	third_party/argtable3/argtable3.h
 
 logger_huffman_print_SOURCES = \
@@ -50,9 +50,8 @@ dist_config_DATA = \
 test_compress_decompress_SOURCES = \
 	tests/test-compress-decompress.cpp
 test_compress_decompress_LDADD = $(L_LOGGER_HUFFMAN)
-test_compress_decompress_CPPFLAGS = 
 
 check_PROGRAMS = \
-	test-encrypt-join-accept-response
+	test-compress-decompress
 
 TESTS = $(check_PROGRAMS)
