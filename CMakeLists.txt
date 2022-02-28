@@ -12,6 +12,8 @@ set(SRC_LOGGER_HUFFMAN_PRINT
 	third_party/argtable3/argtable3.c
 )
 
+include_directories("third_party")
+
 add_library(logger-huffman STATIC
 	${LIB_LOGGER_HUFFMAN_SRC}
 )

@@ -9,7 +9,13 @@
 #include <iostream>
 #include <sstream>
 #include "argtable3/argtable3.h"
+
 #include "logger-huffman.h"
+/*
+#include "logger-huffman-impl.h"
+#include "utilcompress.h"
+*/
+#include "errlist.h"
 
 const std::string programName = "logger-huffman-print";
 
@@ -30,7 +36,7 @@ public:
 };
 
 /**
- * Parse command line
+ * Parse command linelogger-huffman-impl
  * Return 0- success
  *        1- show help and exit, or command syntax error
  *        2- output file does not exists or can not open to write
@@ -42,12 +48,16 @@ int parseCmd(
 {
     // device path
     struct arg_str *a_value_hex = arg_str0(NULL, NULL, "<packet>", "Packet data in hex. By default read binary from stdin");
+
+    struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
+
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
     struct arg_end *a_end = arg_end(20);
 
     void *argtable[] = {
-        a_value_hex, a_verbosity, a_help, a_end
+        a_value_hex, a_value_stdin,
+        a_verbosity, a_help, a_end
     };
 
     // verify the argtable[] entries were allocated successfully
@@ -65,10 +75,13 @@ int parseCmd(
             ss >> std::hex >> config->value;
         }
     }
-    if (a_value_hex->count == 0) {
-        // read from stdin
-        std::istreambuf_iterator<char> begin(std::cin), end;
-        config->value = std::string(begin, end);
+
+    if ((nerrors == 0) && (a_help->count == 0)) {
+        if (a_value_hex->count == 0 && a_value_stdin->count) {
+            // read from stdin
+            std::istreambuf_iterator<char> begin(std::cin), end;
+            config->value = std::string(begin, end);
+        }
     }
 
     // special case: '--help' takes precedence over error reporting
