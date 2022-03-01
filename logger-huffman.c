@@ -9,7 +9,7 @@
  * @param size buffer size
  */
 int exractMeasurementHeader(
-	LOGGER_MEASUREMENT_HDR *retHdr,
+	LOGGER_MEASUREMENT_HDR **retHdr,
 	const void *buffer,
 	size_t bufferSize
 )
@@ -20,5 +20,7 @@ int exractMeasurementHeader(
 		return ERR_LOGGER_HUFFMAN_PARAM_INVALID;
 	if (bufferSize < sizeof(LOGGER_MEASUREMENT_HDR))
 		return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
-	memmove(retHdr, buffer, sizeof(LOGGER_MEASUREMENT_HDR));
+	*retHdr = (LOGGER_MEASUREMENT_HDR*) buffer;
+	
+	return 0;
 }

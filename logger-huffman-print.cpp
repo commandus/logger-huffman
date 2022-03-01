@@ -6,6 +6,7 @@
  * MIT license
  */
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include "argtable3/argtable3.h"
@@ -18,8 +19,6 @@
 #include "errlist.h"
 
 const std::string programName = "logger-huffman-print";
-
-#define ERR_CODE_COMMAND_LINE		    	-500
 
 #ifdef _MSC_VER
 #undef ENABLE_TERM_COLOR
@@ -68,19 +67,16 @@ int parseCmd(
     // Parse the command line as defined by argtable[]
     int nerrors = arg_parse(argc, argv, argtable);
 
-    if (!nerrors) {
+    if ((nerrors == 0) && (a_help->count == 0)) {
         config->verbosity = a_verbosity->count;
         if (a_value_hex->count) {
-            std::stringstream ss(*a_value_hex->sval);
-            ss >> std::hex >> config->value;
-        }
-    }
-
-    if ((nerrors == 0) && (a_help->count == 0)) {
-        if (a_value_hex->count == 0 && a_value_stdin->count) {
-            // read from stdin
-            std::istreambuf_iterator<char> begin(std::cin), end;
-            config->value = std::string(begin, end);
+            config->value = hex2binString(*a_value_hex->sval, strlen(*a_value_hex->sval));
+        } else {
+            if (a_value_stdin->count) {
+                // read from stdin
+                std::istreambuf_iterator<char> begin(std::cin), end;
+                config->value = std::string(begin, end);
+            }
         }
     }
 
@@ -96,7 +92,8 @@ int parseCmd(
 
         arg_print_glossary(stderr, argtable, "  %-25s %s\n");
         arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
-        return ERR_CODE_COMMAND_LINE;
+
+        return ERR_LOGGER_HUFFMAN_COMMAND_LINE_HELP;
     }
 
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
@@ -107,7 +104,7 @@ static void printErrorAndExit(
     int errCode
 )
 {
-    std::cerr << ERR_MESSAGE << strerror_logger_huffman(errCode) << std::endl;
+    std::cerr << ERR_MESSAGE << errCode << ": " << strerror_logger_huffman(errCode) << std::endl;
     exit(errCode);
 }
 
@@ -117,12 +114,16 @@ int main(int argc, char **argv)
 {
     LoggerHuffmanPrintConfiguration config;
     int r = parseCmd(&config, argc, argv);
+    if (r == ERR_LOGGER_HUFFMAN_COMMAND_LINE_HELP)
+        exit(r);
     if (r != 0)
         printErrorAndExit(r);
 
-    LOGGER_MEASUREMENT_HDR hdr;
-    // Extract header only
-    r = exractMeasurementHeader(&hdr, config.value.c_str(), config.value.size());
-    if (r)
-        printErrorAndExit(r);
+    LoggerPacket loggerPacket(config.value.c_str(), config.value.size());
+
+    if (loggerPacket.errCode)
+        printErrorAndExit(loggerPacket.errCode);
+    std::string s = loggerPacket.toString();
+
+    std::cout << s << std::endl;
 }

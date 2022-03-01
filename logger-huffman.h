@@ -87,12 +87,12 @@ typedef ALIGN struct {
 
 /**
  * Extract header only
- * @param retHdr return header
+ * @param retHdr return header pointer
  * @param buffer data
  * @param size buffer size
  */
 int exractMeasurementHeader(
-	LOGGER_MEASUREMENT_HDR *retHdr,
+	LOGGER_MEASUREMENT_HDR **retHdr,
 	const void *buffer,
 	size_t bufferSize
 );
