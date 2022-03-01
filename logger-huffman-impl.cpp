@@ -67,3 +67,24 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
 		<< (int) value.pcnt << " " << (int) value.used;
 	return ss.str();
 }
+
+#define		ERR_LIST_COUNT		8
+static char * error_list_en[ERR_LIST_COUNT] = 
+{
+	"Segmentation fault",
+	"Program aborted"
+	"Invalid command line option "
+	"Insufficient memory",
+	"Insufficient parameters",
+	"Invalid parameter",
+	"No data"
+	"Invalid packet"
+};
+
+const char *strerror_logger_huffman(int errCode)
+{
+	int idx = (- errCode) - 700;
+	if (idx < 0 || idx >= ERR_LIST_COUNT)
+		return "";
+	return error_list_en[idx];
+}

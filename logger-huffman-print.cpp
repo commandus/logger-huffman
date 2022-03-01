@@ -11,8 +11,8 @@
 #include "argtable3/argtable3.h"
 
 #include "logger-huffman.h"
-/*
 #include "logger-huffman-impl.h"
+/*
 #include "utilcompress.h"
 */
 #include "errlist.h"
@@ -103,13 +103,26 @@ int parseCmd(
     return 0;
 }
 
+static void printErrorAndExit(
+    int errCode
+)
+{
+    std::cerr << ERR_MESSAGE << strerror_logger_huffman(errCode) << std::endl;
+    exit(errCode);
+}
+
 const char* TAB_DELIMITER = "\t";
 
 int main(int argc, char **argv)
 {
-    LoggerHuffmanPrintConfiguration loggerHuffmanPrintConfiguration;
-    int r = parseCmd(&loggerHuffmanPrintConfiguration, argc, argv);
-    if (r != 0) {
-        exit(r);
-    }
+    LoggerHuffmanPrintConfiguration config;
+    int r = parseCmd(&config, argc, argv);
+    if (r != 0)
+        printErrorAndExit(r);
+
+    LOGGER_MEASUREMENT_HDR hdr;
+    // Extract header only
+    r = exractMeasurementHeader(&hdr, config.value.c_str(), config.value.size());
+    if (r)
+        printErrorAndExit(r);
 }

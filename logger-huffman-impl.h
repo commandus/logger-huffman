@@ -9,4 +9,6 @@ LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(const std::string &value);
 
 std::string LOGGER_MEASUREMENT_HDR_2_string(const LOGGER_MEASUREMENT_HDR &value);
 
+const char *strerror_logger_huffman(int errCode);
+
 #endif

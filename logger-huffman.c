@@ -10,7 +10,7 @@
  */
 int exractMeasurementHeader(
 	LOGGER_MEASUREMENT_HDR *retHdr,
-	void *buffer,
+	const void *buffer,
 	size_t bufferSize
 )
 {
