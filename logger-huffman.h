@@ -63,7 +63,7 @@ typedef ALIGN struct {
 	uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
 	uint8_t packets;						// количество пакетов в замере! (лора по 24 байта с шапками пакетов)
 	uint8_t kosa;							// идентификатор косы (номер, дата)
-	uint8_t year;							// год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+	uint8_t kosa_year;						// год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
 } PACKED LOGGER_PACKET_FIRST_HDR;			// 8 bytes
 
 // следующий пакет typ 4b- plain 49- delta 4d- huffman
@@ -86,13 +86,54 @@ typedef ALIGN struct {
 
 
 /**
+ * Return LOGGER_PACKET_UNKNOWN if buffer is NULL or size = 0
+ */ 
+LOGGER_PACKET_TYPE extractLoggerPacketType(
+	const void *buffer,
+	size_t bufferSize
+);
+
+/**
  * Extract header only
  * @param retHdr return header pointer
  * @param buffer data
  * @param size buffer size
  */
-int exractMeasurementHeader(
+LOGGER_PACKET_TYPE extractMeasurementHeader(
 	LOGGER_MEASUREMENT_HDR **retHdr,
+	const void *buffer,
+	size_t bufferSize
+);
+
+/**
+ * Extract header only
+ * @param retHdr return header pointer
+ * @param buffer data
+ * @param size buffer size
+ */
+int extractFirstHdr(
+	LOGGER_PACKET_FIRST_HDR **retHdr,
+	const void *buffer,
+	size_t bufferSize
+);
+
+int extractMeasurementHeaderData(
+	int idx,
+	const void *buffer,
+	size_t bufferSize
+);
+
+int extractFirstHdrData(
+	uint8_t *sensor,
+	int idx,
+	const void *buffer,
+	size_t bufferSize
+);
+
+int extractSecondHdrData(
+	uint8_t *sensor,
+	int idx,
+	int p,
 	const void *buffer,
 	size_t bufferSize
 );

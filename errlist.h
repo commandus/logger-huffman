@@ -13,4 +13,4 @@
 #define ERR_MESSAGE								"Error "
 #define ERR_DEBUG								"Info "
 #define ERR_WARNING								"Warning "
-#define ERR_UNKNOWN_ERROR_CODE					"Unknown erroc code "
+#define ERR_UNKNOWN_ERROR_CODE					"Unknown error code "

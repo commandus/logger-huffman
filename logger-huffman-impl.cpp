@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iomanip>
+#include <cstdlib>
 
 #include "logger-huffman-impl.h"
 #include "errlist.h"
@@ -52,9 +53,8 @@ LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(
 std::string LOGGER_MEASUREMENT_HDR_2_string(
 	const LOGGER_MEASUREMENT_HDR &value
 ) {
-
 	std::stringstream ss;
-	ss << (int) value.memblockoccupation << "\t"
+	ss << (int) value.memblockoccupation << " "
 		<< std::setfill('0') << std::setw(2)
 		<< (int) value.year + 2000 << (int) value.month << (int) value.day
 		<< "T"
@@ -65,6 +65,34 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
 		<< (int) value.vcc << " " << (int) value.vbat
 		<<  " "
 		<< (int) value.pcnt << " " << (int) value.used;
+	return ss.str();
+}
+
+/**
+ * Prints out:
+ *  type 74 always
+ * 	size (compressed) общая длина данных, bytes
+ *  status.data_bits 
+ *  status.data_bits 
+ *  status.command_change
+ *	measure мл. Байт номера замера, lsb used (или addr_used?)
+ *	packets  количество пакетов в замере! (лора по 24 байта с шапками пакетов)
+ *	kosa идентификатор косы (номер, дата)
+ *	year год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+ */
+std::string LOGGER_PACKET_FIRST_HDR_2_string(
+	const LOGGER_PACKET_FIRST_HDR &value
+)
+{
+	std::stringstream ss;
+	ss << (int) value.typ << " "
+		<< (int) value.size << " "
+		<< (int) value.status.b << " "
+		<< (int) value.status.data_bits << " "
+		<< (int) value.status.command_change << " "
+		<< (int) value.measure << " "
+		<< (int) value.packets << " "
+		<< (int) value.kosa << "-" << (int) value.kosa_year;
 	return ss.str();
 }
 
@@ -93,8 +121,7 @@ const char *strerror_logger_huffman(
 		ss << ERR_UNKNOWN_ERROR_CODE << errCode;
 		return ss.str().c_str();
 	}
-		
-	return error_list_en[idx];
+	return "";
 }
 
 /**
@@ -126,7 +153,7 @@ std::string hex2binString(
 	std::string r(size / 2, '\0');
 	std::stringstream ss(hexChars);
 	ss >> std::noskipws;
-	char c[3] = {0, 0, 0};
+	char c[3] = { 0, 0, 0 };
 	int i = 0;
 	while (ss >> c[0]) {
 		if (!(ss >> c[1]))
@@ -160,7 +187,11 @@ LoggerPacket::LoggerPacket(
 	size_t asize
 )
 {
-	errCode = setBinary(abuffer, asize);
+	LOGGER_PACKET_TYPE t = setBinary(abuffer, asize);
+	if (t == LOGGER_PACKET_UNKNOWN)
+		errCode = ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+	else
+		errCode = 0;
 }
 
 LoggerPacket::~LoggerPacket()
@@ -168,22 +199,63 @@ LoggerPacket::~LoggerPacket()
 
 }
 
-int LoggerPacket::setBinary(const void *abuffer, size_t asize)
+LOGGER_PACKET_TYPE LoggerPacket::setBinary(const void *abuffer, size_t asize)
 {
 	buffer = (const char *) abuffer;
 	size = asize;
 	LOGGER_MEASUREMENT_HDR *hdr;
-	int r = exractMeasurementHeader(&hdr, buffer, size);
-	return r;
+	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, buffer, size);
+	return t;
 }
 
 std::string LoggerPacket::toString() const
 {
 	LOGGER_MEASUREMENT_HDR *hdr;
-	int r = exractMeasurementHeader(&hdr, buffer, size);
-	if (r)
-		return "";
-	std::string s = LOGGER_MEASUREMENT_HDR_2_string(*hdr);
+	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, buffer, size);
+	std::string s;
+	switch (t) {
+		case LOGGER_PACKET_RAW:
+			{
+				std::stringstream ss;
+				ss << LOGGER_MEASUREMENT_HDR_2_string(*hdr) << std::endl;
+				for (int i = 0; i < 0; i++) {
+					uint16_t t = extractMeasurementHeaderData(i, buffer, size);
+					ss << (int) t << " ";
+				}
+				s = ss.str();
+			}
+			break;
+		case LOGGER_PACKET_PKT_1:
+			{
+				LOGGER_PACKET_FIRST_HDR *h1;
+				int r = extractFirstHdr(&h1, buffer, size);
+				if (r)
+					break;
+				std::stringstream ss;
+				ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl;
+				uint8_t sensor;
+				for (int i = 0; i < 4; i++) {
+					uint16_t t = extractFirstHdrData(&sensor, i, buffer, size);
+					ss
+						<< (int) sensor << ": "
+						<< (int) t << ", ";
+				}
+
+				LOGGER_PACKET_SECOND_HDR *h2;
+				for (int i = 0; i < h1->packets - 1; i++) {
+					for (int p = 0; p < 4; p++) {
+						uint16_t t = extractSecondHdrData(&sensor, i, p, buffer, size);
+					}
+					ss
+						<< (int) sensor << ": "
+						<< (int) t << ", ";
+				}
+				s = ss.str();
+			}
+			break;
+		default:
+			break;
+	}
 	return s;
 }
 
