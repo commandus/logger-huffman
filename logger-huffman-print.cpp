@@ -6,9 +6,11 @@
  * MIT license
  */
 #include <string>
+#include <vector>
 #include <cstring>
 #include <iostream>
 #include <sstream>
+
 #include "argtable3/argtable3.h"
 
 #include "logger-huffman.h"
@@ -28,7 +30,7 @@ const std::string programName = "logger-huffman-print";
 
 class LoggerHuffmanPrintConfiguration {
 public:
-    std::string value;          // packet data
+    std::vector<std::string> values;          // packet data
     int mode;                   // 0- binary from stdin, 1- hex in command line parameter
     int verbosity;              // verbosity level
     bool hasValue;
@@ -46,7 +48,7 @@ int parseCmd(
         char *argv[])
 {
     // device path
-    struct arg_str *a_value_hex = arg_str0(NULL, NULL, "<packet>", "Packet data in hex. By default read binary from stdin");
+    struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
 
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
 
@@ -70,12 +72,15 @@ int parseCmd(
     if ((nerrors == 0) && (a_help->count == 0)) {
         config->verbosity = a_verbosity->count;
         if (a_value_hex->count) {
-            config->value = hex2binString(*a_value_hex->sval, strlen(*a_value_hex->sval));
+            for (int i = 0; i < a_value_hex->count; i++) {
+                config->values.push_back(hex2binString(*a_value_hex->sval, strlen(*a_value_hex->sval)));
+            }
+            
         } else {
             if (a_value_stdin->count) {
                 // read from stdin
                 std::istreambuf_iterator<char> begin(std::cin), end;
-                config->value = std::string(begin, end);
+                config->values.push_back(std::string(begin, end));
             }
         }
     }
@@ -119,11 +124,13 @@ int main(int argc, char **argv)
     if (r != 0)
         printErrorAndExit(r);
 
-    LoggerPacket loggerPacket(config.value.c_str(), config.value.size());
+    LoggerCollection c;
+    for (std::vector<std::string>::const_iterator it(config.values.begin()); it != config.values.end(); it++) {
+        LOGGER_PACKET_TYPE t = c.put(it->c_str(), it->size());
 
-    if (loggerPacket.errCode)
-        printErrorAndExit(loggerPacket.errCode);
-    std::string s = loggerPacket.toString();
-
+        if (t == LOGGER_PACKET_UNKNOWN)
+            printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
+    }
+    std::string s = c.toString();
     std::cout << s << std::endl;
 }

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "logger-huffman.h"
 #include "errlist.h"
@@ -77,20 +78,38 @@ int extractFirstHdr(
 	}
 }
 
-int extractFirstHdrData(
+int16_t extractSecondHdr(
+	LOGGER_PACKET_SECOND_HDR **retHdr,
+	const void *buffer,
+	size_t bufferSize
+)
+{
+	LOGGER_PACKET_TYPE t = extractLoggerPacketType(buffer, bufferSize);
+	switch (t) {
+ 		case LOGGER_PACKET_PKT_2:		// with packet header (second)
+			if (bufferSize < sizeof(LOGGER_PACKET_SECOND_HDR))
+				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+			*retHdr = (LOGGER_PACKET_SECOND_HDR*) buffer;
+			return 0;
+		default:
+		 	return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+	}
+}
+
+int16_t extractFirstHdrData(
 	uint8_t *sensor,
 	int idx,
 	const void *buffer,
 	size_t bufferSize
 )
 {
-	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_MEASUREMENT_HDR)) + idx;	
+	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR)) + idx;	
 	if (sensor)
 		*sensor = p->sensor;
 	return NTOH2(p->t);
 }
 
-int extractSecondHdrData(
+int16_t extractSecondHdrData(
 	uint8_t *sensor,
 	int idx,
 	int p,
@@ -98,11 +117,20 @@ int extractSecondHdrData(
 	size_t bufferSize
 )
 {
-	char *pp = (char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR) + (idx * sizeof(LOGGER_PACKET_SECOND_HDR) * (4 * sizeof(LOGGER_DATA_TEMPERATURE_RAW)));
-	LOGGER_DATA_TEMPERATURE_RAW *r = (LOGGER_DATA_TEMPERATURE_RAW *) pp + p;
+	char *pp = (char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR) + 4 * sizeof(LOGGER_DATA_TEMPERATURE_RAW)
+		+ sizeof(LOGGER_PACKET_SECOND_HDR)
+		+ idx * (sizeof(LOGGER_PACKET_SECOND_HDR) + 5 * sizeof(LOGGER_DATA_TEMPERATURE_RAW))
+		+ p * sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+	LOGGER_DATA_TEMPERATURE_RAW *r = (LOGGER_DATA_TEMPERATURE_RAW *) pp;
+
+	printf("==%ld t: %d\n", sizeof(LOGGER_PACKET_FIRST_HDR) + 4 * sizeof(LOGGER_DATA_TEMPERATURE_RAW)
+		+ sizeof(LOGGER_PACKET_SECOND_HDR)
+		+ idx * (sizeof(LOGGER_PACKET_SECOND_HDR) + 5 * sizeof(LOGGER_DATA_TEMPERATURE_RAW)) 
+		+ p * sizeof(LOGGER_DATA_TEMPERATURE_RAW), r->t);
+
 	if (sensor)
 		*sensor = r->sensor;
-	return NTOH2(r->t);
+	return (r->t);
 }
 
 int extractMeasurementHeaderData(

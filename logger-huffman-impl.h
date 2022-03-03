@@ -2,19 +2,58 @@
 #define LOGGER_HUFFMAN_IMPL_H_ 1
 
 #include <string>
+#include <vector>
 
 #include "logger-huffman.h"
 
-class LoggerPacket {
-	const char *buffer;
-	size_t size;
+// следующий пакет typ 4b- plain 49- delta 4d- huffman
+class LoggerItemId {
 	public:
+		uint8_t kosa;							// идентификатор косы (номер, дата)
+		uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
+		uint8_t packet;							// packet number
+		LoggerItemId();
+		LoggerItemId(
+			uint8_t kosa,						// идентификатор косы (номер, дата)
+			uint8_t measure,						// мл. Байт номера замера, lsb used (или addr_used?)
+			uint8_t packet						// packet number
+		);
+		void set(
+			uint8_t kosa,						// идентификатор косы (номер, дата)
+			uint8_t measure,					// мл. Байт номера замера, lsb used (или addr_used?)
+			uint8_t packet						// packet number
+		);
+		bool operator==(const LoggerItemId &another);
+		bool operator!=(const LoggerItemId &another);
+};
+
+class LoggerItem {
+	public:
+		LoggerItemId id;
+		std::string packet;
 		int errCode;
 		// std::string errDescription;
-		LoggerPacket();
-		LoggerPacket(const void *buffer, size_t size);
-		virtual ~LoggerPacket();
-		LOGGER_PACKET_TYPE setBinary(const void *buffer, size_t size);
+		LoggerItem();
+		LoggerItem(const LoggerItem &value);
+		LoggerItem(const void *buffer, size_t size);
+		virtual ~LoggerItem();
+
+		LoggerItem& operator=(const LoggerItem& other);
+		bool operator==(const LoggerItem &another);
+		bool operator!=(const LoggerItem &another);
+		LOGGER_PACKET_TYPE set(const void *buffer, size_t size);
+		std::string toString() const;
+		std::string toJsonString() const;
+};
+
+class LoggerCollection {
+	public:
+		std::vector <LoggerItem> items;
+		int errCode;
+		// std::string errDescription;
+		LoggerCollection();
+		virtual ~LoggerCollection();
+		LOGGER_PACKET_TYPE put(const void *buffer, size_t size);
 		std::string toString() const;
 		std::string toJsonString() const;
 };

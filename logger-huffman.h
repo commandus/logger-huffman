@@ -76,14 +76,13 @@ typedef ALIGN struct {
 
 typedef ALIGN struct {
 	uint8_t sensor;						    // номер датчика 0..255
-	uint16_t t;								// temperature, C. 12 bits
+	int16_t t;								// temperature, C. 12 bits
 	uint8_t rfu1;							// angle,. not used
 } PACKED LOGGER_DATA_TEMPERATURE_RAW;			// 4 bytes
 
 typedef ALIGN struct {
-	uint16_t t;								// temperature, C. 12 bits
+	int16_t t;								// temperature, C. 12 bits
 } PACKED LOGGER_DATA_TEMPERATURE;			// 2 bytes
-
 
 /**
  * Return LOGGER_PACKET_UNKNOWN if buffer is NULL or size = 0
@@ -117,20 +116,26 @@ int extractFirstHdr(
 	size_t bufferSize
 );
 
+int16_t extractSecondHdr(
+	LOGGER_PACKET_SECOND_HDR **retHdr,
+	const void *buffer,
+	size_t bufferSize
+);
+
 int extractMeasurementHeaderData(
 	int idx,
 	const void *buffer,
 	size_t bufferSize
 );
 
-int extractFirstHdrData(
+int16_t extractFirstHdrData(
 	uint8_t *sensor,
 	int idx,
 	const void *buffer,
 	size_t bufferSize
 );
 
-int extractSecondHdrData(
+int16_t extractSecondHdrData(
 	uint8_t *sensor,
 	int idx,
 	int p,

@@ -175,43 +175,183 @@ std::string bin2hexString(
 	return r.str();
 }
 
-// std::string errDescription;
-LoggerPacket::LoggerPacket()
-	: buffer(NULL), size(0), errCode(0)
+LoggerItemId::LoggerItemId()
+	: kosa(0), measure(0)
+{
+}
+
+LoggerItemId::LoggerItemId(
+	uint8_t akosa,							// идентификатор косы (номер, дата)
+	uint8_t ameasure,						// мл. Байт номера замера, lsb used (или addr_used?)
+	uint8_t apacket							// packet number
+)
+	: kosa(akosa), measure(ameasure), packet(apacket)
 {
 
 }
 
-LoggerPacket::LoggerPacket(
+bool LoggerItemId::operator==(
+	const LoggerItemId &another
+)
+{
+	return (kosa == another.kosa) && (measure == another.measure) && (packet == another.packet);
+}
+
+bool LoggerItemId::operator!=(
+	const LoggerItemId &another
+)
+{
+	return !(*this == another);
+}
+
+void LoggerItemId::set(
+	uint8_t akosa,						// идентификатор косы (номер, дата)
+	uint8_t ameasure,					// мл. Байт номера замера, lsb used (или addr_used?)
+	uint8_t apacket						// packet number
+)
+{
+	kosa = akosa;
+	measure = ameasure;
+	packet = apacket;
+}
+
+// std::string errDescription;
+LoggerItem::LoggerItem()
+	: errCode(0)
+{
+
+}
+
+LoggerItem::LoggerItem(
+	const LoggerItem &value
+)
+	: packet(value.packet), errCode(value.errCode)
+{
+	
+}
+
+LoggerItem::LoggerItem(
 	const void *abuffer,
 	size_t asize
 )
 {
-	LOGGER_PACKET_TYPE t = setBinary(abuffer, asize);
+	LOGGER_PACKET_TYPE t = set(abuffer, asize);
 	if (t == LOGGER_PACKET_UNKNOWN)
 		errCode = ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	else
 		errCode = 0;
 }
 
-LoggerPacket::~LoggerPacket()
+LoggerItem& LoggerItem::operator=(
+	const LoggerItem& other
+)
+{
+	errCode = other.errCode;
+	packet = other.packet;
+}
+
+bool LoggerItem::operator==(
+	const LoggerItem &another
+)
+{
+	return false;
+}
+
+bool LoggerItem::operator!=(
+	const LoggerItem &another
+)
+{
+	return !(*this == another);
+}
+
+LoggerItem::~LoggerItem()
 {
 
 }
 
-LOGGER_PACKET_TYPE LoggerPacket::setBinary(const void *abuffer, size_t asize)
+LOGGER_PACKET_TYPE LoggerItem::set(
+	const void *abuffer,
+	size_t asize
+)
 {
-	buffer = (const char *) abuffer;
-	size = asize;
+	packet = std::string((const char *) abuffer, asize);
 	LOGGER_MEASUREMENT_HDR *hdr;
-	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, buffer, size);
+	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, abuffer, asize);
+	switch (t) {
+		case LOGGER_PACKET_RAW:
+			id.set(hdr->kosa, 0, 0);
+			break;
+		case LOGGER_PACKET_PKT_1:
+			{
+				LOGGER_PACKET_FIRST_HDR *h1;
+				extractFirstHdr(&h1, abuffer, asize);
+				id.set(h1->kosa, h1->measure, 0);
+			}
+			break;
+		case LOGGER_PACKET_PKT_2:
+			{
+				LOGGER_PACKET_SECOND_HDR *h2;
+				extractSecondHdr(&h2, abuffer, asize);
+				id.set(h2->kosa, h2->measure, h2->packet);
+			}
+			break;
+		default: //case LOGGER_PACKET_UNKNOWN:
+			break;
+	}
 	return t;
 }
 
-std::string LoggerPacket::toString() const
+// std::string errDescription;
+LoggerCollection::LoggerCollection()
+	: errCode(0)
+{
+}
+
+LoggerCollection::~LoggerCollection()
+{
+
+}
+
+LOGGER_PACKET_TYPE LoggerCollection::put(
+	const void *buffer,
+	size_t size
+)
+{
+	LoggerItem item(buffer, size);
+	if (item.errCode)
+		return LOGGER_PACKET_UNKNOWN;
+	items.push_back(item);
+}
+
+std::string LoggerCollection::toString() const
+{
+	std::stringstream ss;
+	for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
+		ss << it->toString() << " ";
+	}
+	return ss.str();
+}
+
+std::string LoggerCollection::toJsonString() const
+{
+	std::stringstream ss;
+	ss << "[";
+	bool first = true;
+	for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
+		if (first)
+			first = false;
+		else
+			ss << ", ";
+		ss << it->toJsonString() << " ";
+	}
+	ss << "]";
+	return ss.str();
+}
+
+std::string LoggerItem::toString() const
 {
 	LOGGER_MEASUREMENT_HDR *hdr;
-	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, buffer, size);
+	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, packet.c_str(), packet.size());
 	std::string s;
 	switch (t) {
 		case LOGGER_PACKET_RAW:
@@ -219,7 +359,7 @@ std::string LoggerPacket::toString() const
 				std::stringstream ss;
 				ss << LOGGER_MEASUREMENT_HDR_2_string(*hdr) << std::endl;
 				for (int i = 0; i < 0; i++) {
-					uint16_t t = extractMeasurementHeaderData(i, buffer, size);
+					uint16_t t = extractMeasurementHeaderData(i, packet.c_str(), packet.size());
 					ss << (int) t << " ";
 				}
 				s = ss.str();
@@ -228,27 +368,28 @@ std::string LoggerPacket::toString() const
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-				int r = extractFirstHdr(&h1, buffer, size);
+				int r = extractFirstHdr(&h1, packet.c_str(), packet.size());
 				if (r)
 					break;
 				std::stringstream ss;
 				ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl;
 				uint8_t sensor;
+				/*
 				for (int i = 0; i < 4; i++) {
-					uint16_t t = extractFirstHdrData(&sensor, i, buffer, size);
+					int16_t t = extractFirstHdrData(&sensor, i, packet.c_str(), packet.size());
 					ss
 						<< (int) sensor << ": "
 						<< (int) t << ", ";
 				}
-
+				*/
 				LOGGER_PACKET_SECOND_HDR *h2;
 				for (int i = 0; i < h1->packets - 1; i++) {
-					for (int p = 0; p < 4; p++) {
-						uint16_t t = extractSecondHdrData(&sensor, i, p, buffer, size);
+					for (int p = 0; p < 5; p++) {
+						int16_t t = extractSecondHdrData(&sensor, i, p, packet.c_str(), packet.size());
+						ss
+							<< (int) sensor << ": "
+							<< t << ", ";
 					}
-					ss
-						<< (int) sensor << ": "
-						<< (int) t << ", ";
 				}
 				s = ss.str();
 			}
@@ -259,7 +400,7 @@ std::string LoggerPacket::toString() const
 	return s;
 }
 
-std::string LoggerPacket::toJsonString() const
+std::string LoggerItem::toJsonString() const
 {
-
+	return toString();
 }
