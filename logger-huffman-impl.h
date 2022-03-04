@@ -18,10 +18,16 @@ class LoggerItemId {
 			uint8_t measure,						// мл. Байт номера замера, lsb used (или addr_used?)
 			uint8_t packet						// packet number
 		);
+		/**
+		 * Set identifier
+		 * @param akosa kosa number
+		 * @param ameasure measurement no
+		 * @param apacket -1- first packet (w/o data)
+		 */ 
 		void set(
 			uint8_t kosa,						// идентификатор косы (номер, дата)
 			uint8_t measure,					// мл. Байт номера замера, lsb used (или addr_used?)
-			uint8_t packet						// packet number
+			int8_t packet						// packet number
 		);
 		bool operator==(const LoggerItemId &another);
 		bool operator!=(const LoggerItemId &another);
@@ -32,6 +38,8 @@ class LoggerItem {
 		LoggerItemId id;
 		std::string packet;
 		int errCode;
+
+		LOGGER_MEASUREMENT_HDR *measurement;
 		// std::string errDescription;
 		LoggerItem();
 		LoggerItem(const LoggerItem &value);
@@ -41,7 +49,9 @@ class LoggerItem {
 		LoggerItem& operator=(const LoggerItem& other);
 		bool operator==(const LoggerItem &another);
 		bool operator!=(const LoggerItem &another);
-		LOGGER_PACKET_TYPE set(const void *buffer, size_t size);
+
+		LOGGER_PACKET_TYPE set(	void **retBuffer, const void *buffer, size_t size);
+
 		std::string toString() const;
 		std::string toJsonString() const;
 };

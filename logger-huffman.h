@@ -86,8 +86,12 @@ typedef ALIGN struct {
 
 /**
  * Return LOGGER_PACKET_UNKNOWN if buffer is NULL or size = 0
+ * @param retSize return packet size if not NULL
+ * @param buffer read data from the buffer
+ * @param bufferSize buffer size
  */ 
 LOGGER_PACKET_TYPE extractLoggerPacketType(
+	size_t *retSize,
 	const void *buffer,
 	size_t bufferSize
 );
@@ -105,13 +109,25 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 );
 
 /**
+ * Return expected packet size in bytes
+ * @param typ packet type
+ * @param bufferSize size
+ */
+size_t getLoggerPacketTypeSize(
+	LOGGER_PACKET_TYPE typ,
+	size_t bufferSize
+);
+
+/**
  * Extract header only
  * @param retHdr return header pointer
+ * @param retMeasurement, return measurement header pointer
  * @param buffer data
  * @param size buffer size
  */
 int extractFirstHdr(
 	LOGGER_PACKET_FIRST_HDR **retHdr,
+	LOGGER_MEASUREMENT_HDR **retMeasurement,
 	const void *buffer,
 	size_t bufferSize
 );
@@ -135,9 +151,7 @@ int16_t extractFirstHdrData(
 	size_t bufferSize
 );
 
-int16_t extractSecondHdrData(
-	uint8_t *sensor,
-	int idx,
+LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 	int p,
 	const void *buffer,
 	size_t bufferSize

@@ -204,10 +204,16 @@ bool LoggerItemId::operator!=(
 	return !(*this == another);
 }
 
+/**
+ * Set identifier
+ * @param akosa kosa number
+ * @param ameasure measurement no
+ * @param apacket -1- first packet (w/o data)
+ */ 
 void LoggerItemId::set(
 	uint8_t akosa,						// идентификатор косы (номер, дата)
 	uint8_t ameasure,					// мл. Байт номера замера, lsb used (или addr_used?)
-	uint8_t apacket						// packet number
+	int8_t apacket						// packet number
 )
 {
 	kosa = akosa;
@@ -217,7 +223,7 @@ void LoggerItemId::set(
 
 // std::string errDescription;
 LoggerItem::LoggerItem()
-	: errCode(0)
+	: errCode(0), measurement(NULL)
 {
 
 }
@@ -225,7 +231,7 @@ LoggerItem::LoggerItem()
 LoggerItem::LoggerItem(
 	const LoggerItem &value
 )
-	: packet(value.packet), errCode(value.errCode)
+	: packet(value.packet), errCode(value.errCode), measurement(NULL)
 {
 	
 }
@@ -235,7 +241,8 @@ LoggerItem::LoggerItem(
 	size_t asize
 )
 {
-	LOGGER_PACKET_TYPE t = set(abuffer, asize);
+	void *next;
+	LOGGER_PACKET_TYPE t = set(&next, abuffer, asize);
 	if (t == LOGGER_PACKET_UNKNOWN)
 		errCode = ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	else
@@ -270,22 +277,38 @@ LoggerItem::~LoggerItem()
 }
 
 LOGGER_PACKET_TYPE LoggerItem::set(
+	void **retBuffer,
 	const void *abuffer,
 	size_t asize
 )
 {
-	packet = std::string((const char *) abuffer, asize);
+	size_t sz;
+	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, abuffer, asize);	// 
+	if (t == LOGGER_PACKET_UNKNOWN) {
+		if (retBuffer)
+			*retBuffer = NULL;
+		return t;
+	}
+
+	packet = std::string((const char *) abuffer, sz);
+
 	LOGGER_MEASUREMENT_HDR *hdr;
-	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, abuffer, asize);
+	
 	switch (t) {
 		case LOGGER_PACKET_RAW:
-			id.set(hdr->kosa, 0, 0);
+			extractMeasurementHeader(&hdr, abuffer, asize);
+			id.set(hdr->kosa, 0, -1);	// -1: first packet (with no data)
+			if (retBuffer)
+				*retBuffer = NULL;
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-				extractFirstHdr(&h1, abuffer, asize);
-				id.set(h1->kosa, h1->measure, 0);
+				// LOGGER_MEASUREMENT_HDR *measurementHeader;
+				extractFirstHdr(&h1, &measurement, abuffer, asize);
+				id.set(h1->kosa, h1->measure, -1);	// -1: first packet (with no data)
+				if (retBuffer)
+					*retBuffer = (char *) abuffer + sz;
 			}
 			break;
 		case LOGGER_PACKET_PKT_2:
@@ -293,9 +316,13 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 				LOGGER_PACKET_SECOND_HDR *h2;
 				extractSecondHdr(&h2, abuffer, asize);
 				id.set(h2->kosa, h2->measure, h2->packet);
+				if (retBuffer)
+					*retBuffer = (char *) abuffer + sz;
 			}
 			break;
 		default: //case LOGGER_PACKET_UNKNOWN:
+			if (retBuffer)
+				*retBuffer = NULL;
 			break;
 	}
 	return t;
@@ -317,7 +344,9 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 	size_t size
 )
 {
-	LoggerItem item(buffer, size);
+	LoggerItem item;
+	void *next;
+	item.set(&next, buffer, size);
 	if (item.errCode)
 		return LOGGER_PACKET_UNKNOWN;
 	items.push_back(item);
@@ -368,32 +397,35 @@ std::string LoggerItem::toString() const
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-				int r = extractFirstHdr(&h1, packet.c_str(), packet.size());
+				LOGGER_MEASUREMENT_HDR *measurement;
+				int r = extractFirstHdr(&h1, &measurement, packet.c_str(), packet.size());
 				if (r)
 					break;
 				std::stringstream ss;
-				ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl;
-				uint8_t sensor;
-				/*
-				for (int i = 0; i < 4; i++) {
-					int16_t t = extractFirstHdrData(&sensor, i, packet.c_str(), packet.size());
-					ss
-						<< (int) sensor << ": "
-						<< (int) t << ", ";
-				}
-				*/
-				LOGGER_PACKET_SECOND_HDR *h2;
-				for (int i = 0; i < h1->packets - 1; i++) {
-					for (int p = 0; p < 5; p++) {
-						int16_t t = extractSecondHdrData(&sensor, i, p, packet.c_str(), packet.size());
-						ss
-							<< (int) sensor << ": "
-							<< t << ", ";
-					}
-				}
+				ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl
+					<< LOGGER_MEASUREMENT_HDR_2_string(*measurement) << std::endl;
 				s = ss.str();
 			}
 			break;
+		case LOGGER_PACKET_PKT_2:
+			{
+				std::stringstream ss;
+				LOGGER_PACKET_SECOND_HDR *h2;
+				bool first = true;
+				for (int p = 0; p < 5; p++) {
+					LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
+					if (!v)
+						break;
+					if (first)
+						first = false;
+					else
+						ss << ", ";
+					ss
+						<< (int) v->sensor << ": "
+						<< v->t;
+				}
+				s = ss.str();
+			}
 		default:
 			break;
 	}
