@@ -65,7 +65,7 @@ size_t getLoggerPacketTypeSize(
 			r = 0;
 			break;
 	}
-	if (r > bufferSize)
+	if (r <= bufferSize)
 		return r;
 	return bufferSize;
 }

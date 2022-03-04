@@ -241,8 +241,8 @@ LoggerItem::LoggerItem(
 	size_t asize
 )
 {
-	void *next;
-	LOGGER_PACKET_TYPE t = set(&next, abuffer, asize);
+	size_t sz;
+	LOGGER_PACKET_TYPE t = set(sz, abuffer, asize);
 	if (t == LOGGER_PACKET_UNKNOWN)
 		errCode = ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	else
@@ -277,20 +277,18 @@ LoggerItem::~LoggerItem()
 }
 
 LOGGER_PACKET_TYPE LoggerItem::set(
-	void **retBuffer,
+	size_t &retSize,
 	const void *abuffer,
 	size_t asize
 )
 {
-	size_t sz;
-	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, abuffer, asize);	// 
+	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&retSize, abuffer, asize);	// 
 	if (t == LOGGER_PACKET_UNKNOWN) {
-		if (retBuffer)
-			*retBuffer = NULL;
+		retSize = 0;
 		return t;
 	}
 
-	packet = std::string((const char *) abuffer, sz);
+	packet = std::string((const char *) abuffer, retSize);
 
 	LOGGER_MEASUREMENT_HDR *hdr;
 	
@@ -298,8 +296,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 		case LOGGER_PACKET_RAW:
 			extractMeasurementHeader(&hdr, abuffer, asize);
 			id.set(hdr->kosa, 0, -1);	// -1: first packet (with no data)
-			if (retBuffer)
-				*retBuffer = NULL;
+			retSize = 0;
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
@@ -307,8 +304,6 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 				// LOGGER_MEASUREMENT_HDR *measurementHeader;
 				extractFirstHdr(&h1, &measurement, abuffer, asize);
 				id.set(h1->kosa, h1->measure, -1);	// -1: first packet (with no data)
-				if (retBuffer)
-					*retBuffer = (char *) abuffer + sz;
 			}
 			break;
 		case LOGGER_PACKET_PKT_2:
@@ -316,13 +311,10 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 				LOGGER_PACKET_SECOND_HDR *h2;
 				extractSecondHdr(&h2, abuffer, asize);
 				id.set(h2->kosa, h2->measure, h2->packet);
-				if (retBuffer)
-					*retBuffer = (char *) abuffer + sz;
 			}
 			break;
 		default: //case LOGGER_PACKET_UNKNOWN:
-			if (retBuffer)
-				*retBuffer = NULL;
+			retSize = 0;
 			break;
 	}
 	return t;
@@ -340,16 +332,22 @@ LoggerCollection::~LoggerCollection()
 }
 
 LOGGER_PACKET_TYPE LoggerCollection::put(
+	size_t &retSize,
 	const void *buffer,
 	size_t size
 )
 {
 	LoggerItem item;
-	void *next;
-	item.set(&next, buffer, size);
-	if (item.errCode)
-		return LOGGER_PACKET_UNKNOWN;
+	
+	LOGGER_PACKET_TYPE t = item.set(retSize, buffer, size);
+	// check operation
+	if (t == LOGGER_PACKET_UNKNOWN)
+		return t;
+	// if (item.errCode) return LOGGER_PACKET_UNKNOWN;
+	
+	// add atiem
 	items.push_back(item);
+	return t;
 }
 
 std::string LoggerCollection::toString() const

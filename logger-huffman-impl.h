@@ -50,7 +50,7 @@ class LoggerItem {
 		bool operator==(const LoggerItem &another);
 		bool operator!=(const LoggerItem &another);
 
-		LOGGER_PACKET_TYPE set(	void **retBuffer, const void *buffer, size_t size);
+		LOGGER_PACKET_TYPE set(size_t &retSize, const void *buffer, size_t size);
 
 		std::string toString() const;
 		std::string toJsonString() const;
@@ -63,7 +63,7 @@ class LoggerCollection {
 		// std::string errDescription;
 		LoggerCollection();
 		virtual ~LoggerCollection();
-		LOGGER_PACKET_TYPE put(const void *buffer, size_t size);
+		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
 		std::string toString() const;
 		std::string toJsonString() const;
 };
