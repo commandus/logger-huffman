@@ -174,7 +174,7 @@ int16_t extractFirstHdrData(
 	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR)) + idx;	
 	if (sensor)
 		*sensor = p->sensor;
-	return NTOH2(p->t);
+	return NTOH2(p->value.t);
 }
 
 LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
@@ -200,7 +200,7 @@ int extractMeasurementHeaderData(
 	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_MEASUREMENT_HDR)) + idx;	
 	if (retval)
 		*retval = p;
-	return  NTOH2(p->t);
+	return  NTOH2(p->value.t);
 }
 
 
