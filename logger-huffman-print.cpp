@@ -138,29 +138,6 @@ int main(int argc, char **argv)
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
 
-
-    for (std::vector<std::string>::const_iterator it(config.values.begin()); it != config.values.end(); it++) {
-        size_t sz;
-        LOGGER_PACKET_TYPE t;
-        void *next = (void *) it->c_str();	
-        size_t size = it->size();
-
-        while (true) {
-            t = c.put(sz, next, size);
-            if (sz >= size)
-                break;
-            size -= sz;
-            next = (char *) next + sz;	
-        }
-
-        if (t == LOGGER_PACKET_UNKNOWN)
-            printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
-    }
-
-
-
-
-
     std::string s;
     switch (config.outputFormat) {
         case LOGGER_OUTPUT_FORMAT_TEXT:
