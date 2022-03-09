@@ -191,12 +191,15 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 }
 
 int extractMeasurementHeaderData(
+	LOGGER_DATA_TEMPERATURE_RAW **retval,
 	int idx,
 	const void *buffer,
 	size_t bufferSize
 )
 {
 	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_MEASUREMENT_HDR)) + idx;	
+	if (retval)
+		*retval = p;
 	return  NTOH2(p->t);
 }
 

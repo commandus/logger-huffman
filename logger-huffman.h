@@ -139,6 +139,7 @@ int16_t extractSecondHdr(
 );
 
 int extractMeasurementHeaderData(
+	LOGGER_DATA_TEMPERATURE_RAW **retval,
 	int idx,
 	const void *buffer,
 	size_t bufferSize

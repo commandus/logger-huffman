@@ -73,7 +73,11 @@ std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);
 LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(const std::string &value);
 
 std::string LOGGER_MEASUREMENT_HDR_2_string(const LOGGER_MEASUREMENT_HDR &value);
+std::string LOGGER_MEASUREMENT_HDR_2_json(const LOGGER_MEASUREMENT_HDR &value);
+std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(const LOGGER_DATA_TEMPERATURE_RAW *value);
 std::string LOGGER_PACKET_FIRST_HDR_2_string(const LOGGER_PACKET_FIRST_HDR &value);
+std::string LOGGER_PACKET_FIRST_HDR_2_json(const LOGGER_PACKET_FIRST_HDR &value);
+std::string LOGGER_PACKET_SECOND_HDR_2_json(const LOGGER_PACKET_SECOND_HDR &value);
 
 std::string hex2binString(const char *hexChars, size_t size);
 std::string bin2hexString(const char *binChars, size_t size);
