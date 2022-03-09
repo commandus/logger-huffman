@@ -68,6 +68,28 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
 	return ss.str();
 }
 
+std::string LOGGER_MEASUREMENT_HDR_2_json(
+	const LOGGER_MEASUREMENT_HDR &value
+) {
+	std::stringstream ss;
+	ss 
+		<< "{"
+		<< "\"memblockoccupation\": " << (int) value.memblockoccupation
+		<< std::setfill('0') << std::setw(2)
+		<< ", \"time\": \"" << (int) value.year + 2000 << (int) value.month << (int) value.day
+		<< "T"
+		<< (int) value.hours << (int) value.minutes << (int) value.seconds
+		<< std::setw(0) << " "
+		<< "\", \"kosa\": " << (int) value.kosa
+		<< ", \"kosa_year\": " << (int) value.kosa_year
+		<< ", \"vcc\": " << (int) value.vcc
+		<< ", \"vbat\": " << (int) value.vbat
+		<< ", \"pcnt\": " << (int) value.pcnt
+		<< ", \"used\": " << (int) value.used
+		<< "}";
+	return ss.str();
+}
+
 /**
  * Prints out:
  *  type 74 always
@@ -93,6 +115,49 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
 		<< (int) value.measure << " "
 		<< (int) value.packets << " "
 		<< (int) value.kosa << "-" << (int) value.kosa_year;
+	return ss.str();
+}
+
+std::string LOGGER_PACKET_FIRST_HDR_2_json(
+	const LOGGER_PACKET_FIRST_HDR &value
+)
+{
+	std::stringstream ss;
+	ss << "{\"type\": " << (int) value.typ
+		<< ", \"size\": " << (int) value.size
+		<<  ", \"status\": " << (int) value.status.b
+		<<  ", \"data_bits\": " << (int) value.status.data_bits
+		<<  ", \"command_change\": " << (int) value.status.command_change
+		<<  ", \"measure\": " << (int) value.measure
+		<<  ", \"packets\": " << (int) value.packets
+		<<  ", \"kosa\": " << (int) value.kosa
+		<<  ", \"kosa_year\": " << (int) value.kosa_year
+		<< "}";
+	return ss.str();
+}
+
+std::string LOGGER_PACKET_SECOND_HDR_2_json(
+	const LOGGER_PACKET_SECOND_HDR &value
+)
+{
+	std::stringstream ss;
+	ss << "{\"type\": " << (int) value.typ
+		<<  ", \"kosa\": " << (int) value.kosa
+		<<  ", \"measure\": " << (int) value.measure
+		<<  ", \"packet\": " << (int) value.packet
+		<< "}";
+	return ss.str();
+}
+
+std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
+	const LOGGER_DATA_TEMPERATURE_RAW *value
+) {
+	std::stringstream ss;
+	if (value)
+		ss << "{\"sensor\": " << (int) value->sensor
+		<< ", \"t\": " << (int) value->t
+		<< ", \"rfu1\": " << (int) value->rfu1
+		<< "}";
 	return ss.str();
 }
 
@@ -344,8 +409,8 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 	if (t == LOGGER_PACKET_UNKNOWN)
 		return t;
 	// if (item.errCode) return LOGGER_PACKET_UNKNOWN;
-	
-	// add atiem
+
+	// add item
 	items.push_back(item);
 	return t;
 }
@@ -369,7 +434,7 @@ std::string LoggerCollection::toJsonString() const
 			first = false;
 		else
 			ss << ", ";
-		ss << it->toJsonString() << " ";
+		ss << "{\"item\": " << it->toJsonString() << "}";
 	}
 	ss << "]";
 	return ss.str();
@@ -386,7 +451,7 @@ std::string LoggerItem::toString() const
 				std::stringstream ss;
 				ss << LOGGER_MEASUREMENT_HDR_2_string(*hdr) << std::endl;
 				for (int i = 0; i < 0; i++) {
-					uint16_t t = extractMeasurementHeaderData(i, packet.c_str(), packet.size());
+					uint16_t t = extractMeasurementHeaderData(NULL, i, packet.c_str(), packet.size());
 					ss << (int) t << " ";
 				}
 				s = ss.str();
@@ -432,5 +497,61 @@ std::string LoggerItem::toString() const
 
 std::string LoggerItem::toJsonString() const
 {
-	return toString();
+	LOGGER_MEASUREMENT_HDR *hdr;
+	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, packet.c_str(), packet.size());
+	std::stringstream ss;
+	ss << "{";
+	bool first = true;
+	switch (t) {
+		case LOGGER_PACKET_RAW:
+			{
+				ss << "\"measurement_header\": " <<  LOGGER_MEASUREMENT_HDR_2_json(*hdr)
+					<< ", \"measurements\": [";
+				for (int i = 0; i < 0; i++) {
+					LOGGER_DATA_TEMPERATURE_RAW *tp;
+					uint16_t t = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
+					if (first)
+						first = false;
+					else
+						ss << ", ";
+					ss << LOGGER_DATA_TEMPERATURE_RAW_2_json(tp);
+				}
+				ss << "]";
+			}
+			break;
+		case LOGGER_PACKET_PKT_1:
+			{
+				LOGGER_PACKET_FIRST_HDR *h1;
+				LOGGER_MEASUREMENT_HDR *measurement;
+				int r = extractFirstHdr(&h1, &measurement, packet.c_str(), packet.size());
+				if (r)
+					break;
+				ss << "\"first_packet\": " << LOGGER_PACKET_FIRST_HDR_2_json(*h1) << ", "
+					<< "\"measurement_header\": " << LOGGER_MEASUREMENT_HDR_2_json(*measurement) << std::endl;
+			}
+			break;
+		case LOGGER_PACKET_PKT_2:
+			{
+				LOGGER_PACKET_SECOND_HDR *h2;
+				int r = extractSecondHdr(&h2, packet.c_str(), packet.size());
+				if (r == 0) {
+					ss << "\"second_packet\": " << LOGGER_PACKET_SECOND_HDR_2_json(*h2) << ", \"measurements\": [";
+					for (int p = 0; p < 5; p++) {
+						LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
+						if (!v)
+							break;
+						if (first)
+							first = false;
+						else
+							ss << ", ";
+						ss << LOGGER_DATA_TEMPERATURE_RAW_2_json(v);
+					}
+				}
+				ss << "]";
+			}
+		default:
+			break;
+	}
+	ss << "}";
+	return ss.str();
 }

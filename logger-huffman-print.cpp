@@ -28,11 +28,17 @@ const std::string programName = "logger-huffman-print";
 #define ENABLE_TERM_COLOR	1
 #endif
 
+typedef enum {
+	LOGGER_OUTPUT_FORMAT_JSON = 0,			// default
+	LOGGER_OUTPUT_FORMAT_TEXT = 1		    // text
+} LOGGER_OUTPUT_FORMAT;
+
 class LoggerHuffmanPrintConfiguration {
 public:
-    std::vector<std::string> values;          // packet data
-    int mode;                   // 0- binary from stdin, 1- hex in command line parameter
-    int verbosity;              // verbosity level
+    std::vector<std::string> values;            // packet data
+    int mode;                                   // 0- binary from stdin, 1- hex in command line parameter
+    LOGGER_OUTPUT_FORMAT outputFormat;          // default 0- JSON
+    int verbosity;                              // verbosity level
     bool hasValue;
 };
 
@@ -49,15 +55,15 @@ int parseCmd(
 {
     // device path
     struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
-
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
+    struct arg_lit *a_output_text = arg_lit0("t", "text", "Default JSON");
 
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
     struct arg_end *a_end = arg_end(20);
 
     void *argtable[] = {
-        a_value_hex, a_value_stdin,
+        a_value_hex, a_value_stdin, a_output_text,
         a_verbosity, a_help, a_end
     };
 
@@ -70,6 +76,7 @@ int parseCmd(
     int nerrors = arg_parse(argc, argv, argtable);
 
     if ((nerrors == 0) && (a_help->count == 0)) {
+        config->outputFormat = a_output_text-> count > 0 ? LOGGER_OUTPUT_FORMAT_TEXT : LOGGER_OUTPUT_FORMAT_JSON;
         config->verbosity = a_verbosity->count;
         if (a_value_hex->count) {
             for (int i = 0; i < a_value_hex->count; i++) {
@@ -142,6 +149,14 @@ int main(int argc, char **argv)
         if (t == LOGGER_PACKET_UNKNOWN)
             printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
     }
-    std::string s = c.toString();
+
+    std::string s;
+    switch (config.outputFormat) {
+        case LOGGER_OUTPUT_FORMAT_TEXT:
+            s = c.toString();
+            break;
+        default:
+            s = c.toJsonString();
+    }
     std::cout << s << std::endl;
 }
