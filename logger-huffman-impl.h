@@ -64,6 +64,7 @@ class LoggerCollection {
 		LoggerCollection();
 		virtual ~LoggerCollection();
 		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
+		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
 		std::string toString() const;
 		std::string toJsonString() const;
 };

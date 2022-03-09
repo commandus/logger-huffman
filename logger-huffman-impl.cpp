@@ -415,6 +415,27 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 	return t;
 }
 
+LOGGER_PACKET_TYPE LoggerCollection::put(
+	const std::vector<std::string> values
+)
+{
+	LOGGER_PACKET_TYPE t;
+	for (std::vector<std::string>::const_iterator it(values.begin()); it != values.end(); it++) {
+		size_t sz;
+		void *next = (void *) it->c_str();	
+		size_t size = it->size();
+
+		while (true) {
+			t = put(sz, next, size);
+			if (sz >= size)
+				break;
+			size -= sz;
+			next = (char *) next + sz;	
+		}
+	}
+	return t;
+}
+
 std::string LoggerCollection::toString() const
 {
 	std::stringstream ss;

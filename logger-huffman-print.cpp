@@ -132,6 +132,13 @@ int main(int argc, char **argv)
         printErrorAndExit(r);
 
     LoggerCollection c;
+
+    LOGGER_PACKET_TYPE t = c.put(config.values);
+
+    if (t == LOGGER_PACKET_UNKNOWN)
+        printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
+
+
     for (std::vector<std::string>::const_iterator it(config.values.begin()); it != config.values.end(); it++) {
         size_t sz;
         LOGGER_PACKET_TYPE t;
@@ -149,6 +156,10 @@ int main(int argc, char **argv)
         if (t == LOGGER_PACKET_UNKNOWN)
             printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
     }
+
+
+
+
 
     std::string s;
     switch (config.outputFormat) {
