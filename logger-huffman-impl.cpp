@@ -155,11 +155,12 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
 	std::stringstream ss;
 	if (value)
 		ss << "{\"sensor\": " << (int) value->sensor
-		<< ", \"t\": " << (int) value->value.t
-		<< ", \"c\": " << (int) value->value.f.c
-		<< ", \"d\": " << (int) value->value.f.d
-		<< ", \"rfu1\": " << (int) value->rfu1
-		<< "}";
+			<< std::fixed << std::setprecision(2)
+			<< ", \"t\": " << TEMPERATURE_2_BYTES_2_double(value->value)
+			<< ", \"hi\": " << (int) value->value.t.f.hi
+			<< ", \"lo\": " << (int) value->value.t.f.lo
+			<< ", \"rfu1\": " << (int) value->rfu1
+			<< "}";
 	return ss.str();
 }
 
@@ -508,7 +509,8 @@ std::string LoggerItem::toString() const
 						ss << ", ";
 					ss
 						<< (int) v->sensor << ": "
-						<< v->value.t;
+						<< std::fixed << std::setprecision(2)
+						<< ", \"t\": " << TEMPERATURE_2_BYTES_2_double(v->value);
 				}
 				s = ss.str();
 			}

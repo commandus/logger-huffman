@@ -75,18 +75,20 @@ typedef ALIGN struct {
 } PACKED LOGGER_PACKET_SECOND_HDR;			// 4 bytes
 
 typedef ALIGN struct {
-	int8_t c;						    	// Temperature, C degrees
-	uint8_t d: 4;							// .
-	uint8_t rfu: 4;							// not used
+	int8_t lo;						    	// Temperature * 0.625, lo byte
+	uint8_t hi;								// Temperature * 0.625, hi byte
 } PACKED TEMPERATURE_12_BITS;				// 2 bytes
 
+typedef ALIGN struct {
+	union {
+		int16_t t00625;						// temperature * 0.0625, C. 12 bits, 
+		TEMPERATURE_12_BITS f;
+	} t;
+} PACKED TEMPERATURE_2_BYTES;				// 2 bytes
 
 typedef ALIGN struct {
 	uint8_t sensor;						    // номер датчика 0..255
-	union {
-		int16_t t;							// temperature, C. 12 bits
-		TEMPERATURE_12_BITS f;
-	} value;
+	TEMPERATURE_2_BYTES value;
 	uint8_t rfu1;							// angle,. not used
 } PACKED LOGGER_DATA_TEMPERATURE_RAW;			// 4 bytes
 
@@ -169,6 +171,10 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 	int p,
 	const void *buffer,
 	size_t bufferSize
+);
+
+double TEMPERATURE_2_BYTES_2_double(
+	TEMPERATURE_2_BYTES value
 );
 
 #ifdef __cplusplus
