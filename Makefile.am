@@ -51,7 +51,12 @@ test_compress_decompress_SOURCES = \
 	tests/test-compress-decompress.cpp
 test_compress_decompress_LDADD = $(L_LOGGER_HUFFMAN)
 
+test_temperature_SOURCES = \
+	tests/test-temperature.c
+test_temperature_LDADD = $(L_LOGGER_HUFFMAN)
+
 check_PROGRAMS = \
-	test-compress-decompress
+	test-compress-decompress \
+	test-temperature
 
 TESTS = $(check_PROGRAMS)
