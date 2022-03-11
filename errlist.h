@@ -1,5 +1,6 @@
 // Error codes
 #define LOGGER_HUFFMAN_OK  						0
+#define		ERR_LIST_COUNT						9
 #define ERR_LOGGER_HUFFMAN_SEGMENTATION_FAULT	-700
 #define ERR_LOGGER_HUFFMAN_ABRT           		-701
 #define ERR_LOGGER_HUFFMAN_COMMAND_LINE	   		-702
