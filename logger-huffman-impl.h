@@ -138,6 +138,9 @@ class LoggerKosaCollection {
 		 * Put collection of strings
 		 */
 		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
+
+		std::string toString() const;
+		std::string toJsonString() const;
 };
 
 std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);

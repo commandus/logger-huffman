@@ -747,3 +747,33 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 		add(*it);
 	}
 }
+
+std::string LoggerKosaCollection::toString() const
+{
+	std::stringstream ss;
+	bool first = false;
+	for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
+		if (first)
+			first = false;
+		else
+			ss << ", ";
+		ss << it->packets.toString();
+	}
+	return ss.str();
+}
+
+std::string LoggerKosaCollection::toJsonString() const
+{
+	std::stringstream ss;
+	bool first = false;
+	ss << "[";
+	for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
+		if (first)
+			first = false;
+		else
+			ss << ", ";
+		ss << it->packets.toJsonString();
+	}
+	ss << "]";
+	return ss.str();
+}

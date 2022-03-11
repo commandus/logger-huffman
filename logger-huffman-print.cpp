@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     if (r != 0)
         printErrorAndExit(r);
 
-    LoggerCollection c;
+    LoggerKosaCollection c;
 
     LOGGER_PACKET_TYPE t = c.put(config.values);
 
