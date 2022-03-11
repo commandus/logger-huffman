@@ -19,7 +19,8 @@ class LoggerItemId {
 		LoggerItemId(
 			uint8_t kosa,						// идентификатор косы (номер, дата)
 			uint8_t measure,					// мл. Байт номера замера, lsb used (или addr_used?)
-			uint8_t packet						// packet number
+			uint8_t packet,						// packet number
+			uint8_t kosa_year
 		);
 		/**
 		 * Set identifier
@@ -33,6 +34,7 @@ class LoggerItemId {
 			int8_t packet,						// packet number
 			uint8_t kosa_year
 		);
+		LoggerItemId& operator=(const LoggerItemId& other);
 		bool operator==(const LoggerItemId &another) const;
 		bool operator!=(const LoggerItemId &another) const;
 };
@@ -54,7 +56,10 @@ class LoggerItem {
 
 		LoggerItem& operator=(const LoggerItem& other);
 		bool operator==(const LoggerItem &another) const;
+		bool operator==(const LoggerItemId &id) const;
+		
 		bool operator!=(const LoggerItem &another) const;
+		bool operator!=(const LoggerItemId &id) const;
 
 		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, const void *buffer, size_t size);
 
@@ -72,6 +77,7 @@ class LoggerCollection {
 		int errCode;
 
 		LoggerCollection();
+		LoggerCollection(const LoggerCollection &value);
 		virtual ~LoggerCollection();
 
 		void push(const LoggerItem &value);
@@ -100,6 +106,7 @@ class LoggerKosaPackets {
 		LoggerCollection packets;
 
 		LoggerKosaPackets();
+		LoggerKosaPackets(const LoggerKosaPackets &value);
 		LoggerKosaPackets(const LoggerItem &value);
 		virtual ~LoggerKosaPackets();
 

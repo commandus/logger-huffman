@@ -1,6 +1,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
+#include <algorithm>
 
 #include "logger-huffman-impl.h"
 #include "errlist.h"
@@ -166,8 +167,6 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
 	return ss.str();
 }
 
-#define		ERR_LIST_COUNT		9
-
 static const char *error_list_en[ERR_LIST_COUNT] = 
 {
 	"Segmentation fault",
@@ -191,7 +190,7 @@ const char *strerror_logger_huffman(
 		ss << ERR_UNKNOWN_ERROR_CODE << errCode;
 		return ss.str().c_str();
 	}
-	return "";
+	return error_list_en[idx];
 }
 
 /**
@@ -253,11 +252,22 @@ LoggerItemId::LoggerItemId()
 LoggerItemId::LoggerItemId(
 	uint8_t akosa,							// идентификатор косы (номер, дата)
 	uint8_t ameasure,						// мл. Байт номера замера, lsb used (или addr_used?)
-	uint8_t apacket							// packet number
+	uint8_t apacket,						// packet number
+	uint8_t akosa_year						// reserved for first packe
 )
-	: kosa(akosa), measure(ameasure), packet(apacket)
+	: kosa(akosa), measure(ameasure), packet(apacket), kosa_year(akosa_year)
 {
 
+}
+
+LoggerItemId& LoggerItemId::operator=(
+	const LoggerItemId& other
+)
+{
+	kosa = other.kosa;							// идентификатор косы (номер, дата)
+	measure = other.measure;					// мл. Байт номера замера, lsb used (или addr_used?)
+	packet = other.packet;						// packet number
+	kosa_year = other.kosa_year;				// reserved for first packet
 }
 
 bool LoggerItemId::operator==(
@@ -340,8 +350,17 @@ bool LoggerItem::operator==(
 ) const
 {
 	return 
-		(received == another.received)
-		&& (packet == another.packet);
+		(id.kosa == another.id.kosa)
+		&& (id.measure == another.id.measure);
+}
+
+bool LoggerItem::operator==(
+	const LoggerItemId &aid
+) const
+{
+	return 
+		(id.kosa == aid.kosa)
+		&& (id.measure == aid.measure);
 }
 
 bool LoggerItem::operator!=(
@@ -349,6 +368,13 @@ bool LoggerItem::operator!=(
 ) const
 {
 	return !(*this == another);
+}
+
+bool LoggerItem::operator!=(
+	const LoggerItemId &aid
+) const
+{
+	return !(*this == aid);
 }
 
 LoggerItem::~LoggerItem()
@@ -406,6 +432,15 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 LoggerCollection::LoggerCollection()
 	: errCode(0), expectedPackets(0)
 {
+}
+
+LoggerCollection::LoggerCollection(
+	const LoggerCollection &value
+)
+	: expectedPackets(value.expectedPackets), errCode(value.errCode)
+
+{
+	std::copy(value.items.begin(), value.items.end(), std::back_inserter(items));
 }
 
 LoggerCollection::~LoggerCollection()
@@ -605,7 +640,17 @@ LoggerKosaPackets::LoggerKosaPackets()
 
 }
 
-LoggerKosaPackets::LoggerKosaPackets(const LoggerItem &value)
+LoggerKosaPackets::LoggerKosaPackets(
+	const LoggerKosaPackets &value
+)
+	: id(value.id), start(value.start)
+{
+	std::copy(value.packets.items.begin(), value.packets.items.end(), std::back_inserter(packets.items));
+}
+
+LoggerKosaPackets::LoggerKosaPackets(
+	const LoggerItem &value
+)
 {
 	start = time(NULL);
 	id = value.id;
@@ -632,9 +677,10 @@ bool LoggerKosaPackets::add(
 )
 {
 	bool newOne = packets.items.empty();
-	if (newOne || value.id == id) {
+	if (newOne || value == id) {
 		if (newOne) {
 			start = time(NULL);
+			id = value.id;
 		}
 		packets.items.push_back(value);
 		return true;
@@ -728,10 +774,11 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 )
 {
 	LoggerCollection c;
-	c.put(retSize, buffer, size);
+	LOGGER_PACKET_TYPE r = c.put(retSize, buffer, size);
 	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
 		add(*it);
 	}
+	return r;
 }
 
 /**
@@ -742,10 +789,11 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 )
 {
 	LoggerCollection c;
-	c.put(values);
+	LOGGER_PACKET_TYPE r = c.put(values);
 	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
 		add(*it);
 	}
+	return r;
 }
 
 std::string LoggerKosaCollection::toString() const
