@@ -208,5 +208,20 @@ double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 )
 {
-	return value.t.t00625 * 0.0625;
+#if BYTE_ORDER == BIG_ENDIAN
+	return HTON2(value.t.t00625) * 0.0625;
+#else
+	return (int16_t) value.t.t00625 * 0.0625;
+#endif	
+}
+
+double temperature_2_double(
+	uint16_t value
+)
+{
+#if BYTE_ORDER == BIG_ENDIAN
+	return HTON2(value) * 0.0625;
+#else
+	return (int16_t) value * 0.0625;
+#endif	
 }

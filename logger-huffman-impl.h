@@ -12,10 +12,13 @@ class LoggerItemId {
 		uint8_t kosa;							// идентификатор косы (номер, дата)
 		uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
 		uint8_t packet;							// packet number
+
+		uint8_t kosa_year;						// reserved for first packet
+
 		LoggerItemId();
 		LoggerItemId(
 			uint8_t kosa,						// идентификатор косы (номер, дата)
-			uint8_t measure,						// мл. Байт номера замера, lsb used (или addr_used?)
+			uint8_t measure,					// мл. Байт номера замера, lsb used (или addr_used?)
 			uint8_t packet						// packet number
 		);
 		/**
@@ -27,46 +30,114 @@ class LoggerItemId {
 		void set(
 			uint8_t kosa,						// идентификатор косы (номер, дата)
 			uint8_t measure,					// мл. Байт номера замера, lsb used (или addr_used?)
-			int8_t packet						// packet number
+			int8_t packet,						// packet number
+			uint8_t kosa_year
 		);
-		bool operator==(const LoggerItemId &another);
-		bool operator!=(const LoggerItemId &another);
+		bool operator==(const LoggerItemId &another) const;
+		bool operator!=(const LoggerItemId &another) const;
 };
 
 class LoggerItem {
 	public:
 		LoggerItemId id;
 		std::string packet;
+		time_t received;
 		int errCode;
 
 		LOGGER_MEASUREMENT_HDR *measurement;
 		// std::string errDescription;
 		LoggerItem();
+		LoggerItem(time_t t);
 		LoggerItem(const LoggerItem &value);
 		LoggerItem(const void *buffer, size_t size);
 		virtual ~LoggerItem();
 
 		LoggerItem& operator=(const LoggerItem& other);
-		bool operator==(const LoggerItem &another);
-		bool operator!=(const LoggerItem &another);
+		bool operator==(const LoggerItem &another) const;
+		bool operator!=(const LoggerItem &another) const;
 
-		LOGGER_PACKET_TYPE set(size_t &retSize, const void *buffer, size_t size);
+		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, const void *buffer, size_t size);
 
 		std::string toString() const;
 		std::string toJsonString() const;
 };
 
+/** 
+ * Raw collection of packets
+ */
 class LoggerCollection {
 	public:
-		std::vector <LoggerItem> items;
+		std::vector<LoggerItem> items;
+		uint8_t expectedPackets;	// keep expected packets
 		int errCode;
-		// std::string errDescription;
+
 		LoggerCollection();
 		virtual ~LoggerCollection();
+
+		void push(const LoggerItem &value);
+		/**
+		 * Put char buffer
+		 */
 		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
+		/**
+		 * Put collection of strings
+		 */
 		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
 		std::string toString() const;
 		std::string toJsonString() const;
+};
+
+//  5'
+#define MAX_SECONDS_WAIT_KOSA_PACKETS 5 * 60
+
+/** 
+ * Kosa packets collection
+ */
+class LoggerKosaPackets {
+	public:
+		LoggerItemId id;
+		time_t start;
+		LoggerCollection packets;
+
+		LoggerKosaPackets();
+		LoggerKosaPackets(const LoggerItem &value);
+		virtual ~LoggerKosaPackets();
+
+		bool expired();
+		bool completed();
+
+		bool add(const LoggerItem &value);
+
+		// do not compare with packet!
+		bool operator==(const LoggerItemId &another) const;
+		bool operator!=(const LoggerItemId &another) const;
+
+		bool operator==(uint8_t kosa) const;
+		bool operator!=(uint8_t kosa) const;
+};
+
+/** 
+ * Make an collection of kosa
+ */
+class LoggerKosaCollection {
+	public:
+		std::vector<LoggerKosaPackets> koses;
+
+		LoggerKosaCollection();
+		virtual ~LoggerKosaCollection();
+
+		int rmExpired();
+
+		bool add(const LoggerItem &value);
+		// helper functions
+		/**
+		 * Put char buffer
+		 */
+		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
+		/**
+		 * Put collection of strings
+		 */
+		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
 };
 
 std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);
@@ -80,7 +151,9 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(const LOGGER_PACKET_FIRST_HDR &valu
 std::string LOGGER_PACKET_FIRST_HDR_2_json(const LOGGER_PACKET_FIRST_HDR &value);
 std::string LOGGER_PACKET_SECOND_HDR_2_json(const LOGGER_PACKET_SECOND_HDR &value);
 
+/** hexadecimal data represented string to binary */
 std::string hex2binString(const char *hexChars, size_t size);
+/** binary data to hexadecimal represented data string to binary */
 std::string bin2hexString(const char *binChars, size_t size);
 
 const char *strerror_logger_huffman(int errCode);

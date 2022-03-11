@@ -75,7 +75,7 @@ typedef ALIGN struct {
 } PACKED LOGGER_PACKET_SECOND_HDR;			// 4 bytes
 
 typedef ALIGN struct {
-	int8_t lo;						    	// Temperature * 0.625, lo byte
+	uint8_t lo;						    	// Temperature * 0.625, lo byte
 	uint8_t hi;								// Temperature * 0.625, hi byte
 } PACKED TEMPERATURE_12_BITS;				// 2 bytes
 
@@ -175,6 +175,10 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 
 double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
+);
+
+double temperature_2_double(
+	uint16_t value
 );
 
 #ifdef __cplusplus
