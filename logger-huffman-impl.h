@@ -37,6 +37,9 @@ class LoggerItemId {
 		LoggerItemId& operator=(const LoggerItemId& other);
 		bool operator==(const LoggerItemId &another) const;
 		bool operator!=(const LoggerItemId &another) const;
+
+		std::string toString() const;
+		std::string toJsonString() const;
 };
 
 class LoggerItem {
@@ -110,8 +113,8 @@ class LoggerKosaPackets {
 		LoggerKosaPackets(const LoggerItem &value);
 		virtual ~LoggerKosaPackets();
 
-		bool expired();
-		bool completed();
+		bool expired() const;
+		bool completed() const;
 
 		bool add(const LoggerItem &value);
 
@@ -121,6 +124,8 @@ class LoggerKosaPackets {
 
 		bool operator==(uint8_t kosa) const;
 		bool operator!=(uint8_t kosa) const;
+
+		std::string toJsonString() const;
 };
 
 /** 

@@ -27,10 +27,12 @@ $(bin_PROGRAMS): $(lib_LIBRARIES)
 
 nobase_dist_include_HEADERS = \
 	platform.h logger-huffman.h utilcompress.h errlist.h logger-huffman-impl.h \
+	util-time-fmt.h \
 	third_party/argtable3/argtable3.h
 
 logger_huffman_print_SOURCES = \
 	logger-huffman-print.cpp \
+	util-time-fmt.cpp \
 	third_party/argtable3/argtable3.c
 logger_huffman_print_LDADD = \
 	$(L_LOGGER_HUFFMAN)

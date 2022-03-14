@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <algorithm>
 
+#include "util-time-fmt.h"
 #include "logger-huffman-impl.h"
 #include "errlist.h"
 
@@ -73,15 +74,27 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
 	const LOGGER_MEASUREMENT_HDR &value
 ) {
 	std::stringstream ss;
+	bool isLocaltime = true;
+
+	time_t t = logger2time(
+		value.year,
+		value.month - 1,
+		value.day,
+		value.hours,
+		value.minutes,
+		value.seconds,
+		isLocaltime
+	);
+
 	ss 
 		<< "{"
 		<< "\"memblockoccupation\": " << (int) value.memblockoccupation
 		<< std::setfill('0') << std::setw(2)
-		<< ", \"time\": \"" << (int) value.year + 2000 << (int) value.month << (int) value.day
-		<< "T"
-		<< (int) value.hours << (int) value.minutes << (int) value.seconds
+		<< ", \"time\": " << t
+		<< ", \"localtime\": \"" << time2string(t, true)
+		<< "\", \"gmt\": \"" << time2string(t, false) << "\""
 		<< std::setw(0) << " "
-		<< "\", \"kosa\": " << (int) value.kosa
+		<< ", \"kosa\": " << (int) value.kosa
 		<< ", \"kosa_year\": " << (int) value.kosa_year
 		<< ", \"vcc\": " << (int) value.vcc
 		<< ", \"vbat\": " << (int) value.vbat
@@ -301,6 +314,30 @@ void LoggerItemId::set(
 	measure = ameasure;
 	packet = apacket;
 	kosa_year = akosa_year;
+}
+
+std::string LoggerItemId::toString() const
+{
+	std::stringstream ss;
+	ss 
+		<< (int) kosa								// идентификатор косы (номер, дата)
+		<< " " << (int) measure						// мл. Байт номера замера, lsb used (или addr_used?)
+		<< " " << (int) packet						// packet number
+		<< " " << (int) kosa_year;					// reserved for first packet
+	return ss.str();	
+}
+
+std::string LoggerItemId::toJsonString() const
+{
+	std::stringstream ss;
+	ss 
+		<< "{\"kosa\": "
+		<< (int) kosa								// идентификатор косы (номер, дата)
+		<< ", \"measure\": " << (int) measure		// мл. Байт номера замера, lsb used (или addr_used?)
+		<< ", \"packet\": " << (int) packet			// packet number
+		<< ", \"kosa_year\": " << (int) kosa_year	// reserved for first packet
+		<< "}";
+	return ss.str();
 }
 
 LoggerItem::LoggerItem()
@@ -662,12 +699,12 @@ LoggerKosaPackets::~LoggerKosaPackets()
 
 }
 
-bool LoggerKosaPackets::expired()
+bool LoggerKosaPackets::expired() const 
 {
 	return (time(NULL) - start) > MAX_SECONDS_WAIT_KOSA_PACKETS;
 }
 
-bool LoggerKosaPackets::completed()
+bool LoggerKosaPackets::completed() const
 {
 	packets.items.size() == packets.expectedPackets;
 }
@@ -714,6 +751,18 @@ bool LoggerKosaPackets::operator!=(
 ) const
 {
 	return id.kosa != akosa;
+}
+
+std::string LoggerKosaPackets::toJsonString() const
+{
+	std::stringstream ss;
+	ss << "{\"id\": " <<  id.toJsonString()
+		<< ", \"start\": " << start
+		<< ", \"expired\": " << (expired() ? "true" : "false")
+		<< ", \"completed\": " << (completed() ? "true" : "false")
+		<< ", \"packets\": " << packets.toJsonString()
+		<< "}";
+	return ss.str();
 }
 
 LoggerKosaCollection::LoggerKosaCollection()
@@ -813,14 +862,14 @@ std::string LoggerKosaCollection::toString() const
 std::string LoggerKosaCollection::toJsonString() const
 {
 	std::stringstream ss;
-	bool first = false;
+	bool first = true;
 	ss << "[";
 	for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
 		if (first)
 			first = false;
 		else
 			ss << ", ";
-		ss << it->packets.toJsonString();
+		ss << it->toJsonString();
 	}
 	ss << "]";
 	return ss.str();
