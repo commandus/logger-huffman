@@ -11,7 +11,7 @@ class LoggerItemId {
 	public:
 		uint8_t kosa;							// идентификатор косы (номер, дата)
 		uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
-		uint8_t packet;							// packet number
+		int8_t packet;							// packet number
 
 		uint8_t kosa_year;						// reserved for first packet
 
@@ -125,6 +125,7 @@ class LoggerKosaPackets {
 		bool operator==(uint8_t kosa) const;
 		bool operator!=(uint8_t kosa) const;
 
+		std::string toString() const;
 		std::string toJsonString() const;
 };
 

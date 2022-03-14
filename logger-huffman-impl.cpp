@@ -56,17 +56,27 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
 	const LOGGER_MEASUREMENT_HDR &value
 ) {
 	std::stringstream ss;
-	ss << (int) value.memblockoccupation << " "
-		<< std::setfill('0') << std::setw(2)
-		<< (int) value.year + 2000 << (int) value.month << (int) value.day
-		<< "T"
-		<< (int) value.hours << ":" << (int) value.minutes << ":" << (int) value.seconds
-		<< std::setw(0) << " "
-		<< (int) value.kosa << "-" << (int) value.kosa_year
-		<<  " "
-		<< (int) value.vcc << " " << (int) value.vbat
-		<<  " "
-		<< (int) value.pcnt << " " << (int) value.used;
+	time_t t = logger2time(
+		value.year,
+		value.month - 1,
+		value.day,
+		value.hours,
+		value.minutes,
+		value.seconds,
+		true
+	);
+
+	ss << "measurement header:" << std::endl
+		<< "mem\t" << (int) value.memblockoccupation << std::endl
+		<< "time\t" << t << std::endl
+		<< "local\t" << time2string(t, true) << std::endl
+		<< "gmt\t" << time2string(t, false) << std::endl
+		<< "kosa\t" << (int) value.kosa << std::endl
+		<< "year\t" << (int) value.kosa_year + 2000 << std::endl
+		<< "vcc\t" << (int) value.vcc << std::endl
+		<< "vbat\t" << (int) value.vbat << std::endl
+		<< "pcnt\t" << (int) value.pcnt << std::endl
+		<< "used\t" << (int) value.used << std::endl;
 	return ss.str();
 }
 
@@ -121,14 +131,17 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
 )
 {
 	std::stringstream ss;
-	ss << (int) value.typ << " "
-		<< (int) value.size << " "
-		<< (int) value.status.b << " "
-		<< (int) value.status.data_bits << " "
-		<< (int) value.status.command_change << " "
-		<< (int) value.measure << " "
-		<< (int) value.packets << " "
-		<< (int) value.kosa << "-" << (int) value.kosa_year;
+	ss
+		<< "header:" << std::endl
+		<< "type\t" << (int) value.typ << std::endl
+		<< "size\t" << (int) value.size << std::endl
+		<< "status\t" << (int) value.status.b << std::endl
+		<< "bits\t" <<  (int) value.status.data_bits << std::endl
+		<< "cmd ch\t" << (int) value.status.command_change << std::endl
+		<< "measure\t" << (int) value.measure << std::endl
+		<< "packets\t" << (int) value.packets << std::endl
+		<< "kosa\t" << (int) value.kosa  << std::endl
+		<< "year\t" << (int) value.kosa_year + 2000 << std::endl;
 	return ss.str();
 }
 
@@ -320,10 +333,10 @@ std::string LoggerItemId::toString() const
 {
 	std::stringstream ss;
 	ss 
-		<< (int) kosa								// идентификатор косы (номер, дата)
-		<< " " << (int) measure						// мл. Байт номера замера, lsb used (или addr_used?)
-		<< " " << (int) packet						// packet number
-		<< " " << (int) kosa_year;					// reserved for first packet
+		<< "kosa\t" << (int) kosa << std::endl								// идентификатор косы (номер, дата)
+		<< "measure\t" << (int) measure << std::endl						// мл. Байт номера замера, lsb used (или addr_used?)
+		<< "packet\t" << (int) packet << std::endl						// packet number
+		<< "year\t" << (int) 2000 + kosa_year << std::endl;					// reserved for first packet
 	return ss.str();	
 }
 
@@ -354,8 +367,9 @@ LoggerItem::LoggerItem(time_t value)
 LoggerItem::LoggerItem(
 	const LoggerItem &value
 )
-	: packet(value.packet), errCode(value.errCode), measurement(NULL), received(value.received)
+	: id(value.id), packet(value.packet), errCode(value.errCode), measurement(NULL), received(value.received)
 {
+
 }
 
 LoggerItem::LoggerItem(
@@ -533,7 +547,7 @@ std::string LoggerCollection::toString() const
 {
 	std::stringstream ss;
 	for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
-		ss << it->toString() << " ";
+		ss << it->toString() << std::endl;
 	}
 	return ss.str();
 }
@@ -593,14 +607,11 @@ std::string LoggerItem::toString() const
 					LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
 					if (!v)
 						break;
-					if (first)
-						first = false;
-					else
-						ss << ", ";
 					ss
-						<< (int) v->sensor << ": "
+						<< (int) v->sensor
 						<< std::fixed << std::setprecision(2)
-						<< ", \"t\": " << TEMPERATURE_2_BYTES_2_double(v->value);
+						<< "\t" << TEMPERATURE_2_BYTES_2_double(v->value)
+						<< std::endl;
 				}
 				s = ss.str();
 			}
@@ -753,6 +764,18 @@ bool LoggerKosaPackets::operator!=(
 	return id.kosa != akosa;
 }
 
+std::string LoggerKosaPackets::toString() const
+{
+	std::stringstream ss;
+	ss <<  std::endl
+		<< id.toString() << std::endl
+		<< "start\t" << start << std::endl
+		<< "expired\t" << (expired() ? "true" : "false") << std::endl
+		<< "completed\t" << (completed() ? "true" : "false") << std::endl
+		<< std::endl << packets.toString();
+	return ss.str();
+}
+
 std::string LoggerKosaPackets::toJsonString() const
 {
 	std::stringstream ss;
@@ -848,13 +871,13 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 std::string LoggerKosaCollection::toString() const
 {
 	std::stringstream ss;
-	bool first = false;
+	bool first = true;
 	for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
 		if (first)
 			first = false;
 		else
 			ss << ", ";
-		ss << it->packets.toString();
+		ss << it->toString();
 	}
 	return ss.str();
 }
