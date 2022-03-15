@@ -30,7 +30,8 @@ const std::string programName = "logger-huffman-print";
 
 typedef enum {
 	LOGGER_OUTPUT_FORMAT_JSON = 0,			// default
-	LOGGER_OUTPUT_FORMAT_TEXT = 1		    // text
+	LOGGER_OUTPUT_FORMAT_TEXT = 1,		    // text
+    LOGGER_OUTPUT_FORMAT_TABLE = 2		    // table
 } LOGGER_OUTPUT_FORMAT;
 
 class LoggerHuffmanPrintConfiguration {
@@ -56,14 +57,14 @@ int parseCmd(
     // device path
     struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
-    struct arg_lit *a_output_text = arg_lit0("t", "text", "Default JSON");
+    struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table", "Default json");
 
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
     struct arg_end *a_end = arg_end(20);
 
     void *argtable[] = {
-        a_value_hex, a_value_stdin, a_output_text,
+        a_value_hex, a_value_stdin, a_output_format,
         a_verbosity, a_help, a_end
     };
 
@@ -76,7 +77,14 @@ int parseCmd(
     int nerrors = arg_parse(argc, argv, argtable);
 
     if ((nerrors == 0) && (a_help->count == 0)) {
-        config->outputFormat = a_output_text-> count > 0 ? LOGGER_OUTPUT_FORMAT_TEXT : LOGGER_OUTPUT_FORMAT_JSON;
+        config->outputFormat = LOGGER_OUTPUT_FORMAT_JSON;
+        if (a_output_format->count) {
+            std::string s(*a_output_format->sval);
+            if (s == "text")
+                config->outputFormat = LOGGER_OUTPUT_FORMAT_TEXT;
+            if (s == "table")
+                config->outputFormat = LOGGER_OUTPUT_FORMAT_TABLE;
+        }
         config->verbosity = a_verbosity->count;
         if (a_value_hex->count) {
             for (int i = 0; i < a_value_hex->count; i++) {
@@ -139,9 +147,13 @@ int main(int argc, char **argv)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
 
     std::string s;
+
     switch (config.outputFormat) {
         case LOGGER_OUTPUT_FORMAT_TEXT:
             s = c.toString();
+            break;
+        case LOGGER_OUTPUT_FORMAT_TABLE:
+            s = c.toTableString();
             break;
         default:
             s = c.toJsonString();

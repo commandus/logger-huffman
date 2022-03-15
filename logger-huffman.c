@@ -165,43 +165,29 @@ int16_t extractSecondHdr(
 	}
 }
 
-int16_t extractFirstHdrData(
-	uint8_t *sensor,
-	int idx,
-	const void *buffer,
-	size_t bufferSize
-)
-{
-	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR)) + idx;	
-	if (sensor)
-		*sensor = p->sensor;
-	return NTOH2(p->value.t.t00625);
-}
-
 LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 	int p,
 	const void *buffer,
 	size_t bufferSize
 )
 {
-	size_t sz = + sizeof(LOGGER_PACKET_SECOND_HDR) + p * sizeof(LOGGER_DATA_TEMPERATURE_RAW);
-	LOGGER_DATA_TEMPERATURE_RAW *r = (LOGGER_DATA_TEMPERATURE_RAW *) (char *) buffer + sz;
-	if (sz + sizeof(LOGGER_DATA_TEMPERATURE_RAW) >= bufferSize)
+	LOGGER_DATA_TEMPERATURE_RAW *r = (LOGGER_DATA_TEMPERATURE_RAW *) buffer + p + 1;
+	if (r >= buffer + bufferSize)
 		return NULL;
 	return r;
 }
 
-int extractMeasurementHeaderData(
+double extractMeasurementHeaderData(
 	LOGGER_DATA_TEMPERATURE_RAW **retval,
 	int idx,
 	const void *buffer,
 	size_t bufferSize
 )
 {
-	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_MEASUREMENT_HDR)) + idx;	
+	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + (sizeof(LOGGER_MEASUREMENT_HDR)) * idx);	
 	if (retval)
 		*retval = p;
-	return  NTOH2(p->value.t.t00625);
+	return TEMPERATURE_2_BYTES_2_double(p->value);
 }
 
 double TEMPERATURE_2_BYTES_2_double(
