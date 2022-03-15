@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "logger-huffman.h"
 
@@ -65,9 +66,11 @@ class LoggerItem {
 		bool operator!=(const LoggerItemId &id) const;
 
 		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, const void *buffer, size_t size);
+		bool get(std::map<uint8_t, double> &t) const;
 
 		std::string toString() const;
 		std::string toJsonString() const;
+		std::string toTableString() const;
 };
 
 /** 
@@ -92,8 +95,16 @@ class LoggerCollection {
 		 * Put collection of strings
 		 */
 		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
+
+		bool completed() const;
+		bool get(std::map<uint8_t, double> &t) const;
+
 		std::string toString() const;
 		std::string toJsonString() const;
+		std::string toTableString(
+			const LoggerItemId &id,
+			const time_t &t
+		) const;
 };
 
 //  5'
@@ -114,7 +125,6 @@ class LoggerKosaPackets {
 		virtual ~LoggerKosaPackets();
 
 		bool expired() const;
-		bool completed() const;
 
 		bool add(const LoggerItem &value);
 
@@ -127,6 +137,7 @@ class LoggerKosaPackets {
 
 		std::string toString() const;
 		std::string toJsonString() const;
+		std::string toTableString() const;
 };
 
 /** 
@@ -154,6 +165,7 @@ class LoggerKosaCollection {
 
 		std::string toString() const;
 		std::string toJsonString() const;
+		std::string toTableString() const;
 };
 
 std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);
