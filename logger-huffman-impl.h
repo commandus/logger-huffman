@@ -91,6 +91,8 @@ class LoggerCollection {
 		 * Put char buffer
 		 */
 		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
+		void putRaw(size_t &retSize, const void *buffer, size_t size);
+
 		/**
 		 * Put collection of strings
 		 */
@@ -183,6 +185,7 @@ std::string LOGGER_PACKET_SECOND_HDR_2_json(const LOGGER_PACKET_SECOND_HDR &valu
 std::string hex2binString(const char *hexChars, size_t size);
 /** binary data to hexadecimal represented data string to binary */
 std::string bin2hexString(const char *binChars, size_t size);
+std::string bin2hexString(const std::string &value);
 
 const char *strerror_logger_huffman(int errCode);
 

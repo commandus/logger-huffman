@@ -1,9 +1,8 @@
 SUBDIRS = .
 ACLOCAL_AMFLAGS = -I m4
 
-COMMON_CPP_FLAGS = -std=c++11 -Ithird_party -D_GLIBCXX_USE_CXX11_ABI=0 -DDEBUG_PRINT
-AM_CPPFLAGS= $(COMMON_CPP_FLAGS)
-AM_CXXFLAGS= $(COMMON_CPP_FLAGS)
+COMMON_C_FLAGS = -Ithird_party -D_GLIBCXX_USE_CXX11_ABI=0 -DDEBUG_PRINT
+AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 
 #
 # Binaries
@@ -18,7 +17,7 @@ LIBLOGGERHUFFMANSRC = \
 #
 lib_LIBRARIES = liblogger-huffman.a
 liblogger_huffman_a_SOURCES = $(LIBLOGGERHUFFMANSRC)
-liblogger_huffman_a_CXXFLAGS = -fPIC
+liblogger_huffman_a_CXXFLAGS = $(COMMON_C_FLAGS) -fPIC
 
 L_LOGGER_HUFFMAN = -L. -llogger-huffman
 

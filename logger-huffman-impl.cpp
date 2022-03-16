@@ -270,6 +270,15 @@ std::string bin2hexString(
 	return r.str();
 }
 
+std::string bin2hexString(
+    const std::string &value
+)
+{
+    std::stringstream r;
+    bufferPrintHex(r, value.c_str(), value.size());
+    return r.str();
+}
+
 LoggerItemId::LoggerItemId()
 	: kosa(0), measure(0)
 {
@@ -335,7 +344,7 @@ std::string LoggerItemId::toString() const
 	ss 
 		<< "kosa\t" << (int) kosa << std::endl								// идентификатор косы (номер, дата)
 		<< "measure\t" << (int) measure << std::endl						// мл. Байт номера замера, lsb used (или addr_used?)
-		<< "packet\t" << (int) packet << std::endl						// packet number
+		<< "packet\t" << (int) packet << std::endl							// packet number
 		<< "year\t" << (int) 2000 + kosa_year << std::endl;					// reserved for first packet
 	return ss.str();	
 }
@@ -490,6 +499,7 @@ std::string LoggerItem::toString() const
 std::string LoggerItem::toJsonString() const
 {
 	LOGGER_MEASUREMENT_HDR *hdr;
+	
 	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, packet.c_str(), packet.size());
 	std::stringstream ss;
 	ss << "{";
@@ -563,7 +573,9 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 			{
 				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
 				for (int i = 0; i < cnt; i++) {
-					retval[i] = extractMeasurementHeaderData(NULL, i, packet.c_str(), packet.size());
+                    LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) packet.c_str()
+                        + sizeof(LOGGER_MEASUREMENT_HDR) + sizeof(LOGGER_DATA_TEMPERATURE_RAW) * i);
+                    retval[p->sensor] = TEMPERATURE_2_BYTES_2_double(p->value);
 				}
 			}
 			break;
@@ -593,19 +605,16 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 {
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&retSize, abuffer, asize);	// 
 	if (t == LOGGER_PACKET_UNKNOWN) {
-		retSize = 0;
+		retSize = asize; // go to the end
 		return t;
 	}
-
-	packet = std::string((const char *) abuffer, retSize);
-
-	LOGGER_MEASUREMENT_HDR *hdr;
+    packet = std::string((const char *) abuffer, retSize);
+    LOGGER_MEASUREMENT_HDR *hdr;
 	
 	switch (t) {
 		case LOGGER_PACKET_RAW:
 			extractMeasurementHeader(&hdr, abuffer, asize);
 			id.set(hdr->kosa, 0, -1, hdr->kosa_year);	// -1: first packet (with no data)
-			retSize = 0;
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
@@ -624,7 +633,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 			}
 			break;
 		default: //case LOGGER_PACKET_UNKNOWN:
-			retSize = 0;
+			retSize = asize;
 			break;
 	}
 	return t;
@@ -666,25 +675,41 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 	LoggerItem item;
 	LOGGER_PACKET_TYPE t = item.set(expectedPackets, retSize, buffer, size);
 	// check operation
-	if (t == LOGGER_PACKET_UNKNOWN)
-		return t;
-	// add item
-	push(item);
+	if (t != LOGGER_PACKET_UNKNOWN) {
+		// add item
+		push(item);
+	}
 	return t;
+}
+
+void LoggerCollection::putRaw(
+	size_t &retSize,
+	const void *buffer,
+	size_t size
+)
+{
+	retSize = size;
+	if (items.empty())
+		return;
+	LoggerItem &item = items.front();
+	item.packet = item.packet + std::string((const char *) buffer, size);
 }
 
 LOGGER_PACKET_TYPE LoggerCollection::put(
 	const std::vector<std::string> values
 )
 {
-	LOGGER_PACKET_TYPE t;
+	LOGGER_PACKET_TYPE t = LOGGER_PACKET_UNKNOWN;
 	for (std::vector<std::string>::const_iterator it(values.begin()); it != values.end(); it++) {
 		size_t sz;
 		void *next = (void *) it->c_str();	
 		size_t size = it->size();
 
 		while (true) {
-			t = put(sz, next, size);
+			if (t == LOGGER_PACKET_RAW) {
+				putRaw(sz, next, size);
+			} else
+				t = put(sz, next, size);
 			if (sz >= size)
 				break;
 			size -= sz;
@@ -701,8 +726,7 @@ bool LoggerCollection::completed() const
 
 bool LoggerCollection::get(std::map<uint8_t, double> &rerval) const
 {
-	if (!completed())
-		return false;
+	// if (!completed()) return false;
 	for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
 		it->get(rerval);
 	}
@@ -746,6 +770,7 @@ std::string LoggerCollection::toTableString(
 		<< (int) id.kosa_year + 2000 << "\t" 
 		<< (int) id.measure << "\t";
 	if (get(r)) {
+		// by default order by key operator<
 		for (std::map<uint8_t, double>::const_iterator it(r.begin()); it != r.end(); it++) 
 		{
 			ss
@@ -936,8 +961,10 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 	const std::vector<std::string> values
 )
 {
+	// temporary raw collection
 	LoggerCollection c;
 	LOGGER_PACKET_TYPE r = c.put(values);
+	// copy items from raw collection group by logger
 	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
 		add(*it);
 	}

@@ -88,7 +88,7 @@ int parseCmd(
         config->verbosity = a_verbosity->count;
         if (a_value_hex->count) {
             for (int i = 0; i < a_value_hex->count; i++) {
-                config->values.push_back(hex2binString(*a_value_hex->sval, strlen(*a_value_hex->sval)));
+                config->values.push_back(hex2binString(a_value_hex->sval[i], strlen(*a_value_hex->sval)));
             }
             
         } else {

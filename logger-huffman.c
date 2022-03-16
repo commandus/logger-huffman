@@ -172,7 +172,7 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 )
 {
 	LOGGER_DATA_TEMPERATURE_RAW *r = (LOGGER_DATA_TEMPERATURE_RAW *) buffer + p + 1;
-	if (r >= buffer + bufferSize)
+	if ((char *) r >= (char *) buffer + bufferSize)
 		return NULL;
 	return r;
 }
@@ -184,7 +184,8 @@ double extractMeasurementHeaderData(
 	size_t bufferSize
 )
 {
-	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + (sizeof(LOGGER_MEASUREMENT_HDR)) * idx);	
+	LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer
+            + sizeof(LOGGER_MEASUREMENT_HDR) + sizeof(LOGGER_DATA_TEMPERATURE_RAW) * idx);
 	if (retval)
 		*retval = p;
 	return TEMPERATURE_2_BYTES_2_double(p->value);
