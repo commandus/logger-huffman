@@ -212,3 +212,13 @@ double temperature_2_double(
 	return (int16_t) value * 0.0625;
 #endif	
 }
+
+double vcc_2_double(
+        uint8_t value
+) {
+    // return (1.1 * 1024.) / (value * 4.0);
+    if (value)
+        return 281.6 / value;
+    else
+        return 0.0;
+}

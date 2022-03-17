@@ -73,8 +73,8 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
 		<< "gmt\t" << time2string(t, false) << std::endl
 		<< "kosa\t" << (int) value.kosa << std::endl
 		<< "year\t" << (int) value.kosa_year + 2000 << std::endl
-		<< "vcc\t" << (int) value.vcc << std::endl
-		<< "vbat\t" << (int) value.vbat << std::endl
+		<< "vcc\t" << vcc_2_double(value.vcc) << std::endl
+		<< "vbat\t" << vcc_2_double(value.vbat) << std::endl
 		<< "pcnt\t" << (int) value.pcnt << std::endl
 		<< "used\t" << (int) value.used << std::endl;
 	return ss.str();
@@ -106,8 +106,8 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
 		<< std::setw(0) << " "
 		<< ", \"kosa\": " << (int) value.kosa
 		<< ", \"kosa_year\": " << (int) value.kosa_year
-		<< ", \"vcc\": " << (int) value.vcc
-		<< ", \"vbat\": " << (int) value.vbat
+		<< ", \"vcc\": " << vcc_2_double(value.vcc)
+		<< ", \"vbat\": " << vcc_2_double(value.vbat)
 		<< ", \"pcnt\": " << (int) value.pcnt
 		<< ", \"used\": " << (int) value.used
 		<< "}";
@@ -184,11 +184,13 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
 		ss << "{\"sensor\": " << (int) value->sensor
 			<< std::fixed << std::setprecision(2)
 			<< ", \"t\": " << TEMPERATURE_2_BYTES_2_double(value->value)
+#ifdef PRINT_DEBUG
 			<< std::hex << std::setw(2) << std::setfill('0')
 			<< ", \"hi\": \"" << (int) value->value.t.f.hi
 			<< "\", \"lo\": \"" << (int) value->value.t.f.lo
 			<< std::dec << std::setw(0)
 			<< "\", \"rfu1\": " << (int) value->rfu1
+#endif
 			<< "}";
 	return ss.str();
 }
@@ -362,6 +364,15 @@ std::string LoggerItemId::toJsonString() const
 	return ss.str();
 }
 
+void LoggerItemId::set(
+        const LOGGER_MEASUREMENT_HDR &value
+) {
+    kosa = value.kosa;
+    measure = 0;
+    packet = 0;
+    kosa_year = value.kosa_year;
+}
+
 LoggerItem::LoggerItem()
 	: errCode(0), measurement(NULL)
 {
@@ -382,13 +393,13 @@ LoggerItem::LoggerItem(
 }
 
 LoggerItem::LoggerItem(
-	const void *abuffer,
-	size_t asize
+	const void *aBuffer,
+	size_t aSize
 )
 {
 	size_t sz;
 	uint8_t packets;
-	LOGGER_PACKET_TYPE t = set(packets, sz, abuffer, asize);
+	LOGGER_PACKET_TYPE t = set(packets, sz, aBuffer, aSize);
 	if (t == LOGGER_PACKET_UNKNOWN)
 		errCode = ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	else
@@ -619,9 +630,11 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
+                extractFirstHdr(&h1, &measurement, abuffer, asize);
+                id.set(h1->kosa, h1->measure, -1, h1->kosa_year);	// -1: first packet (with no data)
+
 				// LOGGER_MEASUREMENT_HDR *measurementHeader;
-				extractFirstHdr(&h1, &measurement, abuffer, asize);
-				id.set(h1->kosa, h1->measure, -1, h1->kosa_year);	// -1: first packet (with no data)
+                // extractMeasurementHeader(&measurementHeader, abuffer, asize);
 				retPackets = h1->packets;
 			}
 			break;
@@ -637,6 +650,96 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 			break;
 	}
 	return t;
+}
+
+LoggerMeasurementHeader::LoggerMeasurementHeader()
+    : start(0), vcc(0), vbat(0)
+{
+
+}
+
+LoggerMeasurementHeader::LoggerMeasurementHeader(
+    const LoggerMeasurementHeader &value
+)
+    : id(value.id), start(value.start), vcc(value.vcc), vbat(value.vbat)
+{
+
+}
+
+LoggerMeasurementHeader::LoggerMeasurementHeader(
+    const LOGGER_MEASUREMENT_HDR *pheader,
+    size_t sz
+)
+{
+    setHdr(pheader, sz);
+}
+
+LoggerMeasurementHeader &LoggerMeasurementHeader::operator=(
+    const LOGGER_MEASUREMENT_HDR& value
+)
+{
+    this->setHdr(&value, sizeof(LOGGER_MEASUREMENT_HDR));
+}
+
+bool LoggerMeasurementHeader::operator==(const LoggerItemId &another) const
+{
+    return
+        (id.kosa == another.kosa)
+        && (id.measure == another.measure);
+}
+
+bool LoggerMeasurementHeader::operator==(const LoggerMeasurementHeader &another) const
+{
+    return
+        (id.kosa == another.id.kosa)
+        && (id.measure == another.id.measure);
+}
+
+bool LoggerMeasurementHeader::operator!=(const LoggerItemId &another) const
+{
+    return !(*this == another);
+}
+
+bool LoggerMeasurementHeader::operator!=(const LoggerMeasurementHeader &another) const
+{
+    return !(*this == another);
+}
+
+bool LoggerMeasurementHeader::setHdr(
+    const LOGGER_MEASUREMENT_HDR *pHeader,
+    size_t sz
+) {
+    if (sz < sizeof(LOGGER_MEASUREMENT_HDR))
+        return false;
+    if (!pHeader)
+        return false;
+    id.set(*pHeader);
+    start = logger2time(pHeader->year, pHeader->month, pHeader->day,
+                        pHeader->hours, pHeader->minutes, pHeader->seconds, true);
+    vcc = pHeader->vcc;
+    vbat = pHeader->vbat;
+}
+
+void LoggerMeasurementHeader::assign(
+    LOGGER_MEASUREMENT_HDR &retval
+) const
+{
+    retval.memblockoccupation = 0;			// 0- memory block occupied
+    struct tm *ti = localtime (&start);
+    retval.seconds = ti->tm_sec;			// 0..59
+    retval.minutes = ti->tm_min;			// 0..59
+    retval.hours = ti->tm_hour;				// 0..23
+    retval.day = ti->tm_mday;				// 1..31
+    retval.month = ti->tm_mon + 1;			// 1..12
+    retval.year =  ti->tm_year - 100;		// 0..99 year - 2000 = last 2 digits
+    retval.kosa = id.kosa;					// номер косы в году
+    retval.kosa_year = id.kosa_year;		// год косы - 2000 (номер года последние 2 цифры)
+    retval.rfu1 = 0;						// reserved
+    retval.rfu2 = 0;						// reserved
+    retval.vcc = vcc;						// V cc bus voltage, V
+    retval.vbat = vbat;						// V battery, V
+    retval.pcnt = 0;						// pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+    retval.used = 0;						// record number, 1..65535
 }
 
 // std::string errDescription;
@@ -696,6 +799,7 @@ void LoggerCollection::putRaw(
 }
 
 LOGGER_PACKET_TYPE LoggerCollection::put(
+    std::vector<LoggerMeasurementHeader> *retHeaders,
 	const std::vector<std::string> values
 )
 {
@@ -708,8 +812,27 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 		while (true) {
 			if (t == LOGGER_PACKET_RAW) {
 				putRaw(sz, next, size);
-			} else
-				t = put(sz, next, size);
+			} else {
+                t = put(sz, next, size);
+                if (retHeaders) {
+                    switch (t) {
+                        case LOGGER_PACKET_RAW:
+                            {
+                                LoggerMeasurementHeader mh((LOGGER_MEASUREMENT_HDR *) next, sz);
+                                retHeaders->push_back(mh);
+                            }
+                            break;
+                        case LOGGER_PACKET_PKT_1:
+                            {
+                                LOGGER_MEASUREMENT_HDR *measurementHeader;
+                                extractMeasurementHeader(&measurementHeader, next, sz);
+                                LoggerMeasurementHeader mh(measurementHeader, sizeof(LOGGER_MEASUREMENT_HDR));
+                                retHeaders->push_back(mh);
+                            }
+                            break;
+                        }
+                }
+            }
 			if (sz >= size)
 				break;
 			size -= sz;
@@ -784,13 +907,13 @@ std::string LoggerCollection::toTableString(
 LoggerKosaPackets::LoggerKosaPackets()
 	: start(0)
 {
-
+    clear_LOGGER_MEASUREMENT_HDR(header);
 }
 
 LoggerKosaPackets::LoggerKosaPackets(
 	const LoggerKosaPackets &value
 )
-	: id(value.id), start(value.start)
+	: id(value.id), start(value.start), header(value.header)
 {
 	std::copy(value.packets.items.begin(), value.packets.items.end(), std::back_inserter(packets.items));
 }
@@ -801,7 +924,8 @@ LoggerKosaPackets::LoggerKosaPackets(
 {
 	start = time(NULL);
 	id = value.id;
-	packets.items.push_back(value);
+    clear_LOGGER_MEASUREMENT_HDR(header);
+    packets.items.push_back(value);
 }
 
 LoggerKosaPackets::~LoggerKosaPackets()
@@ -877,6 +1001,7 @@ std::string LoggerKosaPackets::toJsonString() const
 		<< ", \"start\": " << start
 		<< ", \"expired\": " << (expired() ? "true" : "false")
 		<< ", \"completed\": " << (packets.completed() ? "true" : "false")
+        << ", \"measurement_header\": " << LOGGER_MEASUREMENT_HDR_2_json(header)
 		<< ", \"packets\": " << packets.toJsonString()
 		<< "}";
 	return ss.str();
@@ -963,12 +1088,18 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 {
 	// temporary raw collection
 	LoggerCollection c;
-	LOGGER_PACKET_TYPE r = c.put(values);
+    std::vector<LoggerMeasurementHeader> mhs;
+	LOGGER_PACKET_TYPE r = c.put(&mhs, values);
 	// copy items from raw collection group by logger
 	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
 		add(*it);
 	}
-	return r;
+
+    // copy header(s)
+    for (std::vector<LoggerMeasurementHeader>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
+        addHeader(*it);
+    }
+    return r;
 }
 
 std::string LoggerKosaCollection::toString() const
@@ -1008,4 +1139,22 @@ std::string LoggerKosaCollection::toTableString() const
 		ss << it->toTableString() << std::endl;
 	}
 	return ss.str();
+}
+
+bool LoggerKosaCollection::addHeader(
+    const LoggerMeasurementHeader &value
+)
+{
+    std::vector<LoggerKosaPackets>::iterator it(std::find(koses.begin(), koses.end(), value.id));
+    if (it == koses.end())
+        return false;
+    value.assign(it->header);
+    return true;
+}
+
+void clear_LOGGER_MEASUREMENT_HDR(
+    LOGGER_MEASUREMENT_HDR &value
+)
+{
+    std::fill((char *) &value, ((char *) &value) + sizeof(LOGGER_MEASUREMENT_HDR), 0);
 }

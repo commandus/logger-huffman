@@ -41,8 +41,13 @@ class LoggerItemId {
 
 		std::string toString() const;
 		std::string toJsonString() const;
+
+    void set(const LOGGER_MEASUREMENT_HDR &param);
 };
 
+/**
+ * Keep measurements
+ */
 class LoggerItem {
 	public:
 		LoggerItemId id;
@@ -55,7 +60,7 @@ class LoggerItem {
 		LoggerItem();
 		LoggerItem(time_t t);
 		LoggerItem(const LoggerItem &value);
-		LoggerItem(const void *buffer, size_t size);
+		LoggerItem(const void *aBuffer, size_t aSize);
 		virtual ~LoggerItem();
 
 		LoggerItem& operator=(const LoggerItem& other);
@@ -71,6 +76,32 @@ class LoggerItem {
 		std::string toString() const;
 		std::string toJsonString() const;
 		std::string toTableString() const;
+};
+
+/**
+ * keep LOGGER_MEASUREMENT_HDR
+ */
+class LoggerMeasurementHeader {
+public:
+    LoggerItemId id;
+    time_t start;
+    uint8_t vcc;
+    uint8_t vbat;
+
+    LoggerMeasurementHeader();
+    LoggerMeasurementHeader(const LoggerMeasurementHeader &value);
+    LoggerMeasurementHeader(const LOGGER_MEASUREMENT_HDR *pheader , size_t sz);
+
+    LoggerMeasurementHeader& operator=(const LOGGER_MEASUREMENT_HDR &value);
+    bool operator==(const LoggerItemId &another) const;
+    bool operator==(const LoggerMeasurementHeader &value) const;
+
+    bool operator!=(const LoggerItemId &another) const;
+    bool operator!=(const LoggerMeasurementHeader &value) const;
+
+    bool setHdr(const LOGGER_MEASUREMENT_HDR *pHeader, size_t sz);
+
+    void assign(LOGGER_MEASUREMENT_HDR &retval) const;
 };
 
 /** 
@@ -96,7 +127,9 @@ class LoggerCollection {
 		/**
 		 * Put collection of strings
 		 */
-		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
+		LOGGER_PACKET_TYPE put(
+                std::vector<LoggerMeasurementHeader> *retHeaders,
+                const std::vector<std::string> values);
 
 		bool completed() const;
 		bool get(std::map<uint8_t, double> &t) const;
@@ -119,6 +152,7 @@ class LoggerKosaPackets {
 	public:
 		LoggerItemId id;
 		time_t start;
+        LOGGER_MEASUREMENT_HDR header;
 		LoggerCollection packets;
 
 		LoggerKosaPackets();
@@ -168,6 +202,7 @@ class LoggerKosaCollection {
 		std::string toString() const;
 		std::string toJsonString() const;
 		std::string toTableString() const;
+        bool addHeader(const LoggerMeasurementHeader &header);
 };
 
 std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);
@@ -188,5 +223,7 @@ std::string bin2hexString(const char *binChars, size_t size);
 std::string bin2hexString(const std::string &value);
 
 const char *strerror_logger_huffman(int errCode);
+
+void clear_LOGGER_MEASUREMENT_HDR(LOGGER_MEASUREMENT_HDR &value);
 
 #endif
