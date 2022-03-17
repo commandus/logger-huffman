@@ -174,6 +174,11 @@ double temperature_2_double(
 	uint16_t value
 );
 
+
+double vcc_2_double(
+		uint8_t value
+);
+
 #ifdef __cplusplus
 }
 #endif
