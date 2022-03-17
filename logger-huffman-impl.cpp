@@ -7,6 +7,17 @@
 #include "logger-huffman-impl.h"
 #include "errlist.h"
 
+/**
+ * Conditional defines:
+ *  PRINT_DEBUG - print out temperature raw lo, hi bytes in hex, rfu1 value
+ */
+
+
+/**
+ * To string
+ * @param value
+ * @return
+ */
 std::string LOGGER_PACKET_TYPE_2_string(
 	const LOGGER_PACKET_TYPE &value
 )
@@ -112,6 +123,36 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
 		<< ", \"used\": " << (int) value.used
 		<< "}";
 	return ss.str();
+}
+
+std::string LOGGER_MEASUREMENT_HDR_2_table(
+    const LOGGER_MEASUREMENT_HDR &value
+) {
+    std::stringstream ss;
+    bool isLocaltime = true;
+
+    time_t t = logger2time(
+            value.year,
+            value.month - 1,
+            value.day,
+            value.hours,
+            value.minutes,
+            value.seconds,
+            isLocaltime
+    );
+
+    ss
+            << (int) value.memblockoccupation << "\t"
+            << t << "\t"
+            << time2string(t, true) << "\t"
+            << time2string(t, false) << "\t"
+            << (int) value.kosa << "\t"
+            << (int) value.kosa_year << "\t"
+            << vcc_2_double(value.vcc) << "\t"
+            << vcc_2_double(value.vbat) << "\t"
+            << (int) value.pcnt << "\t"
+            << (int) value.used << "\t";
+    return ss.str();
 }
 
 /**
@@ -882,8 +923,9 @@ std::string LoggerCollection::toJsonString() const
 }
 
 std::string LoggerCollection::toTableString(
-	const LoggerItemId &id,
-	const time_t &t
+    const LoggerItemId &id,
+    const time_t &t,
+    const LOGGER_MEASUREMENT_HDR &header
 ) const
 {
 	std::stringstream ss;
@@ -891,7 +933,9 @@ std::string LoggerCollection::toTableString(
 	ss
 		<< (int) id.kosa << "\t" 
 		<< (int) id.kosa_year + 2000 << "\t" 
-		<< (int) id.measure << "\t";
+		<< (int) id.measure << "\t"
+        << LOGGER_MEASUREMENT_HDR_2_table(header);
+
 	if (get(r)) {
 		// by default order by key operator<
 		for (std::map<uint8_t, double>::const_iterator it(r.begin()); it != r.end(); it++) 
@@ -1010,7 +1054,7 @@ std::string LoggerKosaPackets::toJsonString() const
 std::string LoggerKosaPackets::toTableString() const
 {
 	std::stringstream ss;
-	ss << packets.toTableString(id, start);
+	ss << packets.toTableString(id, start, header);
 	return ss.str();
 }
 
