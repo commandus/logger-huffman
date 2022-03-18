@@ -10,7 +10,7 @@ AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 bin_PROGRAMS = logger-huffman-print
 
 LIBLOGGERHUFFMANSRC = \
-	logger-huffman.c logger-huffman-impl.cpp utilcompress.cpp
+	logger-huffman.c logger-huffman-impl.cpp util-compress.cpp util-time-fmt.cpp
 
 #
 #	Static library
@@ -25,7 +25,7 @@ L_LOGGER_HUFFMAN = -L. -llogger-huffman
 $(bin_PROGRAMS): $(lib_LIBRARIES)
 
 nobase_dist_include_HEADERS = \
-	platform.h logger-huffman.h utilcompress.h errlist.h logger-huffman-impl.h \
+	platform.h logger-huffman.h util-compress.h errlist.h logger-huffman-impl.h \
 	util-time-fmt.h \
 	third_party/argtable3/argtable3.h
 

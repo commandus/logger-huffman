@@ -210,12 +210,14 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(const LOGGER_MEASUREMENT_HDR &value)
 std::string LOGGER_MEASUREMENT_HDR_2_json(const LOGGER_MEASUREMENT_HDR &value);
 std::string LOGGER_MEASUREMENT_HDR_2_table(const LOGGER_MEASUREMENT_HDR &value);
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(const LOGGER_DATA_TEMPERATURE_RAW *value);
+std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(const LOGGER_DATA_TEMPERATURE_RAW *value);
 std::string LOGGER_PACKET_FIRST_HDR_2_string(const LOGGER_PACKET_FIRST_HDR &value);
 std::string LOGGER_PACKET_FIRST_HDR_2_json(const LOGGER_PACKET_FIRST_HDR &value);
 std::string LOGGER_PACKET_SECOND_HDR_2_json(const LOGGER_PACKET_SECOND_HDR &value);
 
 /** hexadecimal data represented string to binary */
 std::string hex2binString(const char *hexChars, size_t size);
+std::string hex2binString(const std::string &value);
 /** binary data to hexadecimal represented data string to binary */
 std::string bin2hexString(const char *binChars, size_t size);
 std::string bin2hexString(const std::string &value);
@@ -223,5 +225,8 @@ std::string bin2hexString(const std::string &value);
 const char *strerror_logger_huffman(int errCode);
 
 void clear_LOGGER_MEASUREMENT_HDR(LOGGER_MEASUREMENT_HDR &value);
+
+std::string compressLoggerString(const std::string &value);
+std::string decompressLoggerString(const std::string &value);
 
 #endif

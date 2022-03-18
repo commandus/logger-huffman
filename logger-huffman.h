@@ -9,7 +9,7 @@ extern "C" {
 #include <inttypes.h>
 
 #include "platform.h"
-#include "utilcompress.h"
+#include "util-compress.h"
 
 #define MAX_SENSOR_COUNT			28
 #define MAX_HDR_DATA_SIZE			24	// bytes
@@ -169,11 +169,6 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 );
-
-double temperature_2_double(
-	uint16_t value
-);
-
 
 double vcc_2_double(
 		uint8_t value

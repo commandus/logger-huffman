@@ -236,6 +236,18 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
 	return ss.str();
 }
 
+std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(
+        const LOGGER_DATA_TEMPERATURE_RAW *value
+) {
+    std::stringstream ss;
+    if (value)
+        ss << (int) value->sensor
+           << std::fixed << std::setprecision(2)
+           << "\t" << TEMPERATURE_2_BYTES_2_double(value->value)
+           << "\t";
+    return ss.str();
+}
+
 static const char *error_list_en[ERR_LIST_COUNT] = 
 {
 	"Segmentation fault",
@@ -301,6 +313,13 @@ std::string hex2binString(
 		i++;
 	}
 	return r;
+}
+
+std::string hex2binString(
+    const std::string &value
+)
+{
+    return hex2binString(value.c_str(), value.size());
 }
 
 std::string bin2hexString(
@@ -506,8 +525,9 @@ std::string LoggerItem::toString() const
 				ss << LOGGER_MEASUREMENT_HDR_2_string(*hdr) << std::endl;
 				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
 				for (int i = 0; i < cnt; i++) {
-					uint16_t t = extractMeasurementHeaderData(NULL, i, packet.c_str(), packet.size());
-					ss << (int) t << " ";
+                    LOGGER_DATA_TEMPERATURE_RAW *tp;
+					uint16_t t = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
+                    ss << LOGGER_DATA_TEMPERATURE_RAW_2_text(tp);
 				}
 				s = ss.str();
 			}

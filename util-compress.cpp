@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "utilcompress.h"
+#include "util-compress.h"
 
 // #define DEBUG_PRINT 1
 
@@ -8,23 +8,23 @@
 // буфер 2 памяти, в нем дельты с шапкой замера!!!
 // в начале шапки замера used два байта -не жмутся! Общая длина дельт 10+2*cnt_mac или 10+cnt_mac
 uint16_t compressLogger(
-    const unsigned char *buff_in,
-    unsigned char *buff_out,
+    const char *buff_in,
+    char *buff_out,
     uint16_t len
 )
 {
     // bufferRes2 - входной буфер дельт
     // len = len_zip_rec = cnt_mac * len_rec + TITLE_COMPRESS; 4 * 2 +10
     uint16_t sym_sim_bit = 0;   // подсчет бит в выходном сообщении
-    uint16_t i;                // индекс во входном буфере?
+    uint16_t i;                 // индекс во входном буфере?
     uint16_t bufpos = 0;        // индекс в выходном буфере! надо +10???
     uint16_t bitbuf = 0;        // длина сформ. символа + предыдущие - битовый буфер накопления
-    uint8_t symbol;                // текущий символ для вставки
+    uint8_t symbol;             // текущий символ для вставки
     uint8_t symbol_real = 0;    // реальный символ после префикса
     uint8_t priznak = 0;        // префикс
     uint8_t symblen = 0;        // длина
-    uint8_t symbcode = 0;        // код -текущие из массивов
-    uint8_t bits = 16;            // длина - битовый буфер накопления
+    uint8_t symbcode = 0;       // код -текущие из массивов
+    uint8_t bits = 16;          // длина - битовый буфер накопления
 
     uint8_t tab_mask[] = {0x00, 0x01, 0x03, 0x07, 0xF, 0x1F, 0x3F, 0x7F, 0xFF}; // [9] от 0 !! кол бит 1 2 3 4 5 6 7 8
 
@@ -344,8 +344,8 @@ static uint8_t loggerBitlenBody(
 // входной буфер это массив тела пакета
 // len = общая длина = compress_len - 8, на выходе дельта
 uint16_t decompressLogger(
-    const uint8_t *buff_in,
-    uint8_t *buff_out,
+    const char *buff_in,
+    char *buff_out,
     uint16_t lenComp
 )
 {
@@ -517,4 +517,22 @@ uint16_t decompressLogger(
     std::cerr << "dec_Hafman: выход" << std::endl;
 #endif
     return bufpos_out;      //  bufpos_out+1 кол. зап.символов (включая used)
+}
+
+std::string compressLoggerString(const std::string &value)
+{
+    std::string retval;
+    retval.reserve(value.size() * 2);
+    uint16_t sz = compressLogger(value.c_str(), (char *) retval.c_str(), value.size());
+    retval.resize(sz);
+    return retval;
+}
+
+std::string decompressLoggerString(const std::string &value)
+{
+    std::string retval;
+    retval.reserve(value.size() * 2);
+    uint16_t sz = decompressLogger(value.c_str(), (char *) retval.c_str(), value.size());
+    retval.resize(sz);
+    return retval;
 }
