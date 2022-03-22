@@ -1,5 +1,5 @@
-#ifndef LOGGER_HUFFMAN_IMPL_H_
-#define LOGGER_HUFFMAN_IMPL_H_ 1
+#ifndef LOGGER_COLLECTION_H_
+#define LOGGER_COLLECTION_H_ 1
 
 #include <string>
 #include <vector>
@@ -121,7 +121,7 @@ class LoggerCollection {
 		/**
 		 * Put char buffer
 		 */
-		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
+		LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, const void *buffer, size_t size);
 		void putRaw(size_t &retSize, const void *buffer, size_t size);
 
 		/**
@@ -191,7 +191,11 @@ class LoggerKosaCollection {
 		 * Put char buffer
 		 */
 		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
-		/**
+        /**
+        * Put one string
+        */
+        LOGGER_PACKET_TYPE put(const std::string &value);
+        /**
 		 * Put collection of strings
 		 */
 		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
