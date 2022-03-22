@@ -832,13 +832,34 @@ void LoggerCollection::push(
 
 LOGGER_PACKET_TYPE LoggerCollection::put(
 	size_t &retSize,
+    std::vector<LoggerMeasurementHeader> *retHeaders,
 	const void *buffer,
 	size_t size
 )
 {
 	LoggerItem item;
 	LOGGER_PACKET_TYPE t = item.set(expectedPackets, retSize, buffer, size);
-	// check operation
+
+    if (retHeaders) {
+        switch (t) {
+            case LOGGER_PACKET_RAW:
+            {
+                LoggerMeasurementHeader mh((LOGGER_MEASUREMENT_HDR *) buffer, size);
+                retHeaders->push_back(mh);
+            }
+                break;
+            case LOGGER_PACKET_PKT_1:
+            {
+                LOGGER_MEASUREMENT_HDR *measurementHeader;
+                extractMeasurementHeader(&measurementHeader, buffer, size);
+                LoggerMeasurementHeader mh(measurementHeader, sizeof(LOGGER_MEASUREMENT_HDR));
+                retHeaders->push_back(mh);
+            }
+                break;
+        }
+    }
+
+    // check operation
 	if (t != LOGGER_PACKET_UNKNOWN) {
 		// add item
 		push(item);
@@ -874,25 +895,7 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 			if (t == LOGGER_PACKET_RAW) {
 				putRaw(sz, next, size);
 			} else {
-                t = put(sz, next, size);
-                if (retHeaders) {
-                    switch (t) {
-                        case LOGGER_PACKET_RAW:
-                            {
-                                LoggerMeasurementHeader mh((LOGGER_MEASUREMENT_HDR *) next, sz);
-                                retHeaders->push_back(mh);
-                            }
-                            break;
-                        case LOGGER_PACKET_PKT_1:
-                            {
-                                LOGGER_MEASUREMENT_HDR *measurementHeader;
-                                extractMeasurementHeader(&measurementHeader, next, sz);
-                                LoggerMeasurementHeader mh(measurementHeader, sizeof(LOGGER_MEASUREMENT_HDR));
-                                retHeaders->push_back(mh);
-                            }
-                            break;
-                        }
-                }
+                t = put(sz, retHeaders, next, size);
             }
 			if (sz >= size)
 				break;
@@ -1132,15 +1135,20 @@ bool LoggerKosaCollection::add(
  * Put char buffer
  */
 LOGGER_PACKET_TYPE LoggerKosaCollection::put(
-	size_t &retSize, const void *buffer, size_t size
+    size_t &retSize, const void *buffer, size_t size
 )
 {
 	LoggerCollection c;
-	LOGGER_PACKET_TYPE r = c.put(retSize, buffer, size);
+    std::vector<LoggerMeasurementHeader> mhs;
+	LOGGER_PACKET_TYPE r = c.put(retSize, &mhs, buffer, size);
 	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
 		add(*it);
 	}
-	return r;
+    // copy header(s)
+    for (std::vector<LoggerMeasurementHeader>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
+        addHeader(*it);
+    }
+    return r;
 }
 
 /**
@@ -1164,6 +1172,17 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
         addHeader(*it);
     }
     return r;
+}
+
+/**
+ * Put one string
+ */
+LOGGER_PACKET_TYPE LoggerKosaCollection::put(
+    const std::string &value
+)
+{
+    size_t sz;
+    return put(sz, value.c_str(), value.size());
 }
 
 std::string LoggerKosaCollection::toString() const

@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "logger-passport.h"
 
 /**
@@ -8,7 +10,7 @@
  */
 void* initLoggerPasswords(
 	const std::string &passwords_path,
-	int verbosity
+	const int verbosity // default 0
 )
 {
     return NULL;
@@ -25,11 +27,9 @@ void doneLoggerPasswords(void *env)
 /**
  * Parse packet by declaration
  * @param env packet declaratuions
- * @param inputFormat 0- binary, 1- hex string
- * @param outputFormat 0- json(default), 1- csv, 2- tab, 3- sql, 4- Sql, 5- pbtext, 6- dbg, 7- hex, 8- bin 
+ * @param outputFormat 0- json(default), 1- csv, 2- tab, 3- sql, 4- Sql, 5- pbtext, 6- dbg, 7- hex, 8- bin
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
- * @param packet data
- * @param forceMessage "" If specifed, try only message type
+ * @param packets data
  * @param tableAliases protobuf message to datanase table map
  * @param fieldAliases protobuf message attribute to datanase column map
  * @param properties "session environment variables", e.g addr, eui, time, timestamp
@@ -37,11 +37,9 @@ void doneLoggerPasswords(void *env)
  */
 std::string parsePacket(
 	void *env, 
-	int inputFormat,
 	int outputFormat,
 	int sqlDialect,
-	const std::string &packet,
-	const std::string &forceMessage,
+	const LoggerKosaPackets &packets,
 	const std::map<std::string, std::string> *tableAliases,
 	const std::map<std::string, std::string> *fieldAliases,
 	const std::map<std::string, std::string> *properties
@@ -50,10 +48,82 @@ std::string parsePacket(
     return "";
 }
 
+// replace string
+static std::string replaceString(const std::string &str, const std::string &from, const std::string &to)
+{
+    size_t start_pos = str.find(from);
+    if (start_pos == std::string::npos)
+        return str;
+    std::string ret(str);
+    ret.replace(start_pos, from.length(), to);
+    return ret;
+}
+
+static std::string getSqlDialectTypeName(
+        const std::string &typeName,
+        int sqlDialect
+)
+{
+    return "INTEGER";
+}
+
+static void createTableSQLClause1(
+        std::ostream *output,
+        void *env,
+        const std::string &tableName,
+        int outputFormat,
+        int sqldialect,
+        const std::map<std::string, std::string> *tableAliases,
+        const std::map<std::string, std::string> *fieldAliases,
+        const std::map<std::string, std::string> *properties
+)
+{
+    std::string quote;
+    if (sqldialect == SQL_MYSQL)
+        quote = "`";	// MySQL exceptions for spaces and reserved words
+    else
+        quote = "\"";
+
+    *output << "CREATE TABLE " << quote << replaceString(tableName, ".", "_") << quote << "(";
+
+    int sz = values.size();
+
+    int fieldCount = 0;
+    for (int i = 0; i < sz; i++)
+    {
+        std::string fieldName = findAlias(fieldAliases, values[i].field);
+        // if alias set to empty string, skip table
+        if (fieldName.empty())
+            continue;
+        if (fieldCount)
+            *output << ", ";
+        *output << quote << fieldName << quote << " ";
+        *output << getSqlDialectTypeName(values[i].field_type, sqldialect);
+        fieldCount++;
+    }
+    if (fieldCount == 0)
+        return;
+
+    if (properties) {
+        for (std::map<std::string, std::string>::const_iterator it(properties->begin()); it != properties->end(); it++)
+        {
+            if (it->second.empty())
+                continue;
+            if (fieldCount)
+                *output << ", ";
+            *output << quote << it->second << quote << " ";
+            // force string type
+            *output << getSqlDialectTypeName(it->second, sqldialect);
+            fieldCount++;
+        }
+    }
+
+    *output << ");";
+}
+
 /**
  * Return CREATE table SQL clause
  * @param env packet declaratuions
- * @param messageName Protobuf full type name (including packet)
  * @param outputFormat 3- sql, 4- Sql
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
  * @param tableAliases <Protobuf full type name>=<alias (SQL table name)>
@@ -62,7 +132,6 @@ std::string parsePacket(
  */
 std::string createTableSQLClause(
 	void *env, 
-	const std::string &messageName,
 	int outputFormat,
 	int sqlDialect,
 	const std::map<std::string, std::string> *tableAliases,
@@ -70,5 +139,14 @@ std::string createTableSQLClause(
 	const std::map<std::string, std::string> *properties
 )
 {
+    std::stringstream ss;
+    std::string tableName = "table";
 
+    switch (outputFormat) {
+        case OUTPUT_FORMAT_SQL2:
+            createTableSQLClause1(&ss, env, tableName, outputFormat, sqlDialect, tableAliases, fieldAliases, properties);
+        default:
+            createTableSQLClause1(&ss, env, tableName, outputFormat, sqlDialect, tableAliases, fieldAliases, properties);
+    }
+    return ss.str();
 }

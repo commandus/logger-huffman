@@ -4,8 +4,7 @@
 #include <string>
 #include <map>
 
-#define INPUT_FORMAT_BINARY		0
-#define INPUT_FORMAT_HEX		1
+#include "logger-collection.h"
 
 #define OUTPUT_FORMAT_JSON		0
 #define OUTPUT_FORMAT_CSV		1
@@ -17,6 +16,13 @@
 #define OUTPUT_FORMAT_HEX		7
 #define OUTPUT_FORMAT_BIN		8
 
+enum SQL_DIALECT : int {
+    SQL_POSTGRESQL = 0,
+    SQL_MYSQL = 1,
+    SQL_FIREBIRD = 2,
+    SQL_SQLITE = 3
+};
+
 /**
  * Initialize logger password directory
  * @param passwords_path path to the catalog with password files
@@ -25,7 +31,7 @@
  */
 void* initLoggerPasswords(
     const std::string &passwords_path,
-    int verbosity
+    const int verbosity = 0
 );
 
 /**
@@ -37,11 +43,9 @@ void doneLoggerPasswords(void *env);
 /**
  * Parse packet by declaration
  * @param env packet declaratuions
- * @param inputFormat 0- binary, 1- hex string
  * @param outputFormat 0- json(default), 1- csv, 2- tab, 3- sql, 4- Sql, 5- pbtext, 6- dbg, 7- hex, 8- bin
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
- * @param packet data
- * @param forceMessage "" If specifed, try only message type
+ * @param packetы LoggerKosaPackets
  * @param tableAliases protobuf message to datanase table map
  * @param fieldAliases protobuf message attribute to datanase column map
  * @param properties "session environment variables", e.g addr, eui, time, timestamp
@@ -49,11 +53,9 @@ void doneLoggerPasswords(void *env);
  */
 std::string parsePacket(
     void *env,
-    int inputFormat,
     int outputFormat,
     int sqlDialect,
-    const std::string &packet,
-    const std::string &forceMessage,
+    const LoggerKosaPackets &packets,
     const std::map<std::string, std::string> *tableAliases = NULL,
     const std::map<std::string, std::string> *fieldAliases = NULL,
     const std::map<std::string, std::string> *properties = NULL
@@ -62,7 +64,6 @@ std::string parsePacket(
 /**
  * Return CREATE table SQL clause
  * @param env packet declaratuions
- * @param messageName Protobuf full type name (including packet)
  * @param outputFormat 3- sql, 4- Sql
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
  * @param tableAliases <Protobuf full type name>=<alias (SQL table name)>
@@ -71,7 +72,6 @@ std::string parsePacket(
  */
 std::string createTableSQLClause(
     void *env,
-    const std::string &messageName,
     int outputFormat,
     int sqlDialect,
     const std::map<std::string, std::string> *tableAliases = NULL,
