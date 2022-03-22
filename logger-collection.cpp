@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "util-time-fmt.h"
-#include "logger-huffman-impl.h"
+#include "logger-collection.h"
 #include "errlist.h"
 
 /**

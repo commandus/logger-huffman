@@ -3,18 +3,155 @@
 #include "util-compress.h"
 
 // #define DEBUG_PRINT 1
+#define SIZE_PAGE_LOG   128
+static unsigned char tabl_len[10] = {0x01, 0x04, 0x05, 0x06, 0x07, 0x07, 0x05, 0x05, 0x04, 0x02};// длина в битах символа
+static unsigned char tabl_haf_revers[10] = {0x01, 0x04, 0x0C, 0x30, 0x10, 0x50, 0x00, 0x1C, 0x08, 0x02};
+
+
+static uint8_t symblenHafCod[] = { 1, 4, 5, 6, 7, 7, 5, 5, 4, 2 };
+static uint8_t hafCanonCod[] = { 0x01, 0x02, 0x01, 0x01, 0x00, 0x01, 0x02, 0x03, 0x03, 0x01 };
+uint16_t logger_Hafman(
+        char *buff_out,
+        size_t outSize,
+        const char *buff_in,
+        uint16_t len
+)
+{
+    //bufferRes2 - входной буфер = uint8_t[] buff_in
+    //len = len_zip_rec = cnt_mac * len_rec + TITLE_COMPRESS; 4 * 2 +10 = 18 общая длина сообщения
+    uint16_t sym_sim_bit = 0;    	// подсчет бит в выходном сообщении
+
+    uint16_t i;		//индекс во входном буфере?
+    uint16_t bufpos = 0;		//индекс в выходном буфере! надо +10???
+    uint16_t bitbuf = 0;		//длина сформ. символа + предыдущие - битовый буфер накопления
+    uint8_t symbol;		//текущий символ для вставки
+    uint8_t symbol_real = 0; 	// реальный символ после префикса
+    uint8_t priznak = 0;          // префикс
+    uint8_t symblen = 0;          //длина
+    uint8_t symbcode = 0; 		// код -текущие из массивов
+    uint8_t bits = 16;		    // длина - битовый буфер накопления
+
+    uint8_t tab_mask[] = {0x00, 0x01,0x03,0x07,0xF,0x1F,0x3F,0x7F,0xFF}; //[9] от 0 !! кол бит 1 2 3 4 5 6 7 8
+    buff_out[bufpos] = buff_in[0];      //lsb used не жмет buff_out ссылка на внеш. буфер!
+    bufpos++;
+    buff_out[bufpos] = buff_in[1];       //msb used не жмет
+    bufpos++;
+
+    for(i=0; i< (len - 2); i++)      //0-15 len_zip_rec -2 = 16 (для 0 зам.все 00 !) по 2 бита = 8 бит = 2 байта
+        //for(i=0; i< len_zip_rec - 2; i++)   //внешняя !! unsigned int len_zip_rec;  // длина сжатого замера
+    {
+        symbol = buff_in[i + 2];     //чтение символа, текущего -buff_in ссылка на внеш. входной буфер!
+        if((symbol <= 4) || (symbol >= 0xFC))   //для 0 1 2 3 4  FF FE FD FC pref - в таблице
+        {
+            if(symbol > 0xFB) { symbol = (uint8_t)(8 - (uint8_t)(0xFF - symbol)); } // 0xFF-0xFC= 0x03 2 1 0 (FF-FB=4)
+        }
+        else 	//признак=1 след.байт без изм. (символ = индексу в табл. признак дает)
+        {
+            symbol_real = symbol;  	//уже реальный байт =0x08
+            symbol = 9;	        //как индекс!? в symbHafCod, было =9
+            priznak = 1;  //его длина = 2 бита
+        }
+
+        symblen = symblenHafCod[symbol];
+        symbcode = hafCanonCod[symbol];
+        sym_sim_bit = (uint16_t)(sym_sim_bit + symblen);   //накопление длины выходного сообщения в битах !
+        if(symblen <= bits)     //в начале =16!! мин = 1 !! 0x01 <= 15 <= оставшееся кол.бит в битбуфере
+        {
+            bitbuf <<= symblen;        //0х02 для префикса как инт ! 0111 1111 1111 1111 << 1
+            bitbuf |= (uint16_t)symbcode;   //0х02 для префикса  //0x0000 | 0x01
+            bits = (uint8_t)(bits - symblen);     //(bits(15) - symblen) - не  может быть минус! только 0 !!
+            if ((bits == 0) && (i == (len - 2 - 1)))  //последний!!
+            {
+                buff_out[bufpos] = (uint8_t)(bitbuf >> 8); bufpos++;   //msb
+                buff_out[bufpos] = (uint8_t)bitbuf; bufpos++;   //lsb
+            }
+        }
+        else  //symblen > bits, symblen (до 7) > bits (те bits<7) больше чем осташееся кол.бит в битбуфере или 0!! если предыдущий проход
+        {
+            if (bits == 0)        //symblen > bits  // 1>0 надо новый ?? СНАЧАЛО СОХРАНИТЬ потом дополнить!!!!
+            {
+                //             if (fdbg) LOG.log_str(String.Format("logger_Hafman: ost i={0:D} bitbuf={1:X4} bits == 0!!", i, bitbuf));
+            }
+            bitbuf <<= bits;      //ост.бит bits <7 сдвиг по оставшимся (может быть уже 0 на 16 символе, 6 или 4 ?!!)
+            bitbuf |= (uint16_t)((symbcode >> (symblen - bits)) & tab_mask[bits]);  //старшие биты! ((1>>(1-0) & 0 ) даст 0!
+            buff_out[bufpos] = (uint8_t)(bitbuf >> 8);    //msb
+            bufpos++;
+            buff_out[bufpos] = (uint8_t)bitbuf;    //lsb
+            bufpos++;
+            bitbuf = 0;     //снова пустой битбуфер - 2 байта выведены bits=16; ??
+            bitbuf |= (uint16_t)(symbcode & tab_mask[symblen - bits]);
+
+            bits = (uint8_t)(16 - (uint8_t)(symblen - bits)); //  новая длина
+        } //else symblen > bits
+
+        if(priznak == 1)         //+  подпрограмма записи байта- битов
+        {
+            priznak = 0;             // обнулить признак
+            symblen = 8;             // длина байта
+            symbcode = symbol_real;  // реальный символ НАДО ТОЖЕ ИНВЕРСИЮ??? чтоб c мл бита брать!!!
+            sym_sim_bit = (uint16_t)(sym_sim_bit + symblen);
+            if(symblen <= bits)       //длина меньше остатка битбуфера
+            {
+                bitbuf <<= symblen;    // 8 перед этим 2            05 0 0 0 0 0 02=0x0C дл.=5
+                bitbuf |= (uint16_t)symbcode;    //реальный символ 05 всего 10 00000101 11111 01100 = 81 7e ост 1100 обратно
+                bits = (uint8_t)(bits - symblen);   //еще не выводить
+            }
+            else     //длина больше остатка битбуфера -заполняется от lsb к msb
+            {
+                bitbuf <<= bits; //
+                bitbuf |= (uint16_t)((symbcode >> (symblen - bits)) & tab_mask[bits]);  // старшие биты!
+                buff_out[bufpos] = (uint8_t)(bitbuf >> 8);
+                bufpos++;
+                buff_out[bufpos] = (uint8_t)bitbuf;
+                bufpos++;
+                bitbuf = 0;
+                bitbuf |= (uint16_t)(symbcode & tab_mask[symblen - bits]);
+                bits = (uint8_t)(16 - (uint8_t)(symblen - bits)); //  новая длина
+            }       //else
+        }      //if priznak=1 целый байт
+    } // for для i < (len - 2);
+
+
+    //bits = 0 если последний байт прочитан и не признак !!! при признаке допишет байт!?? быть не может?? может
+    if ((bits > 0) && (bits != 16)) //это не заполненный остаток!! напр. 15 - исп.только 1 бит, 0 весь занят! Сохранен!!, 16 свободен
+    {
+        for (i = 0; i < bits; i++) //bits =15
+        {
+            bitbuf = (uint16_t)(bitbuf << 1);
+            bitbuf |= (uint16_t)1;
+        }
+
+        buff_out[bufpos] = (uint8_t)(bitbuf >> 8);        //msb всегда
+        bufpos++;
+        sym_sim_bit = (uint16_t)(sym_sim_bit + bits - 8); //33+15=48 -8=40
+
+        if ((16 - bits) > 8)     // (16- bits) использовано
+        {
+            buff_out[bufpos] = (uint8_t)bitbuf;
+            bufpos++;
+            sym_sim_bit = (uint16_t)(sym_sim_bit + 8); //40+8=48
+        }
+    }
+
+    sym_sim_bit = (uint16_t)(sym_sim_bit + 16);
+    return bufpos;		// от 0 ! - количество записанных байт в выходном буфере ( +1 ???) или нужно бит!??
+}
+
 
 // сжатие по Хаффману!
 // буфер 2 памяти, в нем дельты с шапкой замера!!!
 // в начале шапки замера used два байта -не жмутся! Общая длина дельт 10+2*cnt_mac или 10+cnt_mac
 uint16_t compressLogger(
-    const char *buff_in,
-    char *buff_out,
-    uint16_t len
+    char *outBuffer,
+    size_t outSize,
+    const char *inBuffer,
+    uint16_t inSize
 )
 {
+    return logger_Hafman(outBuffer, outSize, inBuffer, inSize);
+
     // bufferRes2 - входной буфер дельт
-    // len = len_zip_rec = cnt_mac * len_rec + TITLE_COMPRESS; 4 * 2 +10
+    // inSize = len_zip_rec = cnt_mac * len_rec + TITLE_COMPRESS; 4 * 2 +10
     uint16_t sym_sim_bit = 0;   // подсчет бит в выходном сообщении
     uint16_t i;                 // индекс во входном буфере?
     uint16_t bufpos = 0;        // индекс в выходном буфере! надо +10???
@@ -33,9 +170,9 @@ uint16_t compressLogger(
 
     // дельта лежит в bufferRes2 !!!! 2 байта не сжимать - перезапись
     // lsb читать 2 байта номера замера из буф 1 - used lsb msb
-    buff_out[bufpos] = buff_in[0];      //lsb used не жмет buff_out ссылка на внеш. буфер!
+    outBuffer[bufpos] = inBuffer[0];      //lsb used не жмет outBuffer ссылка на внеш. буфер!
     bufpos++;
-    buff_out[bufpos] = buff_in[1];       //msb used не жмет
+    outBuffer[bufpos] = inBuffer[1];       //msb used не жмет
     bufpos++;
     // еще delta_sek !!!! она жмется!!!
 
@@ -46,10 +183,10 @@ uint16_t compressLogger(
 
     // для каждого остального символа
 #ifdef DEBUG_PRINT
-    std::cerr << "compress: Начало кода bufpos = " << (int) bufpos << ", циклов = " << (int) (len - 2) << std::endl;
+    std::cerr << "compress: Начало кода bufpos = " << (int) bufpos << ", циклов = " << (int) (inSize - 2) << std::endl;
 #endif
-    for (i = 0; i < (len - 2); i++) {
-        symbol = buff_in[i + 2];     //чтение символа, текущего -buff_in ссылка на внеш. входной буфер!
+    for (i = 0; i < (inSize - 2); i++) {
+        symbol = inBuffer[i + 2];     //чтение символа, текущего -inBuffer ссылка на внеш. входной буфер!
         // как байт! в диапазоне +-4, менее 4 это 0-4 ((symbol >= 0) && (symbol <= 4))
         if ((symbol <= 4) || (symbol >= 0xFC))   //для 0 1 2 3 4  FF FE FD FC pref - в таблице
         {
@@ -108,7 +245,7 @@ uint16_t compressLogger(
 
         sym_sim_bit = (uint16_t) (sym_sim_bit + symblen);   //накопление длины выходного сообщения в битах !
 
-        // if (fdbg) LOG.log_str(String.Format("compress: i={0:D} symblen={1:X2} symbcode={2:X2} symbol = buff_in[i + 2]={3:X2}", i, symblen, symbcode, buff_in[i + 2]));
+        // if (fdbg) LOG.log_str(String.Format("compress: i={0:D} symblen={1:X2} symbcode={2:X2} symbol = inBuffer[i + 2]={3:X2}", i, symblen, symbcode, inBuffer[i + 2]));
         // if (fdbg) LOG.log_str(String.Format("compress: i={0:D} bits={1:D} sym_sim_bit={2:D}", i, bits, sym_sim_bit));
 
         // длина символа мин.=1 ( напр. 5 и 1  или ) symblen <= 8 !!!!!!!!!!
@@ -122,11 +259,11 @@ uint16_t compressLogger(
 
             // if (fdbg) LOG.log_str(String.Format("compress: symblen <= bits i={0:D} bits=bits - symblen={1:D}", i, bits));
             // если последний и 0 надо сохранять!!!  остатка не будет!!
-            if ((bits == 0) && (i == (len - 2 - 1)))  //последний!!
+            if ((bits == 0) && (i == (inSize - 2 - 1)))  //последний!!
             {
-                buff_out[bufpos] = (uint8_t) (bitbuf >> 8);
+                outBuffer[bufpos] = (uint8_t) (bitbuf >> 8);
                 bufpos++;   //msb
-                buff_out[bufpos] = (uint8_t) bitbuf;
+                outBuffer[bufpos] = (uint8_t) bitbuf;
                 bufpos++;   //lsb
             }
         }
@@ -157,11 +294,11 @@ uint16_t compressLogger(
             // *(ptr_out + bufpos) = (uint8_t)bitbuf;
 
             // lsb (надо наоборот ????? тк в ст.бите начало!)
-            buff_out[bufpos] = (uint8_t) (bitbuf >> 8);    //msb
+            outBuffer[bufpos] = (uint8_t) (bitbuf >> 8);    //msb
             bufpos++;
-            buff_out[bufpos] = (uint8_t) bitbuf;    //lsb
+            outBuffer[bufpos] = (uint8_t) bitbuf;    //lsb
             bufpos++;
-            // if (fdbg) LOG.log_str(String.Format("compress: out i={0:D} symb msb={1:X2} symb lsb={2:X2}", i, buff_out[bufpos - 1], buff_out[bufpos-2]));
+            // if (fdbg) LOG.log_str(String.Format("compress: out i={0:D} symb msb={1:X2} symb lsb={2:X2}", i, outBuffer[bufpos - 1], outBuffer[bufpos-2]));
 
             bitbuf = 0;     //снова пустой битбуфер - 2 байта выведены bits=16; ??
             // symblen до 7   bits до 16 ????  bits <7
@@ -199,11 +336,11 @@ uint16_t compressLogger(
                     bitbuf <<= bits; //
                     bitbuf |= (uint16_t) ((symbcode >> (symblen - bits)) & tab_mask[bits]);  // старшие биты!
                     // сдесь сохранять побайтно!
-                    buff_out[bufpos] = (uint8_t) (bitbuf >> 8);
+                    outBuffer[bufpos] = (uint8_t) (bitbuf >> 8);
                     bufpos++;
-                    buff_out[bufpos] = (uint8_t) bitbuf;
+                    outBuffer[bufpos] = (uint8_t) bitbuf;
                     bufpos++;
-                    // if (fdbg) LOG.log_str(String.Format("compress: priz=1 out i={0:D} symbm={1:X2} symbl={2:X2} ", i, buff_out[bufpos - 1], buff_out[bufpos - 2]));
+                    // if (fdbg) LOG.log_str(String.Format("compress: priz=1 out i={0:D} symbm={1:X2} symbl={2:X2} ", i, outBuffer[bufpos - 1], outBuffer[bufpos - 2]));
 
                     bitbuf = 0;
                     bitbuf |= (uint16_t) (symbcode & tab_mask[symblen - bits]);
@@ -215,7 +352,7 @@ uint16_t compressLogger(
 
             // if (fdbg) LOG.log_str("compress: bufpos=" + bufpos + " bitbuf=" + String.Format("{0:X4}", bitbuf));
             // в цикле - текущая проверка
-        } // for для i < (len - 2);
+        } // for для i < (inSize - 2);
         // if (fdbg) LOG.log_str(String.Format("compress: bits={0:D} sym_sim_bit={1:D} bytes={2:D}", bits, sym_sim_bit, sym_sim_bit / 8));   //
         // if (fdbg) LOG.log_str(String.Format("compress: bitbuf={0:X4}", bitbuf));   //
 #ifdef DEBUG_PRINT
@@ -232,10 +369,10 @@ uint16_t compressLogger(
                 // if (fdbg) LOG.log_str(String.Format("compress: bits != 16 j={0:D} bitbuf={1:X4}", j, bitbuf));
             }
 
-            buff_out[bufpos] = (uint8_t) (bitbuf >> 8);        //msb всегда
+            outBuffer[bufpos] = (uint8_t) (bitbuf >> 8);        //msb всегда
             bufpos++;
 #ifdef DEBUG_PRINT
-            std::cerr << "compress: msb bits != 16 i = " << (int) i << " symbm = " << (int) buff_out[bufpos - 1]
+            std::cerr << "compress: msb bits != 16 i = " << (int) i << " symbm = " << (int) outBuffer[bufpos - 1]
                       << std::endl;
 #endif
 
@@ -243,10 +380,10 @@ uint16_t compressLogger(
 
             if ((16 - bits) > 8)     // (16- bits) использовано
             {
-                buff_out[bufpos] = (uint8_t) bitbuf;
+                outBuffer[bufpos] = (uint8_t) bitbuf;
                 bufpos++;
 #ifdef DEBUG_PRINT
-                std::cerr << "compress: lsb bits != 16 i = " << (int) i << " symbol = " << (int) buff_out[bufpos - 1]
+                std::cerr << "compress: lsb bits != 16 i = " << (int) i << " symbol = " << (int) outBuffer[bufpos - 1]
                           << std::endl;
 #endif
                 sym_sim_bit = (uint16_t) (sym_sim_bit + 8); //40+8=48
@@ -338,17 +475,125 @@ static uint8_t loggerBitlenBody(
 }
 */
 
-/// декодирование Хафмана - выходной для декодера bufferPack2 
+static uint8_t symbHaf[] = { 0x00, 0x08, 0x01, 0xff, 0x02, 0xfd, 0xfe, 0x03, 0x04, 0xfc };
+static uint8_t baseHaf[] = { 0x3f, 1, 1, 2, 2, 1, 1, 0 }; //[0..7] ?=0x3f для декода
+static uint8_t offsHaf[] = { 0x3f, 0, 1, 0x3f, 2, 4, 7, 8 };
+
+static uint16_t dec_Hafman(
+        char *buff_out,
+        size_t outSize,
+        const char *buff_in,
+        uint16_t lenComp
+)
+{
+    //uint16_t i;		//индекс во входном буфере
+    uint8_t j;
+    uint16_t bufpos = 0;		//индекс во входном буфере!
+    uint16_t bufpos_out = 0;		//индекс в выходном буфере!
+
+    uint16_t bitbuf = 0;		// битовый буфер 
+    uint8_t symbol;		    //текущий проверяемый символ из входа 
+    uint16_t symb_next; 		// след. байт подгрузки - грузит в инт для сджвигов!
+    uint8_t priznak = 0;         // префикс
+    uint8_t symblen = 0; 		// текущие из массивов
+    uint8_t symbcode = 0;  		//код символа 
+    uint8_t bits = 16;		// длина - битовый буфер 
+    symbol = buff_in[bufpos];      //  2 байта lsb msb used
+    bufpos++;
+    buff_out[bufpos_out] = symbol;
+    bufpos_out++;
+    symbol = buff_in[bufpos];         //если 2 байта 
+    bufpos++;
+    buff_out[bufpos_out] = symbol;
+    bufpos_out++;
+
+    bitbuf = (uint16_t)(buff_in[bufpos] * 0x100);
+    bufpos++;
+    bitbuf |= buff_in[bufpos];      //lsb второй (остальные подргужаются в msb!)
+    bufpos++;
+
+    while (bufpos < (lenComp + 2))         // <11  bufpos можен возрасти +2 за цикл!? и не весь разобран! лишняя загр. тк слово!
+    {
+        uint16_t tabMaskWord[] = { 0x0000, 0xFF00, 0xFE00, 0xFC00, 0xF800, 0xF000, 0xE000, 0xC000, 0x8000 };
+        int symblenInd = 1;
+        for (j = 8; j > 0; j--)   // 8 7 6 5  4 3 2 1 поиск символа
+        {
+            uint16_t tempSymb = (uint16_t)(bitbuf & tabMaskWord[j]);  //начало с конца таб.!! 0х8000
+            symbol = (uint8_t)(tempSymb >> (8 + j - 1));  // сдвиг 15 14 13 12  11 10 9 8   (7 6 5  4 3 2 1 0)
+            if (symblenInd >= 8)   //error!! слишком длинный!
+            {
+                return 0;    // из while !!! не найден вообще!!
+            }
+            if (symbol < baseHaf[symblenInd]) //   0 01 00000101 1 1 1 ... < 1
+            {
+                symblenInd++;  //symblen  2 3 4 5 6 7  8 9
+                continue;   //еще не найден 
+            }
+            else break; //symblen  1 2 3 4 5 6 7   8  найден в табл.
+        } // for j = 8
+        symbcode = symbHaf[offsHaf[symblenInd] + symbol - baseHaf[symblenInd]]; // [2 + 0010 - 2] symb[2]
+        symblen = (uint8_t)symblenInd;
+
+        if(symbcode == 0x08)  priznak = 1;       // префикс - читать след. байт полностью!!
+
+        bitbuf = (uint16_t)(bitbuf << symblen);      // сдвинуть битбуф.
+        bits = (uint8_t)(bits - symblen);
+        if(bits < 8)   //заранее подгрузить и выровнять байт!!
+        {
+            symb_next = (uint16_t)(buff_in[bufpos]);    //
+            bufpos++;                       //сдесь увелич. bufpos для while!
+            symb_next = (uint16_t)(symb_next << (8 - bits));   //
+            bitbuf |= (uint16_t)symb_next;
+            bits = (uint8_t)(bits + 8);
+        }
+        if(priznak == 1)            // префикс длина 2 и биты 10 -взять след.8 бит на выход
+        {
+            priznak = 0;
+            symbcode = (uint8_t)((bitbuf & 0xFF00) >> 8);  //
+
+            bits = (uint8_t)(bits - 8);
+            bitbuf = (uint16_t)(bitbuf << 8);
+            buff_out[bufpos_out] = symbcode;  // запись байта в буфер
+            bufpos_out++;
+            if (bits < 8)   // подгрузить и выровнять байт!! в lsb !!! bits 16-2-8=6
+            {
+                symb_next = (uint16_t)(buff_in[bufpos]);    //
+                bufpos++;                        //сдесь увелич. bufpos для while! может второй раз за цикл!!!!! 
+                symb_next = (uint16_t)(symb_next << (8 - bits));   //
+                bitbuf |= (uint16_t)symb_next;     //
+                bits = (uint8_t)(bits + 8);         //
+            }
+        }
+        else       // нет признака - сам символ сохранить 
+        {
+            buff_out[bufpos_out] = symbcode;
+            bufpos_out++;
+        }
+
+    }  //while
+    return bufpos_out;      //  bufpos_out+1 кол. зап.символов (включая used)
+}
+
+// декодирование Хафмана
+//для Хафмана входной буфер это буфер 1 памяти!!! LOGGER_REC_DELTA , выходной для кодера buff_all + 11 !!
+// входной буфер это buff_all + 11 !! выходной  это буфер 1 памяти
+//  len = общая длина = compress_len - 9
+static unsigned char tabl_haf_symbol[10] = {0, 1, 2, 3, 4, 0xfc, 0xfd, 0xfe, 0xff, 0xAA};
+
+/// декодирование Хафмана - выходной для декодера bufferPack2
 //для Хафмана входной буфер это буфер -массив принятого тела замера!!!
 // выходной для декодера bufferPack2 (+ 10? !!) на выходе дельта
 // входной буфер это массив тела пакета
 // len = общая длина = compress_len - 8, на выходе дельта
 uint16_t decompressLogger(
-    const char *buff_in,
-    char *buff_out,
+    char *outBuffer,
+    size_t outSize,
+    const char *inBuffer,
     uint16_t lenComp
 )
 {
+    return dec_Hafman(outBuffer, outSize, inBuffer, lenComp);
+
     uint8_t j;
     uint16_t bufpos = 0;		//индекс во входном буфере!
     uint16_t bufpos_out = 0;		//индекс в выходном буфере!
@@ -372,28 +617,33 @@ uint16_t decompressLogger(
     // 01 00    41 7e 1e 0c 18 30 60 ff
 
     // сначала 2 байта used без сжатия
-    symbol = buff_in[bufpos];      //  2 байта lsb msb used
+    symbol = inBuffer[bufpos];      //  2 байта lsb msb used
     bufpos++;
     // запись байта в буфер
-    buff_out[bufpos_out] = symbol;
+    if (bufpos_out >= outSize) {
+        std::cerr << "bufpos_out >= outSize " << (int) bufpos_out << " " << (int) outSize << std::endl;
+        return 0;
+    }
+    outBuffer[bufpos_out] = symbol;
+
     bufpos_out++;
-    symbol = buff_in[bufpos];         //если 2 байта
+    symbol = inBuffer[bufpos];         //если 2 байта
     bufpos++;
     // запись байта в буфер
-    buff_out[bufpos_out] = symbol;
+    outBuffer[bufpos_out] = symbol;
     bufpos_out++;
 
    //чтение 2 байта из входного буфера в bitbuf msb lsb!!! при коде ТОЖЕ!!
 #ifdef DEBUG_PRINT
-    std::cerr << "dec_Hafman: msb buff_in[bufpos] = " << (int) buff_in[bufpos] << std::endl;
+    std::cerr << "dec_Hafman: msb inBuffer[bufpos] = " << (int) inBuffer[bufpos] << std::endl;
 #endif
     // первая загрузка сразу 2 байта - далее по одному
-    bitbuf = (uint16_t)(buff_in[bufpos] * 0x100);
+    bitbuf = (uint16_t)(inBuffer[bufpos] * 0x100);
     bufpos++;
 #ifdef DEBUG_PRINT
-    std::cerr <<"dec_Hafman: lsb buff_in[bufpos+1] = " << (int) buff_in[bufpos] << std::endl;
+    std::cerr << "dec_Hafman: lsb inBuffer[bufpos+1] = " << (int) inBuffer[bufpos] << std::endl;
 #endif
-    bitbuf |= buff_in[bufpos];      //lsb второй (остальные подргужаются в msb!)
+    bitbuf |= inBuffer[bufpos];      //lsb второй (остальные подргужаются в msb!)
     bufpos++;
  
 #ifdef DEBUG_PRINT
@@ -466,7 +716,7 @@ uint16_t decompressLogger(
         // если был признак - может быть уже сдвинуто - сохранять сам признак не надо!!
         if (bits < 8) {  //заранее подгрузить и выровнять байт!!
         // if (fdbg) LOG.log_str("dec_Hafman: нет priz bits < 8");
-            symb_next = (uint16_t)(buff_in[bufpos]);    //
+            symb_next = (uint16_t)(inBuffer[bufpos]);    //
             bufpos++;                       //сдесь увелич. bufpos для while!
             // if (fdbg) LOG.log_str(String.Format("dec_Hafman: нет priz bufpos={0:D}", bufpos));
             symb_next = (uint16_t)(symb_next << (8 - bits));   //
@@ -484,14 +734,14 @@ uint16_t decompressLogger(
             bitbuf = (uint16_t)(bitbuf << 8);
 //if (fdbg) LOG.log_str(String.Format("dec_Hafman: priz=1 bitbuf={0:X4}", bitbuf));
 
-            buff_out[bufpos_out] = symbcode;  // запись байта в буфер
+            outBuffer[bufpos_out] = symbcode;  // запись байта в буфер
             // if (fdbg) LOG.log_str(String.Format("dec_Hafman: priz=1 bufpos_out={0:D} symbcode={1:X2}", bufpos_out, symbcode));
             //  сохранить буфер 1 памяти
             bufpos_out++;
             if (bits < 8)   // подгрузить и выровнять байт!! в lsb !!! bits 16-2-8=6
             {
                 // if (fdbg) LOG.log_str("dec_Hafman: priz=1 bits < 8");
-                symb_next = (uint16_t)(buff_in[bufpos]);    //
+                symb_next = (uint16_t)(inBuffer[bufpos]);    //
                 // if (fdbg) LOG.log_str(String.Format("dec_Hafman: priz=1 symb_next={0:X4} bits={1:D}", symb_next, bits));
                 bufpos++;  //сдесь увелич. bufpos для while! может второй раз за цикл!!!!! 
                 // if (fdbg) LOG.log_str(String.Format("dec_Hafman: priz=1 bufpos={0:D}", bufpos));
@@ -505,7 +755,7 @@ uint16_t decompressLogger(
             // if (fdbg) LOG.log_str(String.Format("dec_Hafman: no priz bits={0:D}", bits));
             // bitbuf сдвинут bits уменьшен байт подгружен
             // запись байта в буфер
-            buff_out[bufpos_out] = symbcode;
+            outBuffer[bufpos_out] = symbcode;
             // if (fdbg) LOG.log_str(String.Format("dec_Hafman: no priz bufpos_out={0:D} symbcode={1:X2}", bufpos_out, symbcode));
             bufpos_out++;
             // if (fdbg) LOG.log_str(String.Format("dec_Hafman: no priz bitbuf={0:X4}", bitbuf));
@@ -521,18 +771,20 @@ uint16_t decompressLogger(
 
 std::string compressLoggerString(const std::string &value)
 {
-    std::string retval;
-    retval.reserve(value.size() * 2);
-    uint16_t sz = compressLogger(value.c_str(), (char *) retval.c_str(), value.size());
-    retval.resize(sz);
+    size_t rsz = value.size() * 2;
+    std::string retval(rsz, 'H');
+    uint16_t sz = compressLogger((char *) retval.c_str(), retval.size(), value.c_str(), value.size());
+    if (sz < rsz)
+        retval.resize(sz);
     return retval;
 }
 
 std::string decompressLoggerString(const std::string &value)
 {
-    std::string retval;
-    retval.reserve(value.size() * 2);
-    uint16_t sz = decompressLogger(value.c_str(), (char *) retval.c_str(), value.size());
-    retval.resize(sz);
+    size_t rsz = 512;
+    std::string retval(rsz, 0);
+    uint16_t sz = decompressLogger((char *) retval.c_str(), rsz, value.c_str(), value.size());
+    if (sz < rsz)
+        retval.resize(sz);
     return retval;
 }

@@ -14,7 +14,7 @@
 #include "argtable3/argtable3.h"
 
 #include "logger-huffman.h"
-#include "logger-huffman-impl.h"
+#include "logger-collection.h"
 /*
 #include "utilcompress.h"
 */
