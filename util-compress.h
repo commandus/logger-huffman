@@ -7,8 +7,19 @@
 extern "C" {
 #endif
 
-uint16_t compressLogger(const char *buffIn, char *buffOut, uint16_t len);
-uint16_t decompressLogger(const char *buffIn, char *buffOut, uint16_t len);
+uint16_t compressLogger(
+    char *outBuffer,
+    size_t outSize,
+    const char *inBuffer,
+    uint16_t inSize
+);
+
+uint16_t decompressLogger(
+    char *outBuffer,
+    size_t outSize,
+    const char *inBuffer,
+    uint16_t inSize
+);
 
 #ifdef __cplusplus
 }

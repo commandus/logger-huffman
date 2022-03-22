@@ -4,7 +4,7 @@
 
 #include "logger-huffman.h"
 
-#include "logger-collection.h"
+#include "logger-huffman-impl.h"
 
 #define CNT 25
 
