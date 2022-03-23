@@ -48,7 +48,7 @@ void doneLoggerPasswords(void *env);
  * @param packetы LoggerKosaPackets
  * @param tableAliases <table alias>=<SQL table name>
  * @param fieldAliases <field name>=<SQL column name>
- * @param properties  <optional field name>=<SQL type name>
+ * @param extraValues  <optional field name>=value
  * @return empty string if fails
  */
 std::string parsePacket(
@@ -56,9 +56,7 @@ std::string parsePacket(
     int outputFormat,
     int sqlDialect,
     const LoggerKosaPackets &packets,
-    const std::map<std::string, std::string> *tableAliases = NULL,
-    const std::map<std::string, std::string> *fieldAliases = NULL,
-    const std::map<std::string, std::string> *properties = NULL
+    const std::map<std::string, std::string> *extraValues = NULL
 );
 
 /**
@@ -66,18 +64,14 @@ std::string parsePacket(
  * @param env packet declaratuions
  * @param outputFormat 3- sql, 4- Sql
  * @param sqlDialect 0- PostgreSQL, 1- MySQL, 1- Firebird
- * @param tableAliases <table alias>=<SQL table name>
- * @param fieldAliases <field name>=<SQL column name>
- * @param properties  <optional field name>=<SQL type name>
+ * @param extraValues  <optional field name>=<SQL type name>
  * @return empty string if fails
  */
 std::string createTableSQLClause(
     void *env,
     int outputFormat,
     int sqlDialect,
-    const std::map<std::string, std::string> *tableAliases = NULL,
-    const std::map<std::string, std::string> *fieldAliases = NULL,
-    const std::map<std::string, std::string> *properties = NULL
+    const std::map<std::string, std::string> *extraValues = NULL
 );
 
 #endif
