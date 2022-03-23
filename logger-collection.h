@@ -13,7 +13,6 @@ class LoggerItemId {
 		uint8_t kosa;							// идентификатор косы (номер, дата)
 		uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
 		int8_t packet;							// packet number
-
 		uint8_t kosa_year;						// reserved for first packet
 
 		LoggerItemId();
@@ -42,7 +41,7 @@ class LoggerItemId {
 		std::string toString() const;
 		std::string toJsonString() const;
 
-    void set(const LOGGER_MEASUREMENT_HDR &param);
+        void set(const LOGGER_MEASUREMENT_HDR &param);
 };
 
 /**

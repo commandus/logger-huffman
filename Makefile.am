@@ -10,14 +10,15 @@ AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 bin_PROGRAMS = logger-huffman-print
 
 LIBLOGGERHUFFMANSRC = \
-	logger-huffman.c logger-collection.cpp util-compress.cpp util-time-fmt.cpp
+	logger-huffman.c logger-collection.cpp util-compress.cpp util-time-fmt.cpp \
+	util-time-fmt.cpp logger-passport.cpp logger-sql-clause.cpp
 
 #
 #	Static library
 #
 lib_LIBRARIES = liblogger-huffman.a
 liblogger_huffman_a_SOURCES = $(LIBLOGGERHUFFMANSRC)
-liblogger_huffman_a_CXXFLAGS = $(COMMON_C_FLAGS) -fPIC
+liblogger_huffman_a_CXXFLAGS = -std=c++11 $(COMMON_C_FLAGS) -fPIC
 
 L_LOGGER_HUFFMAN = -L. -llogger-huffman
 
@@ -26,12 +27,11 @@ $(bin_PROGRAMS): $(lib_LIBRARIES)
 
 nobase_dist_include_HEADERS = \
 	platform.h logger-huffman.h util-compress.h errlist.h logger-collection.h \
-	util-time-fmt.h logger-passport.h \
+	util-time-fmt.h logger-passport.h logger-sql-clause.h \
 	third_party/argtable3/argtable3.h
 
 logger_huffman_print_SOURCES = \
 	logger-huffman-print.cpp \
-	util-time-fmt.cpp logger-passport.cpp \
 	third_party/argtable3/argtable3.c
 logger_huffman_print_LDADD = \
 	$(L_LOGGER_HUFFMAN)
@@ -57,7 +57,7 @@ test_temperature_SOURCES = \
 test_temperature_LDADD = $(L_LOGGER_HUFFMAN)
 
 test_sql_SOURCES = \
-	tests/test-sql.cpp logger-passport.cpp
+	tests/test-sql.cpp
 test_sql_LDADD = $(L_LOGGER_HUFFMAN)
 
 check_PROGRAMS = \
