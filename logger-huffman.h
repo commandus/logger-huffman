@@ -170,7 +170,7 @@ double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 );
 
-double vcc_2_double(
+double vcc2double(
 		uint8_t value
 );
 

@@ -1,7 +1,3 @@
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-
 #include "logger-huffman.h"
 #include "errlist.h"
 
@@ -214,7 +210,7 @@ double TEMPERATURE_2_BYTES_2_double(
 #endif	
 }
 
-double vcc_2_double(
+double vcc2double(
         uint8_t value
 ) {
     // return (1.1 * 1024.) / (value * 4.0);
