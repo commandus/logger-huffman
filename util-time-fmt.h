@@ -32,5 +32,6 @@ time_t logger2time
  * @return timestamp string
  */
 std::string time2string(time_t val, bool localtime);
+std::string time2unixepochstring(time_t val);
 
 #endif
