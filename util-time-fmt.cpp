@@ -17,6 +17,12 @@
 const static char *dateformat0 = "%FT%T";
 const static char *dateformat1 = "%FT%T%Z";
 
+std::string time2unixepochstring(time_t val)
+{
+	std::stringstream ss;
+	ss << val;
+	return ss.str();
+}
 
 /**
  * Format date and time

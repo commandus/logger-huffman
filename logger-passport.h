@@ -6,6 +6,23 @@
 #include <vector>
 #include <inttypes.h>
 
+/**
+ * Initialize logger password directory
+ * @param passwords_path path to the catalog with password files
+ * @param verbosity if 1, 2 or 3 print out to the stderr errors parsing declarations
+ * @return descriptor of the passwords to be passed to the parsePacket()
+ */
+void* initLoggerPasswords(
+        const std::string &passwords_path,
+        const int verbosity = 0
+);
+
+/**
+ * Destroy and free logger properties
+ * @param env descriptor
+ */
+void doneLoggerPasswords(void *env);
+
 // типы коэфф. для загрузок по одному в основной !! Std,Poly,Akon,Inklinom,Angl
 // для passport.txt polynom.txt akon inclinom.txt
 typedef enum  {

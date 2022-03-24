@@ -21,18 +21,35 @@ git clone https://github.com/commandus/logger-huffman.git
 
 ### Library
 
-Static library liblogger-huffman.a
+Static library liblogger-huffman.a (-l logger-huffman).
+
+Header file: logger-sql-clause.h
 
 Optional headers:
- 
+
+- logger-collection.h
 - logger-huffman.h
-- logger-huffman-impl.h
-- utilcompress.h
+- logger-passport.h
+- util-compress.h
 - util-time-fmt.h
 
 Usage:
 ```
--l logger-huffman
+#include "logger-sql-clause.h"
+...
+// create table clause 
+std::string r = createTableSQLClause(OUTPUT_FORMAT_SQL, dialect);
+...
+// load packet
+LoggerKosaCollection c;
+std::vector<std::string> s;
+    s.push_back(hex2binString(packet0));
+    LOGGER_PACKET_TYPE t = c.put(s);
+
+...
+// insert into clause
+r = parsePacket(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
+
 ```
 
 ### Command line tools
@@ -45,11 +62,11 @@ logger-huffman-print get packets from command line (in hex) and print out
 contents in JSON format or as tab delimited fields.
 
 ```
-./logger-huffman-print -f json 002614121f0c14261300003d3d71000100cf06aa01e6ff00 02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00 08ddff0009e3ff000adeff000bdaff000cdfff000debff00 0ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff00 14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00 1adaff001be6ff00
+
 ```
 
 ## Build
-
+./logger-huffman-print -f json 002614121f0c14261300003d3d71000100cf06aa01e6ff00 02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00 08ddff0009e3ff000adeff000bdaff000cdfff000debff00 0ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff00 14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00 1adaff001be6ff00
 You can use
 
 - Automake

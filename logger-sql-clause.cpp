@@ -2,28 +2,6 @@
 
 #include "logger-sql-clause.h"
 
-/**
- * Initialize logger password directory
- * @param passwords_path path to the catalog with password files
- * @param verbosity if 1, 2 or 3 print out to the stderr errors parsing declarations
- * @return descriptor of the passwords to be passed to the parsePacket()
- */
-void* initLoggerPasswords(
-	const std::string &passwords_path,
-	const int verbosity // default 0
-)
-{
-    return NULL;
-}
-
-/**
- * Destroy and free logger properties
- * @param env descriptor
- */
-void doneLoggerPasswords(void *env)
-{
-}
-
 static const std::string tableName = "logger_lora";
 
 #define FLD_COUNT  10
@@ -111,7 +89,6 @@ const std::vector <std::vector <std::pair<const std::string&, std::string> >> fl
 
 static void createTableSQLClause1(
         std::ostream *output,
-        void *env,
         const std::vector <std::vector <std::pair<const std::string&, std::string> >> flds,
         const std::string &tableName,
         int sqlDialect,
@@ -160,7 +137,6 @@ static void createTableSQLClause1(
  * @return empty string if fails
  */
 std::string createTableSQLClause(
-	void *env, 
 	int outputFormat,
 	int sqlDialect,
 	const std::map<std::string, std::string> *extraValues
@@ -169,9 +145,10 @@ std::string createTableSQLClause(
     std::stringstream ss;
     switch (outputFormat) {
         case OUTPUT_FORMAT_SQL2:
-            createTableSQLClause1(&ss, env, fldNTypes, tableName, sqlDialect, extraValues);
+            createTableSQLClause1(&ss, fldNTypes, tableName, sqlDialect, extraValues);
+            break;
         default:
-            createTableSQLClause1(&ss, env, fldNTypes, tableName, sqlDialect, extraValues);
+            createTableSQLClause1(&ss, fldNTypes, tableName, sqlDialect, extraValues);
     }
     return ss.str();
 }
@@ -188,20 +165,22 @@ std::string createTableSQLClause(
  * @return empty string if fails
  */
 void parsePacketStream(
-        void *env,
         std::ostream *output,
         const std::vector <std::vector <std::pair<const std::string&, std::string> >> flds,
         int outputFormat,
         int sqlDialect,
         const std::vector<std::string> &valueStrings,
         const std::map<std::string, std::string> *extraFields
-)
-{
+) {
     std::string quote;
-    if (sqlDialect == SQL_MYSQL)
-        quote = "`";	// MySQL exceptions for spaces and reserved words
-    else
+    std::string quote2;
+    if (sqlDialect == SQL_MYSQL) {
+        quote = "`";    // MySQL exceptions for spaces and reserved words
+        quote2 = "'";
+    } else {
         quote = "\"";
+        quote2 = "'";
+    }
 
     *output << "INSERT INTO " << quote << tableName << quote << "(";
 
@@ -209,14 +188,12 @@ void parsePacketStream(
     bool isFirst = true;
     int c = 0;
     if (sqlDialect < flds.size()) {
-        for (std::vector<std::pair<const std::string&, std::string> >::const_iterator it(flds[sqlDialect].begin());
-             it != flds[sqlDialect].end(); it++) {
-            if (isFirst)
+        for (std::vector<std::pair<const std::string&, std::string> >::const_iterator it(flds[sqlDialect].begin() + 1);
+            it != flds[sqlDialect].end(); it++) {
+            if (isFirst) {
                 isFirst = false;
-            else
+            } else
                 *output << ", ";
-            if (c >= valueStrings.size())
-                break;
             *output << quote << it->first << quote;
             c++;
         }
@@ -240,14 +217,18 @@ void parsePacketStream(
     c = 0;
     if (sqlDialect < flds.size()) {
         for (std::vector<std::pair<const std::string&, std::string> >::const_iterator it(flds[sqlDialect].begin());
-             it != flds[sqlDialect].end(); it++) {
-            if (isFirst)
-                isFirst = false;
-            else
-                *output << ", ";
+            it != flds[sqlDialect].end(); it++) {
             if (c >= valueStrings.size())
                 break;
+            if (isFirst) {
+                isFirst = false;
+            } else
+                *output << ", ";
+            if (c >= 7)
+                *output << quote2;
             *output << valueStrings[c];
+            if (c >= 7)
+                *output << quote2;
             c++;
         }
     }
@@ -268,15 +249,12 @@ void parsePacketStream(
  * Parse packet by declaration
  * @param env packet declaratuions
  * @param outputFormat 0- json(default), 1- csv, 2- tab, 3- sql, 4- Sql, 5- pbtext, 6- dbg, 7- hex, 8- bin
- * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
+ * @param sqlDialect 0- PostgreSQL, 1- MySQL, 2- Firebird
  * @param packets data
- * @param tableAliases <table alias>=<SQL table name>
- * @param fieldAliases <field name>=<SQL column name>
- * @param properties  <optional field name>=<SQL type name>
+ * @param extraValues <optional field name>=value
  * @return empty string if fails
  */
 std::string parsePacket(
-        void *env,
         int outputFormat,
         int sqlDialect,
         const LoggerKosaPackets &packets,
@@ -285,7 +263,7 @@ std::string parsePacket(
 {
     std::stringstream sout;
     std::vector<std::string> packetValueStrings;
-    parsePacketStream(env, &sout, fldNTypes, outputFormat, sqlDialect, packetValueStrings, extraValues);
+    packets.toStrings(packetValueStrings, "NULL");
+    parsePacketStream(&sout, fldNTypes, outputFormat, sqlDialect, packetValueStrings, extraValues);
     return sout.str();
 }
-

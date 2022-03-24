@@ -2,6 +2,28 @@
 
 #include "logger-passport.h"
 
+/**
+ * Initialize logger password directory
+ * @param passwords_path path to the catalog with password files
+ * @param verbosity if 1, 2 or 3 print out to the stderr errors parsing declarations
+ * @return descriptor of the passwords to be passed to the parsePacket()
+ */
+void* initLoggerPasswords(
+        const std::string &passwords_path,
+        const int verbosity // default 0
+)
+{
+    return NULL;
+}
+
+/**
+ * Destroy and free logger properties
+ * @param env descriptor
+ */
+void doneLoggerPasswords(void *env)
+{
+}
+
 const char *DS2438_CODE = "26";
 const char *DS18B20_CODE = "28";
 const char *MMA_CODE = "00";

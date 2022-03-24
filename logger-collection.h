@@ -41,6 +41,10 @@ class LoggerItemId {
 		std::string toString() const;
 		std::string toJsonString() const;
 
+        std::string kosaString() const;							// идентификатор косы (номер, дата)
+        std::string measureString() const;						// мл. Байт номера замера, lsb used (или addr_used?)
+        std::string packetStrng() const;						// packet number
+        std::string kosaYearString() const; 					// reserved for first packet
         void set(const LOGGER_MEASUREMENT_HDR &param);
 };
 
@@ -117,12 +121,10 @@ class LoggerCollection {
 		virtual ~LoggerCollection();
 
 		void push(const LoggerItem &value);
-		/**
-		 * Put char buffer
-		 */
-		LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, const void *buffer, size_t size);
-		void putRaw(size_t &retSize, const void *buffer, size_t size);
-
+        /**
+          * Put char buffer
+          */
+        LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, const void *buffer, size_t size);
 		/**
 		 * Put collection of strings
 		 */
@@ -131,11 +133,15 @@ class LoggerCollection {
                 const std::vector<std::string> values);
 
 		bool completed() const;
-		bool get(std::map<uint8_t, double> &t) const;
+		bool get(std::map<uint8_t, double> &retval) const;
 
 		std::string toString() const;
 		std::string toJsonString() const;
 		std::string toTableString(const LoggerItemId &id, const time_t &t, const LOGGER_MEASUREMENT_HDR &header) const;
+private:
+    LOGGER_PACKET_TYPE put1(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders,
+        const void *buffer, size_t size);
+    void putRaw(size_t &retSize, const void *buffer, size_t size);
 };
 
 //  5'
@@ -167,9 +173,15 @@ class LoggerKosaPackets {
 		bool operator==(uint8_t kosa) const;
 		bool operator!=(uint8_t kosa) const;
 
-		std::string toString() const;
+        time_t measured() const;
+
+        std::string toString() const;
 		std::string toJsonString() const;
 		std::string toTableString() const;
+
+        void temperatureCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+        void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
+        void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
 };
 
 /** 
@@ -212,6 +224,8 @@ LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(const std::string &value);
 std::string LOGGER_MEASUREMENT_HDR_2_string(const LOGGER_MEASUREMENT_HDR &value);
 std::string LOGGER_MEASUREMENT_HDR_2_json(const LOGGER_MEASUREMENT_HDR &value);
 std::string LOGGER_MEASUREMENT_HDR_2_table(const LOGGER_MEASUREMENT_HDR &value);
+std::string vcc2string(uint8_t value);
+
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(const LOGGER_DATA_TEMPERATURE_RAW *value);
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(const LOGGER_DATA_TEMPERATURE_RAW *value);
 std::string LOGGER_PACKET_FIRST_HDR_2_string(const LOGGER_PACKET_FIRST_HDR &value);
