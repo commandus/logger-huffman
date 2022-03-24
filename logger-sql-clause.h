@@ -46,8 +46,6 @@ void doneLoggerPasswords(void *env);
  * @param outputFormat 0- json(default), 1- csv, 2- tab, 3- sql, 4- Sql, 5- pbtext, 6- dbg, 7- hex, 8- bin
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
  * @param packetы LoggerKosaPackets
- * @param tableAliases <table alias>=<SQL table name>
- * @param fieldAliases <field name>=<SQL column name>
  * @param extraValues  <optional field name>=value
  * @return empty string if fails
  */
