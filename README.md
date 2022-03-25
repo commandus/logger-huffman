@@ -23,6 +23,13 @@ git clone https://github.com/commandus/logger-huffman.git
 
 Static library liblogger-huffman.a (-l logger-huffman).
 
+There are two way to use a library:
+
+- include headers with types (first way)
+- include only one "void *" type header (second way)
+
+#### First way
+
 Header file: logger-sql-clause.h
 
 Optional headers:
@@ -33,7 +40,8 @@ Optional headers:
 - util-compress.h
 - util-time-fmt.h
 
-Usage:
+Source code example:
+
 ```
 #include "logger-sql-clause.h"
 ...
@@ -50,6 +58,30 @@ std::vector<std::string> s;
 // insert into clause
 r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
 
+```
+
+#### Second way
+
+Header file: logger-parse.h
+
+Source code example:
+
+```
+#include "logger-parse.h"
+...
+void *env = initLoggerParser();
+
+sqlCreateTable(SQL_POSTGRESQL); // SQL_POSTGRESQL - 0
+parsePacket(env, binaryDataString));
+
+std::vector <std::string> clauses;
+sqlInsertPackets(env, clauses, dialect);
+for (auto it(clauses.begin()); it != clauses.end(); it++) {
+    std::cout << *it << std::endl << std::endl;
+}
+
+flushLoggerParser(env);
+doneLoggerParser(env);```
 ```
 
 ### Command line tools
