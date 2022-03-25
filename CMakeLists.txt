@@ -5,7 +5,12 @@ project(${PROJECT_NAME} VERSION 1.0)
 set(CMAKE_CXX_STANDARD 11)
 
 set(LIB_LOGGER_HUFFMAN_SRC
-        util-compress.cpp logger-huffman.c
+	logger-collection.cpp
+	logger-sql-clause.cpp  
+	logger-passport.cpp
+	util-compress.cpp
+	util-time-fmt.cpp
+	logger-huffman.c
 )
 set(SRC_LOGGER_HUFFMAN_PRINT
 	logger-huffman-print.cpp
