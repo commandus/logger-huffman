@@ -6,7 +6,7 @@
  * Initialize logger password directory
  * @param passwords_path path to the catalog with password files
  * @param verbosity if 1, 2 or 3 print out to the stderr errors parsing declarations
- * @return descriptor of the passwords to be passed to the parsePacket()
+ * @return descriptor of the passwords to be passed to the parsePacketsToSQLClause()
  */
 void* initLoggerPasswords(
         const std::string &passwords_path,

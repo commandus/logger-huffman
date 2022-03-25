@@ -2,6 +2,7 @@
 #include <cassert>
 #include <iostream>
 
+#include "logger-parse.h"
 #include "logger-sql-clause.h"
 #include "errlist.h"
 
@@ -24,8 +25,7 @@ std::string SQL_DIALECT_NAME[] = {
     "PostgreSQL", "MySQL", "Firebird", "SQLite"
 };
 
-int main(int argc, char **argv)
-{
+void test1() {
     LoggerKosaCollection c;
     LOGGER_PACKET_TYPE t = c.put(hex2binString(packet0));
 
@@ -42,9 +42,35 @@ int main(int argc, char **argv)
         r = createTableSQLClause(OUTPUT_FORMAT_SQL, dialect);
         std::cout << r << std::endl;
 
-        r = parsePacket(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
+        r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
         std::cout << r << std::endl << std::endl;
     }
-
     std::cout << r << std::endl;
+}
+
+void testLoggerParse() {
+    std::string r;
+    void *env = initLoggerParser();
+
+    for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
+        std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
+        r = sqlCreateTable(dialect);
+        std::cout << r << std::endl;
+
+        r = parsePacket(env, hex2binString(packet0));
+
+        std::vector <std::string> clauses;
+        sqlInsertPackets(env, clauses, dialect);
+        for (auto it(clauses.begin()); it != clauses.end(); it++) {
+            std::cout << *it << std::endl << std::endl;
+        }
+    }
+
+    flushLoggerParser(env);
+    doneLoggerParser(env);
+}
+
+int main(int argc, char **argv)
+{
+    testLoggerParse();
 }

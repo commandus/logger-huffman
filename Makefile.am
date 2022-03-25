@@ -1,7 +1,7 @@
 SUBDIRS = .
 ACLOCAL_AMFLAGS = -I m4
 
-COMMON_C_FLAGS = -Ithird_party -D_GLIBCXX_USE_CXX11_ABI=0 -DDEBUG_PRINT -O0
+COMMON_C_FLAGS = -Ithird_party -D_GLIBCXX_USE_CXX11_ABI=0 -DDEBUG_PRINT -O2
 AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 
 #
@@ -10,7 +10,7 @@ AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 bin_PROGRAMS = logger-huffman-print
 
 LIBLOGGERHUFFMANSRC = \
-	logger-huffman.c logger-collection.cpp util-compress.cpp util-time-fmt.cpp \
+	logger-parse.cpp logger-huffman.c logger-collection.cpp util-compress.cpp util-time-fmt.cpp \
 	util-time-fmt.cpp logger-passport.cpp logger-sql-clause.cpp
 
 #
@@ -27,7 +27,7 @@ $(bin_PROGRAMS): $(lib_LIBRARIES)
 
 nobase_dist_include_HEADERS = \
 	platform.h logger-huffman.h util-compress.h errlist.h logger-collection.h \
-	util-time-fmt.h logger-passport.h logger-sql-clause.h \
+	util-time-fmt.h logger-passport.h logger-sql-clause.h logger-parse.h \
 	third_party/argtable3/argtable3.h
 
 logger_huffman_print_SOURCES = \

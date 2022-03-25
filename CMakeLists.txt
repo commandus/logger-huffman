@@ -5,6 +5,7 @@ project(${PROJECT_NAME} VERSION 1.0)
 set(CMAKE_CXX_STANDARD 11)
 
 set(LIB_LOGGER_HUFFMAN_SRC
+	logger-parse.cpp
 	logger-collection.cpp
 	logger-sql-clause.cpp  
 	logger-passport.cpp

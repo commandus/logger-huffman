@@ -31,7 +31,7 @@ enum SQL_DIALECT : int {
  * @param extraValues  <optional field name>=value
  * @return empty string if fails
  */
-std::string parsePacket(
+std::string parsePacketsToSQLClause(
     int outputFormat,
     int sqlDialect,
     const LoggerKosaPackets &packets,

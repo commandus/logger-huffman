@@ -48,7 +48,7 @@ std::vector<std::string> s;
 
 ...
 // insert into clause
-r = parsePacket(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
+r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
 
 ```
 
