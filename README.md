@@ -84,17 +84,61 @@ flushLoggerParser(env);
 doneLoggerParser(env);```
 ```
 
+##### Calls
+
+First you need create a descriptor by initLoggerParser() call. It allocates
+memory to store received packets;
+
+Call parsePacket() save packet in the memory.
+
+Lora device send 5-10 packets in about 100-300 seconds.
+
+Packets are collected in a memory. When last packet has been
+received, it can be stored in the database and removed from the memory.
+
+When some packets are missed especially first ones, it is impossible to
+assembly them in the database record.
+
+In this case, memory must be free implicitly by sqlInsertPackets() or parsePacket() calls
+or explicitly by flushLoggerParser() call. These calls check received time and if it
+is later than 5 minutes, packets trying to store in the database(if sqlInsertPackets()
+called) then it removes from the memory.
+
+- initLoggerParser() return an descriptor
+- sqlCreateTable() return "CREATE TABLE .." SQL statement string
+- parsePacket() trying to parse received packet. Packets stored in memory.  
+- sqlInsertPackets() find completed packets
+- flushLoggerParser()
+- doneLoggerParser()
+
 ### Command line tools
 
 - logger-huffman-print get packets in hex and print out temperature values
 
 #### logger-huffman-print
 
-logger-huffman-print get packets from command line (in hex) and print out
-contents in JSON format or as tab delimited fields.
+logger-huffman-print utility prints packet data tos stdout.
 
+Pass packet as hex string in command line:
+```
+./logger-huffman-print <hex-data>
 ```
 
+or pass binary data:
+
+```
+cat packet-data.bin | ./logger-huffman-print
+```
+
+Examples:
+```
+./logger-huffman-print -f table 4a00800001072613002614121f0c14261300003d3d7100014b26010200cf06aa01e6ff0002deff0003eaff0004dcff004b26010305e3ff0006e0ff0007e2ff0008ddff0009e3ff004b2601040adeff000bdaff000cdfff000debff000ee8ff004b2601050fcdff0010e7ff0011dfff0012ddff0013e1ff004b26010614dcff0015dcff0016ebff0017e6ff0018dfff004b26010719dfff001adaff001be6ff00
+38	2019	1	0	1614438000	2021-02-28T00:00:00	2021-02-27T15:00:00	0	0	0	0	0	0	0	108.938	1	-1.625	2	-2.125	3	-1.375	4	-2.25	5	-1.8125	6	-2	7	-1.875	8	-2.1875	9	-1.8125	10	-2.125	11	-2.375	12	-2.0625	13	-1.3125	14	-1.5	15	-3.1875	16	-1.5625	17	-2.0625	18	-2.1875	19	-1.9375	20	-2.25	21	-2.25	22	-1.3125	23	-1.625	24	-2.0625	25	-2.0625	26	-2.375	27	-1.625	
+```
+
+```
+./logger-huffman-print -f table 002614121f0c14261300003d3d71000100cf06aa01e6ff00 02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00 08ddff0009e3ff000adeff000bdaff000cdfff000debff00 0ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff00 14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00 1adaff001be6ff00
+38	2019	0	0	1606814438	2020-12-01T18:20:38	2020-12-01T09:20:38	38	19	4.61639	4.61639	0	0	0	0	1	-1.625	2	-2.125	3	-1.375	4	-2.25	5	-1.8125	6	-2	7	-1.875	8	-2.1875	9	-1.8125	10	-2.125	11	-2.375	12	-2.0625	13	-1.3125	14	-1.5	15	-3.1875	16	-1.5625	17	-2.0625	18	-2.1875	19	-1.9375	20	-2.25	21	-2.25	22	-1.3125	23	-1.625	24	-2.0625	25	-2.0625	26	-2.375	27	-1.625
 ```
 
 ## Build
@@ -160,32 +204,6 @@ make
 ## Tools
 
 - logger-huffman-print
-
-### logger-huffman-print utility
-
-logger-huffman-print utility prints packet data tos stdout.
-
-Pass packet as hex string in command line:
-```
-./logger-huffman-print <hex-data>
-```
-
-or pass binary data:
-
-```
-cat packet-data.bin | ./logger-huffman-print
-```
-
-Examples:
-```
-./logger-huffman-print -f table 4a00800001072613002614121f0c14261300003d3d7100014b26010200cf06aa01e6ff0002deff0003eaff0004dcff004b26010305e3ff0006e0ff0007e2ff0008ddff0009e3ff004b2601040adeff000bdaff000cdfff000debff000ee8ff004b2601050fcdff0010e7ff0011dfff0012ddff0013e1ff004b26010614dcff0015dcff0016ebff0017e6ff0018dfff004b26010719dfff001adaff001be6ff00
-38	2019	1	0	1614438000	2021-02-28T00:00:00	2021-02-27T15:00:00	0	0	0	0	0	0	0	108.938	1	-1.625	2	-2.125	3	-1.375	4	-2.25	5	-1.8125	6	-2	7	-1.875	8	-2.1875	9	-1.8125	10	-2.125	11	-2.375	12	-2.0625	13	-1.3125	14	-1.5	15	-3.1875	16	-1.5625	17	-2.0625	18	-2.1875	19	-1.9375	20	-2.25	21	-2.25	22	-1.3125	23	-1.625	24	-2.0625	25	-2.0625	26	-2.375	27	-1.625	
-```
-
-```
-./logger-huffman-print -f table 002614121f0c14261300003d3d71000100cf06aa01e6ff00 02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00 08ddff0009e3ff000adeff000bdaff000cdfff000debff00 0ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff00 14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00 1adaff001be6ff00
-38	2019	0	0	1606814438	2020-12-01T18:20:38	2020-12-01T09:20:38	38	19	4.61639	4.61639	0	0	0	0	1	-1.625	2	-2.125	3	-1.375	4	-2.25	5	-1.8125	6	-2	7	-1.875	8	-2.1875	9	-1.8125	10	-2.125	11	-2.375	12	-2.0625	13	-1.3125	14	-1.5	15	-3.1875	16	-1.5625	17	-2.0625	18	-2.1875	19	-1.9375	20	-2.25	21	-2.25	22	-1.3125	23	-1.625	24	-2.0625	25	-2.0625	26	-2.375	27	-1.625
-```
 
 ### Windows
 
