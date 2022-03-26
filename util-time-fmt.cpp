@@ -7,7 +7,8 @@
 #include <iomanip>
 
 #ifdef _MSC_VER
-// #include "strptime.h"
+#include "strptime.h"
+int timezone = 0;
 #else
 #include <sys/time.h>
 #define TMSIZE sizeof(struct tm)

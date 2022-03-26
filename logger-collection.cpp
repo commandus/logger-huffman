@@ -374,6 +374,7 @@ LoggerItemId& LoggerItemId::operator=(
 	measure = other.measure;					// мл. Байт номера замера, lsb used (или addr_used?)
 	packet = other.packet;						// packet number
 	kosa_year = other.kosa_year;				// reserved for first packet
+	return *this;
 }
 
 bool LoggerItemId::operator==(
@@ -511,6 +512,7 @@ LoggerItem& LoggerItem::operator=(
 	errCode = other.errCode;
 	packet = other.packet;
 	received = other.received;
+	return *this;
 }
 
 bool LoggerItem::operator==(
@@ -777,6 +779,7 @@ LoggerMeasurementHeader &LoggerMeasurementHeader::operator=(
 )
 {
     this->setHdr(&value, sizeof(LOGGER_MEASUREMENT_HDR));
+	return *this;
 }
 
 bool LoggerMeasurementHeader::operator==(const LoggerItemId &another) const
@@ -958,7 +961,7 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 
 bool LoggerCollection::completed() const
 {
-	items.size() == expectedPackets;
+	return items.size() == expectedPackets;
 }
 
 bool LoggerCollection::get(std::map<uint8_t, double> &retval) const
