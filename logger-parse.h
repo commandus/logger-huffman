@@ -4,8 +4,6 @@
 #include <vector>
 #include <map>
 
-#include "logger-huffman.h"
-
 /**
  * Return CREATE table SQL clause
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 2- Firebird, 3- SQLite
