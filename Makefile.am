@@ -7,6 +7,7 @@ ACLOCAL_AMFLAGS = -I m4
 #
 COMMON_C_FLAGS = -Ithird_party -DDEBUG_PRINT -O0
 AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
+AM_CPPFLAGS = $(COMMON_C_FLAGS)
 
 #
 # Binaries
