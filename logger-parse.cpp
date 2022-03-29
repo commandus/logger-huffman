@@ -55,14 +55,11 @@ int sqlInsertPackets(
 {
     if (!env)
         return 0;
-    retClauses.clear();
     LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
     for (std::vector<LoggerKosaPackets>::const_iterator it(kosaCollection->koses.begin()); it != kosaCollection->koses.end(); ) {
         bool ready = it->packets.completed() | it->expired();
         if (ready) {
-            std::string s = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues);
-            if (!s.empty())
-                retClauses.push_back(s);
+            retClauses.push_back(parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues));
             it = kosaCollection->koses.erase(it);
         } else {
             it++;

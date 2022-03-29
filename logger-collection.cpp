@@ -726,6 +726,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 		case LOGGER_PACKET_RAW:
 			extractMeasurementHeader(&hdr, abuffer, asize);
 			id.set(hdr->kosa, 0, -1, hdr->kosa_year);	// -1: first packet (with no data)
+			// retPackets unknown
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
@@ -918,6 +919,7 @@ void LoggerCollection::putRaw(
 		return;
 	LoggerItem &item = items.front();
 	item.packet = item.packet + std::string((const char *) buffer, size);
+	expectedPackets = items.size();
 }
 
 LOGGER_PACKET_TYPE LoggerCollection::put(
@@ -961,7 +963,7 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 
 bool LoggerCollection::completed() const
 {
-	return items.size() == expectedPackets;
+	return (items.size() >= expectedPackets) && (expectedPackets > 0);
 }
 
 bool LoggerCollection::get(std::map<uint8_t, double> &retval) const
@@ -1246,24 +1248,31 @@ int LoggerKosaCollection::rmExpired()
 /**
  * @return does any packets exists before
  */
-bool LoggerKosaCollection::add(
-	const LoggerItem &value
+void LoggerKosaCollection::add(
+    LoggerCollection &value
 )
 {
-	bool found = false;
-	for (std::vector<LoggerKosaPackets>::iterator it(koses.begin()); it != koses.end(); it++) {
-		if (*it == value.id) {
-			it->add(value);
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		LoggerKosaPackets p;
-		p.add(value);
-		koses.push_back(p);
-	}
-	return found;
+    for (std::vector<LoggerItem>::const_iterator itc(value.items.begin()); itc != value.items.end(); itc++) {
+        bool found = false;
+        for (std::vector<LoggerKosaPackets>::iterator it(koses.begin()); it != koses.end(); it++) {
+            if (*it == itc->id) {
+                it->add(*itc);
+                if (value.expectedPackets) {
+                    it->packets.expectedPackets = value.expectedPackets;
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            LoggerKosaPackets p;
+            p.add(*itc);
+            koses.push_back(p);
+            if (value.expectedPackets) {
+                koses.begin()->packets.expectedPackets = value.expectedPackets;
+            }
+        }
+    }
 }
 
 /**
@@ -1277,9 +1286,8 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
     std::vector<LoggerMeasurementHeader> mhs;
 	LOGGER_PACKET_TYPE r = c.put(retSize, &mhs, buffer, size);
     // copy items from raw collection group by logger
-	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
-		add(*it);
-	}
+	add(c);
+
     // copy header(s)
     for (std::vector<LoggerMeasurementHeader>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
         addHeader(*it);
@@ -1299,9 +1307,8 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
     std::vector<LoggerMeasurementHeader> mhs;
 	LOGGER_PACKET_TYPE r = c.put(&mhs, values);
 	// copy items from raw collection group by logger
-	for (std::vector<LoggerItem>::const_iterator it(c.items.begin()); it != c.items.end(); it++) {
-		add(*it);
-	}
+
+    add(c);
 
     // copy header(s)
     for (std::vector<LoggerMeasurementHeader>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
@@ -1332,6 +1339,7 @@ std::string LoggerKosaCollection::toString() const
 			ss << ", ";
 		ss << it->toString();
 	}
+
 	return ss.str();
 }
 
