@@ -50,7 +50,7 @@ void test1() {
 
 void testLoggerParse() {
     std::string r;
-    void *env = initLoggerParser();
+    //void *env = initLoggerParser();
 
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
@@ -74,5 +74,5 @@ void testLoggerParse() {
 
 int main(int argc, char **argv)
 {
-    //testLoggerParse();
+    testLoggerParse();
 }
