@@ -196,7 +196,7 @@ class LoggerKosaCollection {
 
 		int rmExpired();
 
-		bool add(const LoggerItem &value);
+		void add(LoggerCollection &value);
 		// helper functions
 		/**
 		 * Put char buffer
