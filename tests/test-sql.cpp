@@ -74,5 +74,5 @@ void testLoggerParse() {
 
 int main(int argc, char **argv)
 {
-    testLoggerParse();
+    //testLoggerParse();
 }
