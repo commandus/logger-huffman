@@ -54,11 +54,11 @@ void testLoggerParse() {
 
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
+/*
         r = sqlCreateTable(dialect);
         std::cout << r << std::endl;
 
         r = parsePacket(env, hex2binString(packet0));
-/*
         std::vector <std::string> clauses;
         sqlInsertPackets(env, clauses, dialect);
         for (auto it(clauses.begin()); it != clauses.end(); it++) {
