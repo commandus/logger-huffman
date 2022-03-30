@@ -50,11 +50,11 @@ void test1() {
 
 void testLoggerParse() {
     std::string r;
-    //void *env = initLoggerParser();
+    void *env = initLoggerParser();
 
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
-/*
+
         r = sqlCreateTable(dialect);
         std::cout << r << std::endl;
 
@@ -64,12 +64,12 @@ void testLoggerParse() {
         for (auto it(clauses.begin()); it != clauses.end(); it++) {
             std::cout << *it << std::endl;
         }
-        */
+
         std::cout << std::endl;
     }
 
-    // flushLoggerParser(env);
-    // doneLoggerParser(env);
+    flushLoggerParser(env);
+    doneLoggerParser(env);
 }
 
 int main(int argc, char **argv)
