@@ -55,7 +55,7 @@ class LoggerItem {
 	public:
 		LoggerItemId id;
 		std::string packet;
-		time_t received;
+		time_t parsed;
 		int errCode;
 
 		LOGGER_MEASUREMENT_HDR *measurement;
