@@ -178,13 +178,7 @@ int main(int argc, char **argv)
             s = c.toTableString();
             break;
         default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
-        {
-            std::vector <std::string> clauses;
-            sqlInsertPackets((void *) &c, clauses, config.outputFormat);
-            for (auto it(clauses.begin()); it != clauses.end(); it++) {
-                s += *it + " ";
-            }
-        }
+            s = sqlInsertPackets1((void *) &c, config.outputFormat);
     }
     std::cout << s << std::endl;
 }

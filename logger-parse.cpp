@@ -1,6 +1,7 @@
 #include <string>
-#include "logger-parse.h"
+#include <sstream>
 
+#include "logger-parse.h"
 #include "logger-sql-clause.h"
 
 void *initLoggerParser()
@@ -23,6 +24,31 @@ void doneLoggerParser(void *env)
         return;
     LoggerKosaCollection *c = (LoggerKosaCollection*) env;
     delete c;
+}
+
+/**
+ * Return state of the desctiptor
+ * @param env descriptor
+ * @param format 0- Postgres, 1- MySQL, 2- Firbord, 3- SQLite 4- JSON, 5- text, 6- table
+ */
+std::string loggerParserState(
+    void *env,
+    int format
+)
+{
+    if (!env)
+        return "";
+    LoggerKosaCollection *c = (LoggerKosaCollection*) env;
+    switch (format) {
+        case 4:
+            return c->toJsonString();
+        case 5:
+            return c->toString();
+        case 6:
+            return c->toTableString();
+        default:
+            return sqlInsertPackets1(env, format);
+    }
 }
 
 int parsePacket(
@@ -80,4 +106,33 @@ std::string sqlCreateTable(
 )
 {
     return createTableSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, extraValues);
+}
+
+/**
+ * Return INSERT clause(s) as one string
+ * @param env desciptor
+ * @param sqlDialect 0..3
+ * @param extraValues  <optional field name>=value
+ * @param separator  separator string default space
+ * @return empty string if fails
+ */
+std::string sqlInsertPackets1(
+    void *env,
+    int sqlDialect,
+    const std::map<std::string, std::string> *extraValues,
+    const std::string &separator
+)
+{
+    std::vector <std::string> clauses;
+    std::stringstream ss;
+    sqlInsertPackets(env, clauses, sqlDialect);
+    bool first = true;
+    for (auto it(clauses.begin()); it != clauses.end(); it++) {
+        if (first)
+            first = false;
+        else
+            ss << separator;
+        ss << *it;
+    }
+    return ss.str();
 }

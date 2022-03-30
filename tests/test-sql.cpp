@@ -59,13 +59,7 @@ void testLoggerParse() {
         std::cout << r << std::endl;
 
         r = parsePacket(env, hex2binString(packet0));
-        std::vector <std::string> clauses;
-        sqlInsertPackets(env, clauses, dialect);
-        for (auto it(clauses.begin()); it != clauses.end(); it++) {
-            std::cout << *it << std::endl;
-        }
-
-        std::cout << std::endl;
+        std::cout << sqlInsertPackets1(env, dialect) << std::endl;
     }
 
     flushLoggerParser(env);

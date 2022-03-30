@@ -820,6 +820,7 @@ bool LoggerMeasurementHeader::setHdr(
                         pHeader->hours, pHeader->minutes, pHeader->seconds, true);
     vcc = pHeader->vcc;
     vbat = pHeader->vbat;
+	return true;
 }
 
 void LoggerMeasurementHeader::assign(
