@@ -474,18 +474,18 @@ void LoggerItemId::set(
 LoggerItem::LoggerItem()
 	: errCode(0), measurement(NULL)
 {
-	time(&received);
+	time(&parsed);
 }
 
 LoggerItem::LoggerItem(time_t value)
-	: errCode(0), measurement(NULL), received(value)
+	: errCode(0), measurement(NULL), parsed(value)
 {
 }
 
 LoggerItem::LoggerItem(
 	const LoggerItem &value
 )
-	: id(value.id), packet(value.packet), errCode(value.errCode), measurement(NULL), received(value.received)
+	: id(value.id), packet(value.packet), errCode(value.errCode), measurement(NULL), parsed(value.parsed)
 {
 
 }
@@ -511,7 +511,7 @@ LoggerItem& LoggerItem::operator=(
 	id = other.id;
 	errCode = other.errCode;
 	packet = other.packet;
-	received = other.received;
+    parsed = other.parsed;
 	return *this;
 }
 
@@ -1194,7 +1194,7 @@ void LoggerKosaPackets::rawCommaString(
 }
 
 /**
- * SQL fields: kosa, year, no, measured, received, vcc, vbat, t, raw
+ * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, raw
  * @param retval
  */
 void LoggerKosaPackets::toStrings(
