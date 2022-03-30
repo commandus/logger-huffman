@@ -21,7 +21,7 @@ static void printErrorAndExit(
     exit(errCode);
 }
 
-std::string SQL_DIALECT_NAME[] = {
+static const std::string SQL_DIALECT_NAME[] = {
     "PostgreSQL", "MySQL", "Firebird", "SQLite"
 };
 

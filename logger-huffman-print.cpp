@@ -15,6 +15,7 @@
 
 #include "logger-huffman.h"
 #include "logger-collection.h"
+#include "logger-parse.h"
 /*
 #include "utilcompress.h"
 */
@@ -29,10 +30,20 @@ const std::string programName = "logger-huffman-print";
 #endif
 
 typedef enum {
-	LOGGER_OUTPUT_FORMAT_JSON = 0,			// default
-	LOGGER_OUTPUT_FORMAT_TEXT = 1,		    // text
-    LOGGER_OUTPUT_FORMAT_TABLE = 2		    // table
+    LOGGER_OUTPUT_FORMAT_PG = 0,
+    LOGGER_OUTPUT_FORMAT_MYSQL = 1,
+    LOGGER_OUTPUT_FORMAT_FB = 2,
+    LOGGER_OUTPUT_FORMAT_SQLITE = 3,
+
+  	LOGGER_OUTPUT_FORMAT_JSON = 4,			// default
+	LOGGER_OUTPUT_FORMAT_TEXT = 5,		    // text
+    LOGGER_OUTPUT_FORMAT_TABLE = 6		    // table
+
 } LOGGER_OUTPUT_FORMAT;
+
+static const std::string SQL_DIALECT_NAME[] = {
+    "postgresql", "mysql", "firebird", "sqlite"
+};
 
 class LoggerHuffmanPrintConfiguration {
 public:
@@ -57,7 +68,7 @@ int parseCmd(
     // device path
     struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
-    struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table", "Default json");
+    struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table|postgresql|mysql|firebird|sqlite", "Default json");
 
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
@@ -84,6 +95,14 @@ int parseCmd(
                 config->outputFormat = LOGGER_OUTPUT_FORMAT_TEXT;
             if (s == "table")
                 config->outputFormat = LOGGER_OUTPUT_FORMAT_TABLE;
+            if (s == "postgresql")
+                config->outputFormat = LOGGER_OUTPUT_FORMAT_PG;
+            if (s == "mysql")
+                config->outputFormat = LOGGER_OUTPUT_FORMAT_MYSQL;
+            if (s == "firebird")
+                config->outputFormat = LOGGER_OUTPUT_FORMAT_FB;
+            if (s == "sqlite")
+                config->outputFormat = LOGGER_OUTPUT_FORMAT_SQLITE;
         }
         config->verbosity = a_verbosity->count;
         if (a_value_hex->count) {
@@ -149,14 +168,23 @@ int main(int argc, char **argv)
     std::string s;
 
     switch (config.outputFormat) {
+        case LOGGER_OUTPUT_FORMAT_JSON:
+            s = c.toJsonString();
+            break;
         case LOGGER_OUTPUT_FORMAT_TEXT:
             s = c.toString();
             break;
         case LOGGER_OUTPUT_FORMAT_TABLE:
             s = c.toTableString();
             break;
-        default:
-            s = c.toJsonString();
+        default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
+        {
+            std::vector <std::string> clauses;
+            sqlInsertPackets((void *) &c, clauses, config.outputFormat);
+            for (auto it(clauses.begin()); it != clauses.end(); it++) {
+                s += *it + " ";
+            }
+        }
     }
     std::cout << s << std::endl;
 }
