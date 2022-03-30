@@ -239,7 +239,7 @@ void parsePacketStream(
                 isFirst = false;
             else
                 *output << ", ";
-            *output << quote << it->first << quote;
+            *output << quote << it->second << quote;
         }
     }
     *output << ");";
