@@ -5,14 +5,30 @@
 #include <map>
 
 /**
+ * Return CREATE table SQL clause in 
+ * @param retClauses vector of CREATE statements
+ * @param sqlDialect 0- PostgeSQL, 1- MySQL, 2- Firebird, 3- SQLite
+ * @param extraValues  <optional field name>=<SQL type name>
+ * @return count of statements, <0- error
+ */
+int sqlCreateTable(
+    std::vector <std::string> &retClauses,
+    int sqlDialect,
+    const std::map<std::string, std::string> *extraValues = NULL
+    
+);
+
+/**
  * Return CREATE table SQL clause
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 2- Firebird, 3- SQLite
  * @param extraValues  <optional field name>=<SQL type name>
+ * @param separator  separator string default space
  * @return empty string if fails
  */
-std::string sqlCreateTable(
+std::string sqlCreateTable1(
     int sqlDialect,
-    const std::map<std::string, std::string> *extraValues = NULL
+    const std::map<std::string, std::string> *extraValues = NULL,
+    const std::string &separator = " "
 );
 
 void *initLoggerParser();
@@ -22,7 +38,7 @@ void doneLoggerParser(void *env);
 /**
  * Return state of the desctiptor
  * @param env descriptor
- * @param format 0- Postgres, 1- MySQL, 2- Firbord, 3- SQLite 4- JSON, 5- text, 6- table
+ * @param format 0- Postgres, 1- MySQL, 2- Firebird, 3- SQLite 4- JSON, 5- text, 6- table
  */
 std::string loggerParserState(void *env, int format);
 
@@ -44,6 +60,14 @@ int sqlInsertPackets(
 );
 
 /**
+ * Remove completed or expired items
+ * @param env descriptor
+ */
+void rmCompletedOrExpired(
+    void *env
+);
+
+/**
  * Return INSERT clause(s) as one string
  * @param env desciptor
  * @param sqlDialect 0..3
@@ -56,6 +80,18 @@ std::string sqlInsertPackets1(
     int sqlDialect,
     const std::map<std::string, std::string> *extraValues = NULL,
     const std::string &separator = " "
+);
+
+/**
+ * Return INSERT raw data (as hex)
+ * @param sqlDialect 0..3
+ * @param extraValues  <optional field name>=value
+ * @return empty string if fails
+ */
+std::string sqlInsertRaw(
+    int sqlDialect,
+    const std::string &value,
+    const std::map<std::string, std::string> *extraValues = NULL
 );
 
 #endif

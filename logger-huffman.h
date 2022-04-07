@@ -81,7 +81,7 @@ typedef ALIGN struct {
 
 typedef ALIGN struct {
 	union {
-		int16_t t00625;						// temperature * 0.0625, C. 12 bits, 
+		int16_t t00625;						// temperature
 		TEMPERATURE_12_BITS f;
 	} t;
 } PACKED TEMPERATURE_2_BYTES;				// 2 bytes

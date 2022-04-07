@@ -22,6 +22,7 @@ class LoggerItemId {
 			uint8_t packet,						// packet number
 			uint8_t kosa_year
 		);
+
 		/**
 		 * Set identifier
 		 * @param akosa kosa number
@@ -34,6 +35,10 @@ class LoggerItemId {
 			int8_t packet,						// packet number
 			uint8_t kosa_year
 		);
+		void assign(
+			LOGGER_MEASUREMENT_HDR *retval
+		);
+
 		LoggerItemId& operator=(const LoggerItemId& other);
 		bool operator==(const LoggerItemId &another) const;
 		bool operator!=(const LoggerItemId &another) const;
@@ -86,6 +91,7 @@ class LoggerItem {
  */
 class LoggerMeasurementHeader {
 public:
+	const LOGGER_MEASUREMENT_HDR *header;
     LoggerItemId id;
     time_t start;
     uint8_t vcc;

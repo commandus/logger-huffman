@@ -141,6 +141,27 @@ Examples:
 38	2019	0	0	1606814438	2020-12-01T18:20:38	2020-12-01T09:20:38	38	19	4.61639	4.61639	0	0	0	0	1	-1.625	2	-2.125	3	-1.375	4	-2.25	5	-1.8125	6	-2	7	-1.875	8	-2.1875	9	-1.8125	10	-2.125	11	-2.375	12	-2.0625	13	-1.3125	14	-1.5	15	-3.1875	16	-1.5625	17	-2.0625	18	-2.1875	19	-1.9375	20	-2.25	21	-2.25	22	-1.3125	23	-1.625	24	-2.0625	25	-2.0625	26	-2.375	27	-1.625
 ```
 
+```
+./logger-huffman-print -f table 002614121f0c14261300003d3d71000100cf06aa01e6ff0002deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff0008ddff0009e3ff000adeff000bdaff000cdfff000debff000ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff0014dcff0015dcff0016ebff0017e6ff0018dfff0019dfff001adaff001be6ff00
+
+./logger-huffman-print -f table 00011512010115261300003e3d71000200cf06aa01e6ff0002deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff0008ddff0009e2ff000adeff000bdaff000cdfff000debff000ee8ff000fcdff0010e6ff0011dfff0012dcff0013e1ff0014dcff0015dcff0016eaff0017e5ff0018dfff0019dfff001adaff001be6ff00
+
+./logger-huffman-print -f table 4a00800001072613002614121f0c14261300003d3d710001 4b26010200cf06aa01e6ff0002deff0003eaff0004dcff00 4b26010305e3ff0006e0ff0007e2ff0008ddff0009e3ff00 4b2601040adeff000bdaff000cdfff000debff000ee8ff00 4b2601050fcdff0010e7ff0011dfff0012ddff0013e1ff00 4b26010614dcff0015dcff0016ebff0017e6ff0018dfff00 4b26010719dfff001adaff001be6ff00
+
+./logger-huffman-print -f table  4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 4b26020305e3ff0006e0ff0007e2ff0008ddff0009e2ff00 4b2602040adeff000bdaff000cdfff000debff000ee8ff00 4b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff00 4b26020614dcff0015dcff0016eaff0017e5ff0018dfff00 4b26020719dfff001adaff001be6ff00
+```
+
+```
+echo "002614121f0c14261300003d3d71000100cf06aa01e6ff0002deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff0008ddff0009e3ff000adeff000bdaff000cdfff000debff000ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff0014dcff0015dcff0016ebff0017e6ff0018dfff0019dfff001adaff001be6ff00" | xxd -r -p | nc -q1 -4u 84.237.104.128 5000
+
+echo "00011512010115261300003e3d71000200cf06aa01e6ff0002deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff0008ddff0009e2ff000adeff000bdaff000cdfff000debff000ee8ff000fcdff0010e6ff0011dfff0012dcff0013e1ff0014dcff0015dcff0016eaff0017e5ff0018dfff0019dfff001adaff001be6ff00" | xxd -r -p | nc -q1 -4u 84.237.104.128 5000
+
+echo "4a00800001072613002614121f0c14261300003d3d710001 4b26010200cf06aa01e6ff0002deff0003eaff0004dcff00 4b26010305e3ff0006e0ff0007e2ff0008ddff0009e3ff00 4b2601040adeff000bdaff000cdfff000debff000ee8ff00 4b2601050fcdff0010e7ff0011dfff0012ddff0013e1ff00 4b26010614dcff0015dcff0016ebff0017e6ff0018dfff00 4b26010719dfff001adaff001be6ff00" | xxd -r -p | nc -q1 -4u 84.237.104.128 5000
+
+echo "4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 4b26020305e3ff0006e0ff0007e2ff0008ddff0009e2ff00 4b2602040adeff000bdaff000cdfff000debff000ee8ff00 4b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff00 4b26020614dcff0015dcff0016eaff0017e5ff0018dfff00 4b26020719dfff001adaff001be6ff00" | xxd -r -p | nc -q1 -4u 84.237.104.128 5000
+
+```
+
 ## Build
 ./logger-huffman-print -f json 002614121f0c14261300003d3d71000100cf06aa01e6ff00 02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00 08ddff0009e3ff000adeff000bdaff000cdfff000debff00 0ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff00 14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00 1adaff001be6ff00
 You can use
@@ -223,3 +244,30 @@ cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_TOOLCHAIN_FILE=C:/git/vcpkg/scr
 ### References
 
 - [lorawan-network-server](https://github.com/commandus/lorawan-network-server)
+
+
+### 
+----------------OOSSmmhhddMMYYkkyyr1r2vcvbPCused
+4a00280002031c140038100f160216000000003981190002 4b1c02020006cfaa0101a8000201a8000301a9000401a900 4b1c02030501a900 - 56 bytes
+T ST    MMPPKKYY================================
+    size общая длина данных 28h = 40 (без заголовка в 16 байт?)
+        MM measure = 2 мл. Байт номера замера, lsb used (или addr_used?)
+	      PP packets = 3 количество пакетов в замере
+	        KK kosa = 1ch 28 идентификатор косы (номер, дата)
+	          YY kosa_year = 14h = 20  год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+================
+                OO = 0 memblockoccupation
+	              SS = 38h = 56 seconds         22.02.2022 15:16:56
+	                mm = 10h = 16 minutes
+	                  hh = 0fh = 15 hours
+	                    dd = 16h = 22
+	                      MM = 2 month 1..12
+	                        YY = 16h = 22 year
+	                          kk = 00 номер косы в году
+	                            yy = 00 kosa_year год косы - 2000 (номер года последние 2 цифры)
+	                              r1 = 0 reserved
+                                    r2 = 0 reserved
+	                                  vc = 39h = 57 V cc bus voltage, V
+	                                    vb = 81h = 129 vbat V battery, V
+	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+	                                        used = 512?,record number, 1..65535

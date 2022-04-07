@@ -13,6 +13,8 @@ const std::string packet0 = "002614121f0c14261300003d3d71000100cf06aa01e6ff00"
                             "14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00"
                             "1adaff001be6ff00";
 
+const std::string packetIncomplete = "4a00280002031c140038100f160216000000003981190002";
+
 static void printErrorAndExit(
         int errCode
 )
@@ -39,7 +41,7 @@ void test1() {
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++)
     {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
-        r = createTableSQLClause(OUTPUT_FORMAT_SQL, dialect);
+        r = sqlCreateTable1(dialect);
         std::cout << r << std::endl;
 
         r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
@@ -55,18 +57,44 @@ void testLoggerParse() {
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
 
-        r = sqlCreateTable(dialect);
+        r = sqlCreateTable1(dialect);
         std::cout << r << std::endl;
 
         r = parsePacket(env, hex2binString(packet0));
         std::cout << sqlInsertPackets1(env, dialect) << std::endl;
+
+        std::cout << sqlInsertRaw(dialect, "111") << std::endl;
     }
 
     flushLoggerParser(env);
     doneLoggerParser(env);
 }
 
+void testIncompletePacket() {
+    void *env = initLoggerParser();
+    int dialect = SQL_POSTGRESQL;
+    int r;
+    for (int i = 0; i < 2; i++) {
+        r = parsePacket(env, hex2binString(packetIncomplete));
+        std::cout << "r1: " << r << std::endl;
+        r = parsePacket(env, hex2binString(packetIncomplete));
+        std::cout << "r2: " << r << std::endl;
+        r = parsePacket(env, hex2binString(packetIncomplete));
+        std::cout << "r3: " << r << std::endl;
+        r = parsePacket(env, hex2binString(packetIncomplete));
+        std::cout << "r4: " << r << std::endl;
+
+
+        std::cout << i << "  " << sqlInsertPackets1(env, dialect) << std::endl;
+        std::cout << "pg " << loggerParserState(env, 0) << std::endl;
+        std::cout << "js " << loggerParserState(env, 4) << std::endl;
+        std::cout << std::endl;
+    }
+    doneLoggerParser(env);
+}
+
 int main(int argc, char **argv)
 {
     testLoggerParse();
+    testIncompletePacket();
 }

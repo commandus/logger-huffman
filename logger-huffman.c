@@ -87,9 +87,9 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 			*retHdr = (LOGGER_MEASUREMENT_HDR*) buffer;
 			break;
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
-			if (bufferSize < sizeof(LOGGER_PACKET_PKT_1) + sizeof(LOGGER_MEASUREMENT_HDR))
+			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR))
 				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
-		 	*retHdr = (LOGGER_MEASUREMENT_HDR*) (char *) buffer + sizeof(LOGGER_PACKET_PKT_1);
+		 	*retHdr = (LOGGER_MEASUREMENT_HDR*) (char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR);
 			break;
  		case LOGGER_PACKET_PKT_2:		// with packet header (next)
 		 	*retHdr = NULL;
@@ -188,14 +188,6 @@ double extractMeasurementHeaderData(
 }
 
 /**
- *     int16_t v;
-#if BYTE_ORDER == BIG_ENDIAN
-    v = (int16_t) HTON2(value);
-#else
-    v = *(int16_t*) &value;
-#endif
-    return v * 0.0625;
-
  * @param value
  * @return
  */
@@ -203,19 +195,26 @@ double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 )
 {
-#if BYTE_ORDER == BIG_ENDIAN
-	return HTON2(value.t.t00625) * 0.0625;
-#else
-	return (int16_t) value.t.t00625 * 0.0625;
-#endif	
+	uint16_t v = (value.t.f.lo >> 8) + value.t.f.hi;
+	return (v >> 4) + (0.0625 * (v & 0xf));
 }
 
 double vcc2double(
         uint8_t value
 ) {
-    // return (1.1 * 1024.) / (value * 4.0);
+	/*
+	return (1.1 * 1024.) / (value * 4.0);
     if (value)
         return 281.6 / value;
     else
         return 0.0;
+	*/
+	if (value < 234) {
+		return value * 0.0264;	// Vпит=4.65 АЦП=176 a=0,0264;
+	} else {
+		// новые версии double V = Vref * 1024 / (Convert.ToDouble(bat) * 4);   //double Vref = 1.1;  // Vgbf
+		// head.voltage = 1.1F * 1024F / (Convert.ToSingle(data[11]) * 4F) - 0.4F;  //надо поправку -0.4в !!!!
+		return 1.1 * 1024. / (value * 4.);  //без поправки -0.4в 
+	}
+
 }
