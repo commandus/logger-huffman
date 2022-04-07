@@ -39,15 +39,41 @@ std::string parsePacketsToSQLClause(
 );
 
 /**
- * Return CREATE table SQL clause
+ * Return CREATE table SQL clause logger_lora
  * @param outputFormat 3- sql, 4- Sql
  * @param sqlDialect 0- PostgreSQL, 1- MySQL, 1- Firebird
  * @param extraValues  <optional field name>=<SQL type name>
  * @return empty string if fails
  */
-std::string createTableSQLClause(
+std::string createTableSQLClauseLoggerLora(
     int outputFormat,
     int sqlDialect,
+    const std::map<std::string, std::string> *extraValues = NULL
+);
+
+/**
+ * Return CREATE table SQL clause logger_raw
+ * @param outputFormat 3- sql, 4- Sql
+ * @param sqlDialect 0- PostgreSQL, 1- MySQL, 1- Firebird
+ * @param extraValues  <optional field name>=<SQL type name>
+ * @return empty string if fails
+ */
+std::string createTableSQLClauseLoggerRaw(
+    int outputFormat,
+    int sqlDialect,
+    const std::map<std::string, std::string> *extraValues = NULL
+);
+
+/**
+ * Return INSERT raw data (as hex)
+ * @param ostrm return stream
+ * @param sqlDialect 0..3
+ * @param extraValues  <optional field name>=value
+ */
+void sqlInsertRawStrm(
+    std::ostream &ostrm,
+    int sqlDialect,
+    const std::string &value,
     const std::map<std::string, std::string> *extraValues = NULL
 );
 
