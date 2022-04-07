@@ -29,7 +29,7 @@ void doneLoggerParser(void *env)
 /**
  * Return state of the desctiptor
  * @param env descriptor
- * @param format 0- Postgres, 1- MySQL, 2- Firbord, 3- SQLite 4- JSON, 5- text, 6- table
+ * @param format 0- Postgres, 1- MySQL, 2- Firebird, 3- SQLite 4- JSON, 5- text, 6- table
  */
 std::string loggerParserState(
     void *env,
@@ -60,15 +60,16 @@ int parsePacket(
         return 0;
     LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
     LOGGER_PACKET_TYPE t = kosaCollection->put(packet);
-    kosaCollection->rmExpired();
+    // kosaCollection->rmExpired();
     return (int) t;
 }
 
 /**
  * Return INSERT clause
+ * @param env descriptor* 
  * @param retCompleted true- all packets received
  * @param retExpired
- * @param packetы binary packets
+ * @param packets binary packets
  * @param extraValues  <optional field name>=value
  * @return empty string if fails
  */
@@ -82,30 +83,74 @@ int sqlInsertPackets(
     if (!env)
         return 0;
     LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
+    int c = 0;
+    for (std::vector<LoggerKosaPackets>::const_iterator it(kosaCollection->koses.begin()); it != kosaCollection->koses.end(); it++) {
+        if (it->packets.completed() | it->expired()) {
+            std::string s = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues);
+            if (!s.empty())
+                retClauses.push_back(s);
+            c++;
+        }
+    }
+    return c;
+}
+
+/**
+ * Remove completed or expired items
+ * @param env descriptor
+ */
+void rmCompletedOrExpired(
+    void *env
+)
+{
+    if (!env)
+        return;
+    LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
     for (std::vector<LoggerKosaPackets>::const_iterator it(kosaCollection->koses.begin()); it != kosaCollection->koses.end(); ) {
-        bool ready = it->packets.completed() | it->expired();
-        if (ready) {
-            retClauses.push_back(parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues));
+        bool ready2delete = it->packets.completed() | it->expired();
+        if (ready2delete) {
             it = kosaCollection->koses.erase(it);
         } else {
             it++;
         }
     }
-    return retClauses.size();
+}
+
+/**
+ * Return CREATE table SQL clause in 
+ * @param retClauses vector of CREATE statements
+ * @param sqlDialect 0- PostgeSQL, 1- MySQL, 2- Firebird, 3- SQLite
+ * @param extraValues  <optional field name>=<SQL type name>
+ * @return count of statements, <0- error
+ */
+int sqlCreateTable(
+    std::vector <std::string> &retClauses,
+    int sqlDialect,
+    const std::map<std::string, std::string> *extraValues
+)
+{
+    retClauses.push_back(createTableSQLClauseLoggerRaw(OUTPUT_FORMAT_SQL, sqlDialect, extraValues));
+    retClauses.push_back(createTableSQLClauseLoggerLora(OUTPUT_FORMAT_SQL, sqlDialect, extraValues));
+    return retClauses.size(); 
 }
 
 /**
  * Return CREATE table SQL clause
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 2- Firebird, 3- SQLite
  * @param extraValues  <optional field name>=<SQL type name>
+ * @param separator  separator string default space 
  * @return empty string if fails
  */
-std::string sqlCreateTable(
+std::string sqlCreateTable1(
     int sqlDialect,
-    const std::map<std::string, std::string> *extraValues
+    const std::map<std::string, std::string> *extraValues,
+    const std::string &separator
 )
 {
-    return createTableSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, extraValues);
+    return 
+        createTableSQLClauseLoggerRaw(OUTPUT_FORMAT_SQL, sqlDialect, extraValues)
+        + separator
+        + createTableSQLClauseLoggerLora(OUTPUT_FORMAT_SQL, sqlDialect, extraValues);
 }
 
 /**
@@ -134,5 +179,22 @@ std::string sqlInsertPackets1(
             ss << separator;
         ss << *it;
     }
+    return ss.str();
+}
+
+/**
+ * Return INSERT raw data (as hex)
+ * @param sqlDialect 0..3
+ * @param extraValues  <optional field name>=value
+ * @return empty string if fails
+ */
+std::string sqlInsertRaw(
+    int sqlDialect,
+    const std::string &value,
+    const std::map<std::string, std::string> *extraValues
+)
+{
+    std::stringstream ss;
+    sqlInsertRawStrm(ss, sqlDialect, value, extraValues);
     return ss.str();
 }

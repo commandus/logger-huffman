@@ -1,6 +1,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <locale>
 
@@ -118,7 +119,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
             << std::setw(0) << " "
             << ", \"kosa\": " << (int) value.kosa
             << ", \"kosa_year\": " << (int) value.kosa_year
-            << ", \"vcc\": " << vcc2double(value.vcc)
+            << ", \"vcc\": " << std::fixed << std::setprecision(2) << vcc2double(value.vcc)
             << ", \"vbat\": " << vcc2double(value.vbat)
 		<< ", \"pcnt\": " << (int) value.pcnt
 		<< ", \"used\": " << (int) value.used
@@ -410,6 +411,14 @@ void LoggerItemId::set(
 	kosa_year = akosa_year;
 }
 
+void LoggerItemId::assign(
+	LOGGER_MEASUREMENT_HDR *retval
+)
+{
+	retval->kosa = kosa;
+	retval->kosa_year = kosa_year;
+}
+
 std::string LoggerItemId::toString() const
 {
 	std::stringstream ss;
@@ -485,9 +494,12 @@ LoggerItem::LoggerItem(time_t value)
 LoggerItem::LoggerItem(
 	const LoggerItem &value
 )
-	: id(value.id), packet(value.packet), errCode(value.errCode), measurement(NULL), parsed(value.parsed)
+	: id(value.id), packet(value.packet), errCode(value.errCode), parsed(value.parsed)
 {
-
+	if (value.measurement)
+		measurement = (LOGGER_MEASUREMENT_HDR *) (packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR));
+	else
+		measurement = NULL;
 }
 
 LoggerItem::LoggerItem(
@@ -724,25 +736,25 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 	
 	switch (t) {
 		case LOGGER_PACKET_RAW:
-			extractMeasurementHeader(&hdr, abuffer, asize);
+			extractMeasurementHeader(&hdr, packet.c_str(), asize);
 			id.set(hdr->kosa, 0, -1, hdr->kosa_year);	// -1: first packet (with no data)
 			// retPackets unknown
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-                extractFirstHdr(&h1, &measurement, abuffer, asize);
+                extractFirstHdr(&h1, &measurement, packet.c_str(), asize);
                 id.set(h1->kosa, h1->measure, -1, h1->kosa_year);	// -1: first packet (with no data)
 
 				// LOGGER_MEASUREMENT_HDR *measurementHeader;
-                // extractMeasurementHeader(&measurementHeader, abuffer, asize);
+                // extractMeasurementHeader(&measurementHeader, packet.c_str(), asize);
 				retPackets = h1->packets;
 			}
 			break;
 		case LOGGER_PACKET_PKT_2:
 			{
 				LOGGER_PACKET_SECOND_HDR *h2;
-				extractSecondHdr(&h2, abuffer, asize);
+				extractSecondHdr(&h2, packet.c_str(), asize);
 				id.set(h2->kosa, h2->measure, h2->packet, 0);
 			}
 			break;
@@ -754,7 +766,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 }
 
 LoggerMeasurementHeader::LoggerMeasurementHeader()
-    : start(0), vcc(0), vbat(0)
+    : header(NULL), start(0), vcc(0), vbat(0)
 {
 
 }
@@ -762,7 +774,7 @@ LoggerMeasurementHeader::LoggerMeasurementHeader()
 LoggerMeasurementHeader::LoggerMeasurementHeader(
     const LoggerMeasurementHeader &value
 )
-    : id(value.id), start(value.start), vcc(value.vcc), vbat(value.vbat)
+    : header(value.header), id(value.id), start(value.start), vcc(value.vcc), vbat(value.vbat)
 {
 
 }
@@ -815,6 +827,7 @@ bool LoggerMeasurementHeader::setHdr(
         return false;
     if (!pHeader)
         return false;
+	header = pHeader;
     id.set(*pHeader);
     start = logger2time(pHeader->year, pHeader->month, pHeader->day,
                         pHeader->hours, pHeader->minutes, pHeader->seconds, true);
@@ -892,9 +905,9 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
                 break;
             case LOGGER_PACKET_PKT_1:
             {
-                LOGGER_MEASUREMENT_HDR *measurementHeader;
-                extractMeasurementHeader(&measurementHeader, buffer, size);
-                LoggerMeasurementHeader mh(measurementHeader, sizeof(LOGGER_MEASUREMENT_HDR));
+				// memmove(&item.measurement->id, &item.id, sizeof();
+				item.id.assign(item.measurement);
+                LoggerMeasurementHeader mh(item.measurement, sizeof(LOGGER_MEASUREMENT_HDR));
                 retHeaders->push_back(mh);
             }
                 break;
@@ -1079,6 +1092,8 @@ bool LoggerKosaPackets::add(
 	const LoggerItem &value
 )
 {
+	if (value.measurement)
+		memmove(&header, value.measurement, sizeof(LOGGER_MEASUREMENT_HDR));
 	bool newOne = packets.items.empty();
 	if (newOne || value == id) {
 		if (newOne) {

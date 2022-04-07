@@ -92,7 +92,7 @@ time_t logger2time
   	m.tm_min = minutes;			/* Minutes.	[0-59] */
   	m.tm_hour = hours;			/* Hours.	[0-23] */
   	m.tm_mday = date;			/* Day.		[1-31] */
-  	m.tm_mon = month - 1;		/* Month.	[0-11] */
+  	m.tm_mon = month;			/* Month.	[1-12] */
   	m.tm_year = year2000 + 100;	/* Year	- 1900.  */
   	m.tm_wday = 0;				/* Day of week.	[0-6] */
   	m.tm_yday = 0;			/* Days in year.[0-365]	*/
