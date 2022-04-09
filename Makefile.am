@@ -4,8 +4,9 @@ ACLOCAL_AMFLAGS = -I m4
 #
 # https://ask-dev.ru/info/1247790/understanding-gcc-5s-glibcxxusecxx11abi-or-the-new-abi
 #-D_GLIBCXX_USE_CXX11_ABI=0
+# -I../,,/third_party for make dist little hack
 #
-COMMON_C_FLAGS = -I./third_party -DDEBUG_PRINT -O2
+COMMON_C_FLAGS = -Ithird_party -I../../third_party -DDEBUG_PRINT -O2
 AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 AM_CPPFLAGS = $(COMMON_C_FLAGS)
 
