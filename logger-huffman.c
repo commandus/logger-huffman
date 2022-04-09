@@ -203,10 +203,6 @@ double TEMPERATURE_2_BYTES_2_double(
 	v = value.t00625;
 #endif
 	r = v / 16;
-	
-	// -10.125°C 1111 1111 0101 1110 FF5Eh
-	printf("==%4f . %4d\n", r, v & 0xf);
-
 	if (r > 0)
 		r += 0.0625 * (v & 0xf);
 	else
