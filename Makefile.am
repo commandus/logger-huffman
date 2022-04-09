@@ -9,6 +9,12 @@ COMMON_C_FLAGS = -I./third_party -DDEBUG_PRINT -O2
 AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
 AM_CPPFLAGS = $(COMMON_C_FLAGS)
 
+HDRS = \
+	platform.h logger-huffman.h util-compress.h errlist.h logger-collection.h \
+	util-time-fmt.h logger-passport.h logger-sql-clause.h logger-parse.h \
+	strptime.h \
+	third_party/argtable3/argtable3.h
+
 #
 # Binaries
 #
@@ -23,6 +29,7 @@ LIBLOGGERHUFFMANSRC = \
 #
 lib_LIBRARIES = liblogger-huffman.a
 liblogger_huffman_a_SOURCES = $(LIBLOGGERHUFFMANSRC)
+# $(HDRS)
 liblogger_huffman_a_CXXFLAGS = -std=c++11 $(COMMON_C_FLAGS) -fPIC
 
 L_LOGGER_HUFFMAN = -L. -llogger-huffman
@@ -30,15 +37,15 @@ L_LOGGER_HUFFMAN = -L. -llogger-huffman
 # Static library used for buil binaries, so build library first.
 $(bin_PROGRAMS): $(lib_LIBRARIES)
 
-nobase_dist_include_HEADERS = \
-	platform.h logger-huffman.h util-compress.h errlist.h logger-collection.h \
-	util-time-fmt.h logger-passport.h logger-sql-clause.h logger-parse.h \
-	strptime.h \
-	third_party/argtable3/argtable3.h
+# EXTRA_DIST = $(HDRS)
+include_HEADERS = $(HDRS)
+# nobase_dist_include_HEADERS =
 
+# logger_huffman_print: third_party/argtable3/argtable3.c third_party/argtable3/argtable3.h
 logger_huffman_print_SOURCES = \
 	logger-huffman-print.cpp \
 	third_party/argtable3/argtable3.c
+#	$(HDRS)
 logger_huffman_print_LDADD = \
 	$(L_LOGGER_HUFFMAN)
 logger_huffman_print_CPPFLAGS = 
