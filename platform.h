@@ -1,6 +1,8 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H 1
 
+#include <endian.h>
+
 #ifdef _MSC_VER
 #define ALIGN	__declspec(align(1))
 #define PACKED	
