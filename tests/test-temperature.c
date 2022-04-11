@@ -37,8 +37,8 @@ double expected[CNT] = {
 	0.0,
 
 	-0.5,
-	-10.8750, // -10.1250,
-	-25.9375, // -25.0625,
+	-10.1250,
+	-25.0625,
 	-55.0,
 
 	1842.125,
@@ -46,11 +46,28 @@ double expected[CNT] = {
     141.0000
 };
 
+/**
+ * @see https://stackoverflow.com/questions/111928/is-there-a-printf-converter-to-print-in-binary-format/45041802
+ */ 
+static char *int2bin(int num, int pad)
+{
+	char *str = malloc(sizeof(char) * (pad + 1));
+  	if (str) {
+   		str[pad] = '\0';
+		while (--pad>=0) {
+			str[pad] = num & 1 ? '1' : '0';
+			num >>= 1;
+		}
+		return str;
+  	}
+   	return "";
+}
+
 int main(int argc, char **argv)
 {
 	for (int i = 0; i < CNT; i++) {
 		double t = TEMPERATURE_2_BYTES_2_double(*(TEMPERATURE_2_BYTES*) &values[i]);
-		printf("%4x %8.4f must %8.4f\n", values[i], t, expected[i]);
+		printf("%4x %s %8.4f must %8.4f\n", values[i], int2bin(values[i], 16), t, expected[i]);
 	}
 	for (int i = 0; i < CNT; i++) {
 		double t = TEMPERATURE_2_BYTES_2_double(*(TEMPERATURE_2_BYTES*) &values[i]);

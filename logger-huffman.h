@@ -170,6 +170,9 @@ double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 );
 
+// convert used field
+uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value);
+
 double vcc2double(
 		uint8_t value
 );
