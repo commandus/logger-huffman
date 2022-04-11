@@ -1,3 +1,5 @@
+#include "platform.h"
+
 #include "logger-huffman.h"
 #include "errlist.h"
 
@@ -200,7 +202,7 @@ double TEMPERATURE_2_BYTES_2_double(
 #if BYTE_ORDER == BIG_ENDIAN
 	v = ((value.t.f.hi << 8) + value.t.f.lo);
 #else
-	v = value.t00625;
+	v = value.t.t00625;
 #endif
 	r = v / 16;
 	if (v >= 0)
@@ -235,6 +237,6 @@ uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value)
 #if BYTE_ORDER == BIG_ENDIAN
 	return value;
 #else
-	return NTOH2(v);
+	return NTOH2(value);
 #endif
 }
