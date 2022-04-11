@@ -205,8 +205,9 @@ double TEMPERATURE_2_BYTES_2_double(
 	r = v / 16;
 	if (v >= 0)
 		r += 0.0625 * (v & 0xf);
-	else
-		r -= 0.0625 * (v & 0xf);
+	else {
+		r -= 0.0625 * (((~v & 0xf) + 1) & 0xf);
+	}
 	return r;
 }
 
@@ -227,5 +228,13 @@ double vcc2double(
 		// head.voltage = 1.1F * 1024F / (Convert.ToSingle(data[11]) * 4F) - 0.4F;  //надо поправку -0.4в !!!!
 		return 1.1 * 1024. / (value * 4.);  //без поправки -0.4в 
 	}
+}
 
+uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value)
+{
+#if BYTE_ORDER == BIG_ENDIAN
+	return value;
+#else
+	return NTOH2(v);
+#endif
 }

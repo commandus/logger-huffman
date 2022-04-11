@@ -89,7 +89,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
        << "vcc\t" << vcc2double(value.vcc) << std::endl
        << "vbat\t" << vcc2double(value.vbat) << std::endl
 		<< "pcnt\t" << (int) value.pcnt << std::endl
-		<< "used\t" << (int) value.used << std::endl;
+		<< "used\t" << LOGGER_MEASUREMENT_HDR_USED(value.used) << std::endl;
 	return ss.str();
 }
 
@@ -122,7 +122,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
             << ", \"vcc\": " << std::fixed << std::setprecision(2) << vcc2double(value.vcc)
             << ", \"vbat\": " << vcc2double(value.vbat)
 		<< ", \"pcnt\": " << (int) value.pcnt
-		<< ", \"used\": " << (int) value.used
+		<< ", \"used\": " << LOGGER_MEASUREMENT_HDR_USED(value.used)
 		<< "}";
 	return ss.str();
 }
@@ -161,7 +161,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_table(
             << vcc2double(value.vcc) << "\t"
             << vcc2double(value.vbat) << "\t"
             << (int) value.pcnt << "\t"
-            << (int) value.used << "\t";
+            << LOGGER_MEASUREMENT_HDR_USED(value.used) << "\t";
     return ss.str();
 }
 
@@ -358,7 +358,7 @@ LoggerItemId::LoggerItemId()
 
 LoggerItemId::LoggerItemId(
 	uint8_t akosa,							// идентификатор косы (номер, дата)
-	uint8_t ameasure,						// мл. Байт номера замера, lsb used (или addr_used?)
+	uint8_t ameasure,						// мл. Байт номера замера, lsb (или addr_use?)
 	uint8_t apacket,						// packet number
 	uint8_t akosa_year						// reserved for first packe
 )
@@ -372,7 +372,7 @@ LoggerItemId& LoggerItemId::operator=(
 )
 {
 	kosa = other.kosa;							// идентификатор косы (номер, дата)
-	measure = other.measure;					// мл. Байт номера замера, lsb used (или addr_used?)
+	measure = other.measure;					// мл. Байт номера замера, lsb use (или addr_use?)
 	packet = other.packet;						// packet number
 	kosa_year = other.kosa_year;				// reserved for first packet
 	return *this;
@@ -400,7 +400,7 @@ bool LoggerItemId::operator!=(
  */ 
 void LoggerItemId::set(
 	uint8_t akosa,						// идентификатор косы (номер, дата)
-	uint8_t ameasure,					// мл. Байт номера замера, lsb used (или addr_used?)
+	uint8_t ameasure,					// мл. Байт номера замера, lsb use (или addr_use?)
 	int8_t apacket,						// packet number
 	uint8_t akosa_year
 )
@@ -424,7 +424,7 @@ std::string LoggerItemId::toString() const
 	std::stringstream ss;
 	ss 
 		<< "kosa\t" << (int) kosa << std::endl								// идентификатор косы (номер, дата)
-		<< "measure\t" << (int) measure << std::endl						// мл. Байт номера замера, lsb used (или addr_used?)
+		<< "measure\t" << (int) measure << std::endl						// мл. Байт номера замера, lsb use (или addr_use?)
 		<< "packet\t" << (int) packet << std::endl							// packet number
 		<< "year\t" << (int) 2000 + kosa_year << std::endl;					// reserved for first packet
 	return ss.str();	
@@ -436,7 +436,7 @@ std::string LoggerItemId::toJsonString() const
 	ss 
 		<< "{\"kosa\": "
 		<< (int) kosa								// идентификатор косы (номер, дата)
-		<< ", \"measure\": " << (int) measure		// мл. Байт номера замера, lsb used (или addr_used?)
+		<< ", \"measure\": " << (int) measure		// мл. Байт номера замера, lsb use (или addr_use?)
 		<< ", \"packet\": " << (int) packet			// packet number
 		<< ", \"kosa_year\": " << (int) kosa_year	// reserved for first packet
 		<< "}";
