@@ -226,7 +226,9 @@ make
 
 - logger-huffman-print
 
-### Windows
+### Windows[{"id": {"kosa": 38, "measure": 1, "packet": -1, "kosa_year": 19}, "start": 1649737311, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1609406438, "localtime": "2020-12-31T18:20:38", "gmt": "2020-12-31T09:20:38" , "kosa": 38, "kosa_year": 19, "vcc": 4.52, "vbat": 1.52, "pcnt": 113, "used": 1}, "packets": [{"item": {"first_packet": {"type": 74, "size": 128, "status": 0, "data_bits": 0, "command_change": 0, "measure": 1, "packets": 7, "kosa": 38, "kosa_year": 19}, "measurement_header": {"memblockoccupation": 0, "time": 1609406438, "localtime": "2020-12-31T18:20:38", "gmt": "2020-12-31T09:20:38" , "kosa": 38, "kosa_year": 19, "vcc": 4.52, "vbat": 1.52, "pcnt": 113, "used": 1}
+}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 2}, "measurements": [{"sensor": 0, "t": 108.9375}, {"sensor": 1, "t": -1.6250}, {"sensor": 2, "t": -2.1250}, {"sensor": 3, "t": -1.3750}, {"sensor": 4, "t": -2.2500}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 3}, "measurements": [{"sensor": 5, "t": -1.8125}, {"sensor": 6, "t": -2.0000}, {"sensor": 7, "t": -1.8750}, {"sensor": 8, "t": -2.1875}, {"sensor": 9, "t": -1.8125}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 4}, "measurements": [{"sensor": 10, "t": -2.1250}, {"sensor": 11, "t": -2.3750}, {"sensor": 12, "t": -2.0625}, {"sensor": 13, "t": -1.3125}, {"sensor": 14, "t": -1.5000}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 5}, "measurements": [{"sensor": 15, "t": -3.1875}, {"sensor": 16, "t": -1.5625}, {"sensor": 17, "t": -2.0625}, {"sensor": 18, "t": -2.1875}, {"sensor": 19, "t": -1.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 6}, "measurements": [{"sensor": 20, "t": -2.2500}, {"sensor": 21, "t": -2.2500}, {"sensor": 22, "t": -1.3125}, {"sensor": 23, "t": -1.6250}, {"sensor": 24, "t": -2.0625}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 7}, "measurements": [{"sensor": 25, "t": -2.0625}, {"sensor": 26, "t": -2.3750}, {"sensor": 27, "t": -1.6250}]}}]}]
+
 
 You need install vcpkg. Do not forget integrate vcpkg with Visual Studio:
 
@@ -246,7 +248,19 @@ cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_TOOLCHAIN_FILE=C:/git/vcpkg/scr
 - [lorawan-network-server](https://github.com/commandus/lorawan-network-server)
 
 
-### 
+## Значения
+
+### Перевод знаяений напряжения на шине и батареи в вольты:
+
+```
+Single VccReal = Convert.ToSingle(94 - head[11]) * 0.05814F + 2.6F; 
+Single VbatReal = (Single)((double)(head[12]* 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08);
+```
+
+
+### Пвкет
+
+```
 ----------------OOSSmmhhddMMYYkkyyr1r2vcvbPCused
 4a00280002031c140038100f160216000000003981190002 4b1c02020006cfaa0101a8000201a8000301a9000401a900 4b1c02030501a900 - 56 bytes
 T ST    MMPPKKYY================================
@@ -271,3 +285,4 @@ T ST    MMPPKKYY================================
 	                                    vb = 81h = 129 vbat V battery, V
 	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
 	                                        used = 512?,record number, 1..65535
+```

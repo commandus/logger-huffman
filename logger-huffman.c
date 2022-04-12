@@ -213,23 +213,27 @@ double TEMPERATURE_2_BYTES_2_double(
 	return r;
 }
 
+/**
+ * @brief Return bus voltage in V as (94 - value) * 0.05814 + 2.6
+ * @param value read value from the device
+ * @return double voltage in volts
+ */
 double vcc2double(
         uint8_t value
 ) {
-	/*
-	return (1.1 * 1024.) / (value * 4.0);
-    if (value)
-        return 281.6 / value;
-    else
-        return 0.0;
-	*/
-	if (value < 234) {
-		return value * 0.0264;	// Vпит=4.65 АЦП=176 a=0,0264;
-	} else {
-		// новые версии double V = Vref * 1024 / (Convert.ToDouble(bat) * 4);   //double Vref = 1.1;  // Vgbf
-		// head.voltage = 1.1F * 1024F / (Convert.ToSingle(data[11]) * 4F) - 0.4F;  //надо поправку -0.4в !!!!
-		return 1.1 * 1024. / (value * 4.);  //без поправки -0.4в 
-	}
+	return (94 - value) * 0.05814 + 2.6; 
+}
+
+/**
+ * @brief Return battery voltage in V as (value * 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08;
+ * @param value read value from the device
+ * @return double voltage in volts
+ */
+double vbat2double(
+        uint8_t value
+) {
+	return (value * 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08;
+
 }
 
 uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value)

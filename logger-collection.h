@@ -231,6 +231,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(const LOGGER_MEASUREMENT_HDR &value)
 std::string LOGGER_MEASUREMENT_HDR_2_json(const LOGGER_MEASUREMENT_HDR &value);
 std::string LOGGER_MEASUREMENT_HDR_2_table(const LOGGER_MEASUREMENT_HDR &value);
 std::string vcc2string(uint8_t value);
+std::string vbat2string(uint8_t value);
 
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(const LOGGER_DATA_TEMPERATURE_RAW *value);
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(const LOGGER_DATA_TEMPERATURE_RAW *value);

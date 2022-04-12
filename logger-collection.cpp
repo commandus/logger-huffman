@@ -87,7 +87,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
        << "kosa\t" << (int) value.kosa << std::endl
        << "year\t" << (int) value.kosa_year + 2000 << std::endl
        << "vcc\t" << vcc2double(value.vcc) << std::endl
-       << "vbat\t" << vcc2double(value.vbat) << std::endl
+       << "vbat\t" << vbat2double(value.vbat) << std::endl
 		<< "pcnt\t" << (int) value.pcnt << std::endl
 		<< "used\t" << LOGGER_MEASUREMENT_HDR_USED(value.used) << std::endl;
 	return ss.str();
@@ -120,7 +120,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
             << ", \"kosa\": " << (int) value.kosa
             << ", \"kosa_year\": " << (int) value.kosa_year
             << ", \"vcc\": " << std::fixed << std::setprecision(2) << vcc2double(value.vcc)
-            << ", \"vbat\": " << vcc2double(value.vbat)
+            << ", \"vbat\": " << vbat2double(value.vbat)
 		<< ", \"pcnt\": " << (int) value.pcnt
 		<< ", \"used\": " << LOGGER_MEASUREMENT_HDR_USED(value.used)
 		<< "}";
@@ -132,6 +132,14 @@ std::string vcc2string(
 ) {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(2) << vcc2double(value);
+    return ss.str();
+}
+
+std::string vbat2string(
+    uint8_t value
+) {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(2) << vbat2double(value);
     return ss.str();
 }
 
@@ -159,7 +167,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_table(
             << (int) value.kosa << "\t"
             << (int) value.kosa_year << "\t"
             << vcc2double(value.vcc) << "\t"
-            << vcc2double(value.vbat) << "\t"
+            << vbat2double(value.vbat) << "\t"
             << (int) value.pcnt << "\t"
             << LOGGER_MEASUREMENT_HDR_USED(value.used) << "\t";
     return ss.str();
@@ -1223,7 +1231,7 @@ void LoggerKosaPackets::toStrings(
     retval.push_back(time2unixepochstring(measured()));
     retval.push_back(time2unixepochstring(start));
     retval.push_back(vcc2string(header.vcc));
-    retval.push_back(vcc2string(header.vbat));
+    retval.push_back(vbat2string(header.vbat));
 
     std::stringstream ss;
     temperatureCommaString(ss, ",", substEmptyValue);
