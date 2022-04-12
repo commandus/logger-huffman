@@ -174,7 +174,11 @@ double TEMPERATURE_2_BYTES_2_double(
 uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value);
 
 double vcc2double(
-		uint8_t value
+	uint8_t value
+);
+
+double vbat2double(
+	uint8_t value
 );
 
 #ifdef __cplusplus
