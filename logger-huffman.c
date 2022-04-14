@@ -197,19 +197,12 @@ double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 )
 {
-	int16_t v;
-	double r;
-#if BYTE_ORDER == BIG_ENDIAN
-	v = ((value.t.f.hi << 8) + value.t.f.lo);
-#else
-	v = value.t.t00625;
-#endif
-	r = v / 16;
+	int16_t v = HTON2(value.t.t00625);
+	double r = (v / 16);
 	if (v >= 0)
 		r += 0.0625 * (v & 0xf);
-	else {
+	else
 		r -= 0.0625 * (((~v & 0xf) + 1) & 0xf);
-	}
 	return r;
 }
 
