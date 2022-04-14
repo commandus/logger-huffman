@@ -246,19 +246,17 @@ cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_TOOLCHAIN_FILE=C:/git/vcpkg/scr
 ### References
 
 - [lorawan-network-server](https://github.com/commandus/lorawan-network-server)
+- [lorawan-ws](https://github.com/commandus/lorawan-ws)
 
 
-## Значения
-
-### Перевод знаяений напряжения на шине и батареи в вольты:
+#### Calc bus and battery voltages
 
 ```
 Single VccReal = Convert.ToSingle(94 - head[11]) * 0.05814F + 2.6F; 
 Single VbatReal = (Single)((double)(head[12]* 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08);
 ```
 
-
-### Пвкет
+#### Packet 4a scheme
 
 ```
 ----------------OOSSmmhhddMMYYkkyyr1r2vcvbPCused
