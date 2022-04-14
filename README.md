@@ -81,7 +81,7 @@ for (auto it(clauses.begin()); it != clauses.end(); it++) {
 }
 
 flushLoggerParser(env);
-doneLoggerParser(env);```
+doneLoggerParser(env);
 ```
 
 ##### Calls
@@ -131,6 +131,14 @@ cat packet-data.bin | ./logger-huffman-print
 ```
 
 Examples:
+
+```
+./logger-huffman-print -f json 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900
+[{"id": {"kosa": 28, "measure": 2, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 2, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}
+}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1407.9375}, {"sensor": 3, "t": -1391.9375}, {"sensor": 4, "t": -1391.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}, {"id": {"kosa": 28, "measure": 3, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 3, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}
+}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 3, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1391.9375}, {"sensor": 3, "t": -1375.9375}, {"sensor": 4, "t": -1407.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 3, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}]
+```
+
 ```
 ./logger-huffman-print -f table 4a00800001072613002614121f0c14261300003d3d7100014b26010200cf06aa01e6ff0002deff0003eaff0004dcff004b26010305e3ff0006e0ff0007e2ff0008ddff0009e3ff004b2601040adeff000bdaff000cdfff000debff000ee8ff004b2601050fcdff0010e7ff0011dfff0012ddff0013e1ff004b26010614dcff0015dcff0016ebff0017e6ff0018dfff004b26010719dfff001adaff001be6ff00
 38	2019	1	0	1614438000	2021-02-28T00:00:00	2021-02-27T15:00:00	0	0	0	0	0	0	0	108.938	1	-1.625	2	-2.125	3	-1.375	4	-2.25	5	-1.8125	6	-2	7	-1.875	8	-2.1875	9	-1.8125	10	-2.125	11	-2.375	12	-2.0625	13	-1.3125	14	-1.5	15	-3.1875	16	-1.5625	17	-2.0625	18	-2.1875	19	-1.9375	20	-2.25	21	-2.25	22	-1.3125	23	-1.625	24	-2.0625	25	-2.0625	26	-2.375	27	-1.625	
@@ -163,7 +171,7 @@ echo "4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff000
 ```
 
 ## Build
-./logger-huffman-print -f json 002614121f0c14261300003d3d71000100cf06aa01e6ff00 02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00 08ddff0009e3ff000adeff000bdaff000cdfff000debff00 0ee8ff000fcdff0010e7ff0011dfff0012ddff0013e1ff00 14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00 1adaff001be6ff00
+
 You can use
 
 - Automake
@@ -204,7 +212,23 @@ sudo make install
 
 ### Cmake
 
-or cam use CMake:
+On Windows, you need install vcpkg. Do not forget integrate vcpkg with Visual Studio:
+
+```
+.\vcpkg\vcpkg integrate install
+```
+
+Then build solution:
+
+```
+mkdir build
+cd build
+cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_TOOLCHAIN_FILE=C:/git/vcpkg/scripts/buildsystems/vcpkg.cmake ..
+```
+
+
+On Linux you can use CMake instead of Automake:
+
 ```
 cd logger-huffman
 mkdir build
@@ -220,27 +244,6 @@ mkdir build
 cd build
 export CC=/usr/bin/clang;export CXX=/usr/bin/clang++;cmake ..
 make
-```
-
-## Tools
-
-- logger-huffman-print
-
-### Windows[{"id": {"kosa": 38, "measure": 1, "packet": -1, "kosa_year": 19}, "start": 1649737311, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1609406438, "localtime": "2020-12-31T18:20:38", "gmt": "2020-12-31T09:20:38" , "kosa": 38, "kosa_year": 19, "vcc": 4.52, "vbat": 1.52, "pcnt": 113, "used": 1}, "packets": [{"item": {"first_packet": {"type": 74, "size": 128, "status": 0, "data_bits": 0, "command_change": 0, "measure": 1, "packets": 7, "kosa": 38, "kosa_year": 19}, "measurement_header": {"memblockoccupation": 0, "time": 1609406438, "localtime": "2020-12-31T18:20:38", "gmt": "2020-12-31T09:20:38" , "kosa": 38, "kosa_year": 19, "vcc": 4.52, "vbat": 1.52, "pcnt": 113, "used": 1}
-}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 2}, "measurements": [{"sensor": 0, "t": 108.9375}, {"sensor": 1, "t": -1.6250}, {"sensor": 2, "t": -2.1250}, {"sensor": 3, "t": -1.3750}, {"sensor": 4, "t": -2.2500}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 3}, "measurements": [{"sensor": 5, "t": -1.8125}, {"sensor": 6, "t": -2.0000}, {"sensor": 7, "t": -1.8750}, {"sensor": 8, "t": -2.1875}, {"sensor": 9, "t": -1.8125}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 4}, "measurements": [{"sensor": 10, "t": -2.1250}, {"sensor": 11, "t": -2.3750}, {"sensor": 12, "t": -2.0625}, {"sensor": 13, "t": -1.3125}, {"sensor": 14, "t": -1.5000}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 5}, "measurements": [{"sensor": 15, "t": -3.1875}, {"sensor": 16, "t": -1.5625}, {"sensor": 17, "t": -2.0625}, {"sensor": 18, "t": -2.1875}, {"sensor": 19, "t": -1.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 6}, "measurements": [{"sensor": 20, "t": -2.2500}, {"sensor": 21, "t": -2.2500}, {"sensor": 22, "t": -1.3125}, {"sensor": 23, "t": -1.6250}, {"sensor": 24, "t": -2.0625}]}}, {"item": {"second_packet": {"type": 75, "kosa": 38, "measure": 1, "packet": 7}, "measurements": [{"sensor": 25, "t": -2.0625}, {"sensor": 26, "t": -2.3750}, {"sensor": 27, "t": -1.6250}]}}]}]
-
-
-You need install vcpkg. Do not forget integrate vcpkg with Visual Studio:
-
-```
-.\vcpkg\vcpkg integrate install
-```
-
-Then build solution:
-```
-mkdir build
-cd build
-cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_TOOLCHAIN_FILE=C:/git/vcpkg/scripts/buildsystems/vcpkg.cmake ..
 ```
 
 ### References
