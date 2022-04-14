@@ -23,8 +23,17 @@ uint16_t values[CNT] = {
 	0xfc90,
 
 	0x7322,
-    0x072f,
-    0x08d0
+	0x072f,
+	0x08d0
+};
+
+uint16_t values2[6] = {
+	0xa801,
+	0xa801,
+	0xa901,
+	0xa901,
+	0xa901,
+	0xcf06
 };
 
 double expected[CNT] = {
@@ -66,11 +75,15 @@ static char *int2bin(int num, int pad)
 int main(int argc, char **argv)
 {
 	for (int i = 0; i < CNT; i++) {
-		double t = TEMPERATURE_2_BYTES_2_double(*(TEMPERATURE_2_BYTES*) &values[i]);
+		uint16_t vv = htobe16(values[i]);
+		TEMPERATURE_2_BYTES v = *(TEMPERATURE_2_BYTES*) & vv;
+		double t = TEMPERATURE_2_BYTES_2_double(v);
 		printf("%4x %s %8.4f must %8.4f\n", values[i], int2bin(values[i], 16), t, expected[i]);
+		assert(fabs(t - expected[i]) < 0.001);
 	}
-	for (int i = 0; i < CNT; i++) {
-		double t = TEMPERATURE_2_BYTES_2_double(*(TEMPERATURE_2_BYTES*) &values[i]);
-        assert(fabs(t - expected[i]) < 0.001);
+
+	for (int i = 0; i < 6; i++) {
+		double t = TEMPERATURE_2_BYTES_2_double(*(TEMPERATURE_2_BYTES*) &values2[i]);
+        printf("%4x %s %8.4f\n", values2[i], int2bin(values2[i], 16), t);
 	}
 }
