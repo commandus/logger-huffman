@@ -1,10 +1,20 @@
 SUBDIRS = .
 ACLOCAL_AMFLAGS = -I m4
 
+EXTRA_LIB =
+EXTRA_HEADERS =
+EXTRA_DEF =
+
+if ENABLE_LOGGER_PASSPORT
+EXTRA_LIB += -L../logger-passport -llogger-passport -lpthread
+EXTRA_HEADERS += third_party/logger-passport/logger-passport.h
+EXTRA_DEF += -DENABLE_LOGGER_PASSPORT 
+endif
+
 #
 # https://ask-dev.ru/info/1247790/understanding-gcc-5s-glibcxxusecxx11abi-or-the-new-abi
 #-D_GLIBCXX_USE_CXX11_ABI=0
-# -I../,,/third_party for make dist little hack
+# -I../../third_party for make distcheck target be happy
 #
 COMMON_C_FLAGS = -Ithird_party -I../../third_party -DDEBUG_PRINT -O2
 AM_CXXFLAGS= -std=c++11 $(COMMON_C_FLAGS)
@@ -14,6 +24,7 @@ HDRS = \
 	platform.h logger-huffman.h util-compress.h errlist.h logger-collection.h \
 	util-time-fmt.h logger-sql-clause.h logger-parse.h \
 	strptime.h \
+	third_party/logger-passport/logger-passport.h \
 	third_party/argtable3/argtable3.h
 
 #
@@ -31,11 +42,10 @@ LIBLOGGERHUFFMANSRC = \
 lib_LIBRARIES = liblogger-huffman.a
 liblogger_huffman_a_SOURCES = $(LIBLOGGERHUFFMANSRC)
 # $(HDRS)
-liblogger_huffman_a_CXXFLAGS = -std=c++11 $(COMMON_C_FLAGS) -fPIC
+liblogger_huffman_a_CXXFLAGS = -std=c++11 $(COMMON_C_FLAGS) -fPIC $(EXTRA_DEF)
+L_LOGGER_HUFFMAN = -L. -llogger-huffman $(EXTRA_LIB)
 
-L_LOGGER_HUFFMAN = -L. -llogger-huffman
-
-# Static library used for buil binaries, so build library first.
+# Static library used for build binaries, so build library first.
 $(bin_PROGRAMS): $(lib_LIBRARIES)
 
 # EXTRA_DIST = $(HDRS)
@@ -46,10 +56,9 @@ include_HEADERS = $(HDRS)
 logger_huffman_print_SOURCES = \
 	logger-huffman-print.cpp \
 	third_party/argtable3/argtable3.c
-#	$(HDRS)
 logger_huffman_print_LDADD = \
-	$(L_LOGGER_HUFFMAN)
-logger_huffman_print_CPPFLAGS = 
+	$(L_LOGGER_HUFFMAN) $(EXTRA_LIB)
+logger_huffman_print_CPPFLAGS = $(EXTRA_DEF)
 
 #
 # Configs, readme, CMake etc.

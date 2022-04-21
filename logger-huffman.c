@@ -226,7 +226,6 @@ double vbat2double(
         uint8_t value
 ) {
 	return (value * 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08;
-
 }
 
 uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value)

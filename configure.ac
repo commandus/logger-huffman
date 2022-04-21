@@ -13,4 +13,13 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
+AC_ARG_ENABLE([logger-passport],
+[  --enable-logger-passport    Turn on logger passport ],
+[case "${enableval}" in
+  yes) logger-passport=true ;;
+  no)  logger-passport=false ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-logger-passport]) ;;
+esac],[logger-passport=false])
+AM_CONDITIONAL([ENABLE_LOGGER_PASSPORT], [test x$logger-passport = xtrue])
+
 AC_OUTPUT

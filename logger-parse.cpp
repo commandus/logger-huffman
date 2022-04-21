@@ -4,9 +4,45 @@
 #include "logger-parse.h"
 #include "logger-sql-clause.h"
 
-void *initLoggerParser()
+#ifdef ENABLE_LOGGER_PASSPORT
+#include "logger-passport/logger-passport.h"
+#endif
+
+class LoggerParserEnv {
+    public:
+        void *passportDescriptor;
+        LoggerKosaCollection *lkc;
+};
+
+void *initLoggerParser(
+    const std::string &passportDir,     ///< passport files root
+    LOG_CALLBACK onLog                  ///< log callback
+)
 {
-    LoggerKosaCollection *r = new LoggerKosaCollection();
+    LoggerParserEnv *r = new LoggerParserEnv();
+#ifdef ENABLE_LOGGER_PASSPORT
+    r->passportDescriptor = startPassportDirectory(passportDir, onLog);
+#else
+    r->passportDescriptor = nullptr;
+#endif    
+    r->lkc = new LoggerKosaCollection();
+    r->lkc->setPassports(r->passportDescriptor);
+    return r;
+}
+
+void *initLoggerParser(
+    const std::vector<std::string> &passportDirs,       ///< passport files root
+    LOG_CALLBACK onLog                                  ///< log callback
+)
+{
+    LoggerParserEnv *r = new LoggerParserEnv();
+#ifdef ENABLE_LOGGER_PASSPORT
+    r->passportDescriptor = startPassportDirectory(passportDirs, onLog);
+#else
+    r->passportDescriptor = nullptr;
+#endif    
+    r->lkc = new LoggerKosaCollection();
+    r->lkc->setPassports(r->passportDescriptor);
     return r;
 }
 
@@ -14,7 +50,7 @@ void flushLoggerParser(void *env)
 {
     if (!env)
         return;
-    LoggerKosaCollection *c = (LoggerKosaCollection*) env;
+    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
     c->rmExpired();
 }
 
@@ -22,12 +58,18 @@ void doneLoggerParser(void *env)
 {
     if (!env)
         return;
-    LoggerKosaCollection *c = (LoggerKosaCollection*) env;
+    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
     delete c;
+#ifdef ENABLE_LOGGER_PASSPORT
+    if (((LoggerParserEnv*) env)->passportDescriptor) {
+        stopPassportDirectory(((LoggerParserEnv*) env)->passportDescriptor);
+        ((LoggerParserEnv*) env)->passportDescriptor = nullptr;
+    }
+#endif
 }
 
 /**
- * Return state of the desctiptor
+ * Return state of the descriptor
  * @param env descriptor
  * @param format 0- Postgres, 1- MySQL, 2- Firebird, 3- SQLite 4- JSON, 5- text, 6- table
  */
@@ -38,7 +80,7 @@ std::string loggerParserState(
 {
     if (!env)
         return "";
-    LoggerKosaCollection *c = (LoggerKosaCollection*) env;
+    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
     switch (format) {
         case 4:
             return c->toJsonString();
@@ -58,8 +100,8 @@ int parsePacket(
 {
     if (!env)
         return 0;
-    LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
-    LOGGER_PACKET_TYPE t = kosaCollection->put(packet);
+    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LOGGER_PACKET_TYPE t = c->put(packet);
     // kosaCollection->rmExpired();
     return (int) t;
 }
@@ -82,17 +124,17 @@ int sqlInsertPackets(
 {
     if (!env)
         return 0;
-    LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
-    int c = 0;
-    for (std::vector<LoggerKosaPackets>::const_iterator it(kosaCollection->koses.begin()); it != kosaCollection->koses.end(); it++) {
+    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    int cnt = 0;
+    for (std::vector<LoggerKosaPackets>::const_iterator it(c->koses.begin()); it != c->koses.end(); it++) {
         if (it->packets.completed() | it->expired()) {
             std::string s = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues);
             if (!s.empty())
                 retClauses.push_back(s);
-            c++;
+            cnt++;
         }
     }
-    return c;
+    return cnt;
 }
 
 /**
@@ -105,11 +147,11 @@ void rmCompletedOrExpired(
 {
     if (!env)
         return;
-    LoggerKosaCollection *kosaCollection = (LoggerKosaCollection*) env;
-    for (std::vector<LoggerKosaPackets>::const_iterator it(kosaCollection->koses.begin()); it != kosaCollection->koses.end(); ) {
+    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    for (std::vector<LoggerKosaPackets>::const_iterator it(c->koses.begin()); it != c->koses.end(); ) {
         bool ready2delete = it->packets.completed() | it->expired();
         if (ready2delete) {
-            it = kosaCollection->koses.erase(it);
+            it = c->koses.erase(it);
         } else {
             it++;
         }

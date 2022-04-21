@@ -192,12 +192,21 @@ cd logger-huffman
 autogen.sh
 ```
 
-Configure and make project using Autotools:
+Configure and make project using Autotools without logger passords library:
 ```
 cd logger-huffman
 ./configure
 make
 ```
+
+Configure and make project using Autotools without logger passords library:
+```
+cd logger-huffman
+./configure --enable-logger-passord
+make
+```
+
+Option --enable-logger-passord depends on liblogger-passport.a, add library to the ../logger-passord directory.
 
 If you prefer use clang instead of gcc:
 
@@ -216,6 +225,12 @@ On Windows, you need install vcpkg. Do not forget integrate vcpkg with Visual St
 
 ```
 .\vcpkg\vcpkg integrate install
+```
+
+Enable logger passport feature
+
+```
+cmake -DENABLE_LOGGER_PASSPORT=ON ..
 ```
 
 Then build solution:

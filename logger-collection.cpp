@@ -8,6 +8,9 @@
 #include "util-time-fmt.h"
 #include "logger-collection.h"
 #include "errlist.h"
+#ifdef ENABLE_LOGGER_PASSPORT
+#include "logger-passport/logger-passport.h"
+#endif
 
 /**
  * Conditional defines:
@@ -1063,15 +1066,23 @@ std::string LoggerCollection::toTableString(
 }
 
 LoggerKosaPackets::LoggerKosaPackets()
-	: start(0)
+	: collection(nullptr), start(0)
 {
     clear_LOGGER_MEASUREMENT_HDR(header);
 }
 
 LoggerKosaPackets::LoggerKosaPackets(
+	LoggerKosaCollection *value
+)
+	: collection(value), start(0)
+{
+
+}
+
+LoggerKosaPackets::LoggerKosaPackets(
 	const LoggerKosaPackets &value
 )
-	: id(value.id), start(value.start), header(value.header)
+	: collection(value.collection), id(value.id), start(value.start), header(value.header)
 {
 	std::copy(value.packets.items.begin(), value.packets.items.end(), std::back_inserter(packets.items));
 }
@@ -1079,6 +1090,7 @@ LoggerKosaPackets::LoggerKosaPackets(
 LoggerKosaPackets::LoggerKosaPackets(
 	const LoggerItem &value
 )
+	: collection(nullptr)
 {
 	start = time(NULL);
 	id = value.id;
@@ -1201,6 +1213,40 @@ void LoggerKosaPackets::temperatureCommaString(
     }
 }
 
+void LoggerKosaPackets::temperaturePolyCommaString(
+    std::ostream &ostrm,
+    const std::string &separator,
+    const std::string &substEmptyValue
+) const
+{
+#ifdef ENABLE_LOGGER_PASSPORT
+	if (!(collection && collection->passportDescriptor))
+		return temperatureCommaString(ostrm, separator, substEmptyValue);
+
+    std::map<uint8_t, double> r;
+    if (packets.get(r)) {
+        bool isFirst = true;
+        int c = 0;
+        // map is sorted by the first
+        for (std::map<uint8_t, double>::const_iterator it(r.begin()); it != r.end(); it++) {
+            if (isFirst) {
+                isFirst = false;
+            } else
+                ostrm << separator;
+            // some sensors can be missed
+            int skipped = it->first - c;
+            for (int i = 0; i < skipped; i++) {
+                ostrm << substEmptyValue << separator;
+            }
+            ostrm << calcTemperature(collection->passportDescriptor, id.kosa, id.kosa_year, it->first, it->second);
+            c++;
+        }
+    }
+#else
+	return temperatureCommaString(ostrm, separator, substEmptyValue);
+#endif
+}
+
 void LoggerKosaPackets::rawCommaString(
         std::ostream &ostrm,
         const std::string &separator
@@ -1218,7 +1264,7 @@ void LoggerKosaPackets::rawCommaString(
 }
 
 /**
- * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, raw
+ * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw
  * @param retval
  */
 void LoggerKosaPackets::toStrings(
@@ -1236,6 +1282,10 @@ void LoggerKosaPackets::toStrings(
     std::stringstream ss;
     temperatureCommaString(ss, ",", substEmptyValue);
     retval.push_back(ss.str());
+
+	std::stringstream ssp;
+    temperaturePolyCommaString(ssp, ",", substEmptyValue);
+    retval.push_back(ssp.str());
 
     std::stringstream ssr;
     rawCommaString(ssr, " ");
@@ -1289,7 +1339,7 @@ void LoggerKosaCollection::add(
             }
         }
         if (!found) {
-            LoggerKosaPackets p;
+            LoggerKosaPackets p(this);
             p.add(*itc);
             koses.push_back(p);
             if (value.expectedPackets) {
@@ -1401,6 +1451,13 @@ bool LoggerKosaCollection::addHeader(
         return false;
     value.assign(it->header);
     return true;
+}
+
+void LoggerKosaCollection::setPassports(
+	void *value
+)
+{
+	passportDescriptor = value;
 }
 
 void clear_LOGGER_MEASUREMENT_HDR(

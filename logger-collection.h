@@ -153,17 +153,21 @@ private:
 //  5'
 #define MAX_SECONDS_WAIT_KOSA_PACKETS 5 * 60
 
+class LoggerKosaCollection; // forward declaration
+
 /** 
  * Kosa packets collection
  */
 class LoggerKosaPackets {
 	public:
+		LoggerKosaCollection *collection;
 		LoggerItemId id;
 		time_t start;
         LOGGER_MEASUREMENT_HDR header;
 		LoggerCollection packets;
 
 		LoggerKosaPackets();
+		LoggerKosaPackets(LoggerKosaCollection *collection);
 		LoggerKosaPackets(const LoggerKosaPackets &value);
 		LoggerKosaPackets(const LoggerItem &value);
 		virtual ~LoggerKosaPackets();
@@ -186,6 +190,7 @@ class LoggerKosaPackets {
 		std::string toTableString() const;
 
         void temperatureCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+		void temperaturePolyCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
         void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
         void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
 };
@@ -195,6 +200,7 @@ class LoggerKosaPackets {
  */
 class LoggerKosaCollection {
 	public:
+		void *passportDescriptor;
 		std::vector<LoggerKosaPackets> koses;
 
 		LoggerKosaCollection();
@@ -221,6 +227,8 @@ class LoggerKosaCollection {
 		std::string toJsonString() const;
 		std::string toTableString() const;
         bool addHeader(const LoggerMeasurementHeader &header);
+
+		void setPassports(void *passportDescriptor);
 };
 
 std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);

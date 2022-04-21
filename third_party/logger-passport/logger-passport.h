@@ -6,6 +6,7 @@
 #define LOGGER_PASSPORT_H_	1
 
 #include <string>
+#include <vector>
 #include <functional>
 
 typedef std::function<void(
@@ -22,8 +23,18 @@ LOG_CALLBACK;
  * @return descriptor
  */
 void *startPassportDirectory(
-    std::string passportDir, ///< passport files root
+    const std::string &passportDir, ///< passport files root
     LOG_CALLBACK onLog      ///< log callback
+);
+
+/**
+ * Load passports from the directories or files. Listen for changes in the directory
+ * @param config return pointer to LoggerPlumeCollection if success
+ * @return descriptor
+ */
+void *startPassportDirectory(
+    const std::vector<std::string> &passportDirs,   ///< passport files or directories list
+    LOG_CALLBACK onLog                              ///< log callback
 );
 
 /**
@@ -35,12 +46,12 @@ void stopPassportDirectory(
 	void *descriptor
 );
 
-/**
+/**onLog
  * Calc temperature
  * @param descriptor passport collection descriptor
  * @param serialNo plume serial number
  * @param year plume production year
- * @param mac sensor MAC address
+ * @param seqno sensor number 0..
  * @param value raw temperature
  * @return temperature
  */
@@ -48,7 +59,7 @@ double calcTemperature(
     void *descriptor,
     int serialNo,
     int year,
-    uint64_t mac,
+    int seqno,
     double value
 );
 

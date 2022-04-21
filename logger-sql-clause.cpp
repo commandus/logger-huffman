@@ -5,7 +5,7 @@
 static const std::string tableNameLoggerLora = "logger_lora";
 static const std::string tableNameLoggerRaw = "logger_raw";
 
-#define FLD_COUNT  10
+#define FLD_COUNT  11
 
 enum SQL_FLD : int {
     SQL_FIELD_ID = 0,
@@ -17,7 +17,8 @@ enum SQL_FLD : int {
     SQL_FIELD_VCC = 6,
     SQL_FIELD_VBAT = 7,
     SQL_FIELD_TEMPERATURE = 8,
-    SQL_FIELD_RAW = 9
+    SQL_FIELD_TEMPERATURE_POLY = 9,
+    SQL_FIELD_RAW = 10
 };
 
 const std::string fldName[FLD_COUNT] = {
@@ -30,6 +31,7 @@ const std::string fldName[FLD_COUNT] = {
         "vcc",
         "vbat",
         "t",
+        "tp",        
         "raw"
 };
 
@@ -48,6 +50,7 @@ const std::vector <std::vector <std::pair<const std::string&, std::string> >> fl
                         { fldName[SQL_FIELD_VCC], "real"},
                         { fldName[SQL_FIELD_VBAT], "real"},
                         { fldName[SQL_FIELD_TEMPERATURE], "text"},
+                        { fldName[SQL_FIELD_TEMPERATURE_POLY], "text"},
                         { fldName[SQL_FIELD_RAW], "text"}
                 },
                 {   // Firebird
@@ -60,6 +63,7 @@ const std::vector <std::vector <std::pair<const std::string&, std::string> >> fl
                         { fldName[SQL_FIELD_VCC], "float"},
                         { fldName[SQL_FIELD_VBAT], "float"},
                         { fldName[SQL_FIELD_TEMPERATURE], "text"},
+                        { fldName[SQL_FIELD_TEMPERATURE_POLY], "text"},
                         { fldName[SQL_FIELD_RAW], "text"}
                 },
                 {   // MySQL
@@ -72,6 +76,7 @@ const std::vector <std::vector <std::pair<const std::string&, std::string> >> fl
                         { fldName[SQL_FIELD_VCC], "float"},
                         { fldName[SQL_FIELD_VBAT], "float"},
                         { fldName[SQL_FIELD_TEMPERATURE], "text"},
+                        { fldName[SQL_FIELD_TEMPERATURE_POLY], "text"},
                         { fldName[SQL_FIELD_RAW], "text"}
                 },
                 {   // SQLite
@@ -84,6 +89,7 @@ const std::vector <std::vector <std::pair<const std::string&, std::string> >> fl
                         { fldName[SQL_FIELD_VCC], "real"},
                         { fldName[SQL_FIELD_VBAT], "real"},
                         { fldName[SQL_FIELD_TEMPERATURE], "text"},
+                        { fldName[SQL_FIELD_TEMPERATURE_POLY], "text"},
                         { fldName[SQL_FIELD_RAW], "text"}
                 }
         };
