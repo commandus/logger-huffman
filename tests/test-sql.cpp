@@ -52,7 +52,7 @@ void test1() {
 
 void testLoggerParse() {
     std::string r;
-    void *env = initLoggerParser();
+    void *env = initLoggerParser("", nullptr);
 
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
@@ -71,7 +71,7 @@ void testLoggerParse() {
 }
 
 void testIncompletePacket() {
-    void *env = initLoggerParser();
+    void *env = initLoggerParser("", nullptr);
     int dialect = SQL_POSTGRESQL;
     int r;
     for (int i = 0; i < 2; i++) {
