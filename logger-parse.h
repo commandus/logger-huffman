@@ -4,6 +4,16 @@
 #include <vector>
 #include <map>
 
+#include <functional>
+
+typedef std::function<void(
+		void *env,
+		int level,
+		int modulecode,
+		int errorcode,
+		const std::string &message)>
+LOG_CALLBACK;
+
 /**
  * Return CREATE table SQL clause in 
  * @param retClauses vector of CREATE statements
@@ -31,7 +41,16 @@ std::string sqlCreateTable1(
     const std::string &separator = " "
 );
 
-void *initLoggerParser();
+void *initLoggerParser(
+    const std::string &passportDir,     ///< passport files root
+    LOG_CALLBACK onLog                  ///< log callback
+);
+
+void *initLoggerParser(
+    const std::vector<std::string> &passportDirs,     ///< passport files root
+    LOG_CALLBACK onLog                  ///< log callback
+);
+
 void flushLoggerParser(void *env);
 void doneLoggerParser(void *env);
 
