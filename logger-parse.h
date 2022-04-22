@@ -14,6 +14,8 @@ typedef std::function<void(
 		const std::string &message)>
 LOG_CALLBACK;
 
+class LoggerKosaCollection;
+
 /**
  * Return CREATE table SQL clause in 
  * @param retClauses vector of CREATE statements
@@ -53,6 +55,9 @@ void *initLoggerParser(
 
 void flushLoggerParser(void *env);
 void doneLoggerParser(void *env);
+
+void *getPassportDescriptor(void *env);
+void *getLoggerKosaCollection(void *env);
 
 /**
  * Return state of the desctiptor

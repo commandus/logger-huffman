@@ -132,6 +132,13 @@ cat packet-data.bin | ./logger-huffman-print
 
 Examples:
 
+Specify logger passport directory:
+```
+./logger-huffman-print -f sqlite 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900 -p ../logger-passport/tests/passport
+INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 2, 1645510616, 1650587407, 4.75, 3.30, '0,26.5,26.5,26.5625,26.5625,26.5625', '0,26.5,26.5,26.5625,26.5625,26.5625', '4a00280002031c140038100f1602161c1400003981190002 4b1c02020006cfaa0101a8000201a8000301a9000401a900 4b1c02030501a90000000000000000000000000000000000'); INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 3, 1645510916, 1650587407, 4.75, 3.30, '0,26.5,26.5625,26.625,26.5,26.5625', '0,26.5,26.5625,26.625,26.5,26.5625', '4a00280003031c140038150f1602161c1400003981190003 4b1c03020006cfaa0101a8000201a9000301aa000401a800 4b1c03030501a90000000000000000000000000000000000');
+
+```
+
 ```
 ./logger-huffman-print -f json 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900
 [{"id": {"kosa": 28, "measure": 2, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 2, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}
@@ -202,7 +209,7 @@ make
 Configure and make project using Autotools without logger passords library:
 ```
 cd logger-huffman
-./configure --enable-logger-passord
+./configure --enable-logger-passport
 make
 ```
 
