@@ -240,3 +240,13 @@ std::string sqlInsertRaw(
     sqlInsertRawStrm(ss, sqlDialect, value, extraValues);
     return ss.str();
 }
+
+void *getPassportDescriptor(void *env)
+{
+    return ((LoggerParserEnv *) env)->passportDescriptor;
+}
+
+void *getLoggerKosaCollection(void *env)
+{
+    return (void *) ((LoggerParserEnv *) env)->lkc;
+}

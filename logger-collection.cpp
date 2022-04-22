@@ -1238,7 +1238,11 @@ void LoggerKosaPackets::temperaturePolyCommaString(
             for (int i = 0; i < skipped; i++) {
                 ostrm << substEmptyValue << separator;
             }
-            ostrm << calcTemperature(collection->passportDescriptor, id.kosa, id.kosa_year, it->first, it->second);
+			// first one is bus controller, skip it
+			if (it->first == 0)
+				ostrm << it->second;
+			else
+            	ostrm << calcTemperature(collection->passportDescriptor, id.kosa, id.kosa_year, it->first - 1, it->second);
             c++;
         }
     }

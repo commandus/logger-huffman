@@ -48,6 +48,7 @@ static const std::string SQL_DIALECT_NAME[] = {
 class LoggerHuffmanPrintConfiguration {
 public:
     std::vector<std::string> values;            // packet data
+    std::string passportDir;                    // passport directory
     int mode;                                   // 0- binary from stdin, 1- hex in command line parameter
     LOGGER_OUTPUT_FORMAT outputFormat;          // default 0- JSON
     int verbosity;                              // verbosity level
@@ -70,12 +71,14 @@ int parseCmd(
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
     struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table|postgresql|mysql|firebird|sqlite", "Default json");
 
+    struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Loogger passports directory or file name");
+
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
     struct arg_end *a_end = arg_end(20);
 
     void *argtable[] = {
-        a_value_hex, a_value_stdin, a_output_format,
+        a_value_hex, a_value_stdin, a_output_format, a_passport_dir,
         a_verbosity, a_help, a_end
     };
 
@@ -89,6 +92,9 @@ int parseCmd(
 
     if ((nerrors == 0) && (a_help->count == 0)) {
         config->outputFormat = LOGGER_OUTPUT_FORMAT_JSON;
+        if (a_passport_dir->count) {
+            config->passportDir = *a_passport_dir->sval;
+        }
         if (a_output_format->count) {
             std::string s(*a_output_format->sval);
             if (s == "text")
@@ -158,9 +164,10 @@ int main(int argc, char **argv)
     if (r != 0)
         printErrorAndExit(r);
 
-    LoggerKosaCollection c;
+    void *loggerParserEnv = initLoggerParser(config.passportDir, nullptr);
+    LoggerKosaCollection *c = (LoggerKosaCollection*) getLoggerKosaCollection(loggerParserEnv);
 
-    LOGGER_PACKET_TYPE t = c.put(config.values);
+    LOGGER_PACKET_TYPE t = c->put(config.values);
 
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
@@ -169,16 +176,17 @@ int main(int argc, char **argv)
 
     switch (config.outputFormat) {
         case LOGGER_OUTPUT_FORMAT_JSON:
-            s = c.toJsonString();
+            s = c->toJsonString();
             break;
         case LOGGER_OUTPUT_FORMAT_TEXT:
-            s = c.toString();
+            s = c->toString();
             break;
         case LOGGER_OUTPUT_FORMAT_TABLE:
-            s = c.toTableString();
+            s = c->toTableString();
             break;
         default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
-            s = sqlInsertPackets1((void *) &c, config.outputFormat);
+            s = sqlInsertPackets1(loggerParserEnv, config.outputFormat);
     }
     std::cout << s << std::endl;
+    doneLoggerParser(loggerParserEnv);
 }

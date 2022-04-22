@@ -57,7 +57,7 @@ logger_huffman_print_SOURCES = \
 	logger-huffman-print.cpp \
 	third_party/argtable3/argtable3.c
 logger_huffman_print_LDADD = \
-	$(L_LOGGER_HUFFMAN) $(EXTRA_LIB)
+	$(L_LOGGER_HUFFMAN)
 logger_huffman_print_CPPFLAGS = $(EXTRA_DEF)
 
 #
