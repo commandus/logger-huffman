@@ -1,6 +1,9 @@
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
 #include "logger-huffman.h"
 
@@ -52,7 +55,7 @@ void testCompressedData(
     std::cout << "COMPRESSED 2 " << bin2hexString(c) << " size: " << c.size() << std::endl << std::endl;
 }
 
-void testCompress(
+void testCompressDecompress(
         const std::string &value
 )
 {
@@ -64,15 +67,11 @@ void testCompress(
     std::cout << "DECOMPRESSED " << bin2hexString(t) << " size: " << t.size() << std::endl << std::endl;
 }
 
-int main(int argc, char **argv)
-{
-    testCompress(hex2binString("01020304010203040102"));
-    testCompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
-    testCompress("The quick brown fox jumps over the lazy dog");
-    testCompress("cd");
-    /*
-    for (int i = 0; i < CNT; i++) {
-        testCompressedData(hex2binString(sCompressedData[i]));
-    }
-     */
+int main(int argc, char **argv) {
+
+    testCompressDecompress(hex2binString("01020304010203040102"));
+    testCompressDecompress(hex2binString("01020304"));
+    testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
+    testCompressDecompress("The quick brown fox jumps over the lazy dog");
+    testCompressDecompress("cd");
 }

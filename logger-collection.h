@@ -176,7 +176,7 @@ class LoggerKosaPackets {
 
 		bool add(const LoggerItem &value);
 
-		// do not compare with packet!
+		// do not nodeCompare with packet!
 		bool operator==(const LoggerItemId &another) const;
 		bool operator!=(const LoggerItemId &another) const;
 

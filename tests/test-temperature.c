@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include <malloc.h>
+#include <endian.h>
 #include "logger-huffman.h"
 
 // @link http://mypractic.ru/ds18b20-datchik-temperatury-s-interfejsom-1-wire-opisanie-na-russkom-yazyke.html#5

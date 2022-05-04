@@ -1038,7 +1038,7 @@ struct arg_date * arg_daten(
         /* store the tmval[maxcount] array immediately after the arg_date struct */
         result->tmval  = (struct tm *)(result + 1);
 
-        /* init the remaining arg_date member variables */
+        /* init the remainingBits arg_date member variables */
         result->count = 0;
         result->format = format;
     }
@@ -2196,7 +2196,7 @@ static int detectsuffix(const char *str, const char *suffix)
     if (*suffix != 0)
         return 0;   /* failed to consume entire suffix */
 
-    /* skip any remaining whitespace in str */
+    /* skip any remainingBits whitespace in str */
     while (ISSPACE(*str))
         str++;
 
@@ -4661,7 +4661,7 @@ void arg_print_syntax(FILE *fp, void * *argtable, const char *suffix)
     /* print GNU style [OPTION] string */
     arg_print_gnuswitch(fp, table);
 
-    /* print remaining options in abbreviated style */
+    /* print remainingBits options in abbreviated style */
     for(tabindex = 0;
         table[tabindex] && !(table[tabindex]->flag & ARG_TERMINATOR);
         tabindex++)
@@ -4718,7 +4718,7 @@ void arg_print_syntaxv(FILE *fp, void * *argtable, const char *suffix)
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
     int i, tabindex;
 
-    /* print remaining options in abbreviated style */
+    /* print remainingBits options in abbreviated style */
     for(tabindex = 0;
         table[tabindex] && !(table[tabindex]->flag & ARG_TERMINATOR);
         tabindex++)
