@@ -286,21 +286,20 @@ uint16_t encodeHuffman(
 {
     BitBufferWriter bf;
     uint8_t taggedSymbol;
-    bool tagByte = false;
     for (int i = 0; i < srcSize; i++) {
         uint8_t symbol = srcBuffer[i];
-        if ((symbol <= 4) || (symbol >= 0xfc)) {
+        bool symbolInTable = (symbol <= 4) || (symbol >= 0xfc);
+        if (symbolInTable) {
             if (symbol > 0xFB)
                 symbol = (uint8_t) (8 - (uint8_t) (0xFF - symbol));
         } else {
-            tagByte = true;
             taggedSymbol = symbol;
             symbol = 9;
         }
         uint8_t symbolLength = huffmanCodeBitLength[symbol];
         uint8_t symbolCode = huffmanCodes[symbol];
         bf.push(symbolCode, symbolLength);
-        if (tagByte)
+        if (!symbolInTable)
             bf.push(taggedSymbol, 8);
     }
     bf.appendPaddingBits();

@@ -268,6 +268,23 @@ export CC=/usr/bin/clang;export CXX=/usr/bin/clang++;cmake ..
 make
 ```
 
+### Huffman codes
+ 
+| Symbol | Code    | Prefix |
+|--------|---------|--------|
+| 0      | 1       |        |
+| 1      | 0010    |        |
+| 2      | 00001   |        |
+| 3      | 000001  |        |
+| 4      | 0000000 |        |
+| fc     | 0000001 |        |
+| fd     | 00010   |        |
+| fe     | 00011   |        |
+| ff     | 0011    |        |
+| 8      | 01      |*       |
+
+Prefix of the byte itself (which is not in the table)
+
 ### References
 
 - [lorawan-network-server](https://github.com/commandus/lorawan-network-server)

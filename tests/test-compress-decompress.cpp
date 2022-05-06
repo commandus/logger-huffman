@@ -1,9 +1,6 @@
 #include <string>
 #include <cassert>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
 
 #include "logger-huffman.h"
 
@@ -43,16 +40,18 @@ static std::string sCompressedData[CNT] = {
         "4C050D001C011C141C0000030BFFFC380FC2ECF893"
 };
 
-void testCompressedData(
-        const std::string &value
-)
-{
+void testDecompress(
+    const std::string &value
+) {
+    std::cout << "Compressed   " << bin2hexString(value) << ", size: " << value.size() << std::endl;
     std::string s = decompressLoggerString(value);
-    std::cout << "COMPRESSED   " << bin2hexString(value) << " size: " << value.size() << std::endl;
-    std::cout << "DECOMPRESSED " << bin2hexString(s) << " size: " << s.size() << std::endl;
+    std::cout << "Decompressed " << bin2hexString(s) << ", size: " << s.size() << std::endl;
+}
 
-    std::string c = compressLoggerString(s);
-    std::cout << "COMPRESSED 2 " << bin2hexString(c) << " size: " << c.size() << std::endl << std::endl;
+void testDecompress2() {
+    for (int i = 0; i < CNT; i++) {
+        testDecompress(hex2binString(sCompressedData[i]));
+    }
 }
 
 void testCompressDecompress(
@@ -60,19 +59,31 @@ void testCompressDecompress(
 )
 {
     std::string c = compressLoggerString(value);
-    std::cout << "SOURCE       " << bin2hexString(value) << " size: " << value.size() << std::endl;
-    std::cout << "COMPRESSED   " << bin2hexString(c) << " size: " << c.size() << std::endl;
+    std::cout << "Source       " << bin2hexString(value) << ", size: " << value.size() << std::endl;
+    std::cout << "Compressed   " << bin2hexString(c) << ", size: " << c.size() << std::endl;
 
     std::string t = decompressLoggerString(c);
-    std::cout << "DECOMPRESSED " << bin2hexString(t) << " size: " << t.size() << std::endl << std::endl;
+    std::cout << "Decompressed " << bin2hexString(t) << ", size: " << t.size() << std::endl << std::endl;
 
     assert(value == t);
 }
 
-int main(int argc, char **argv) {
-
+int main(int argc, char **argv)
+{
+    testDecompress2();
+    /*
+    testDecompress(hex2binString("4A00280002031C140038100F160216000000003981190002"));
+    testDecompress(hex2binString("4B1C02020006CFAA0101A8000201A8000301A9000401A900"));
+    testDecompress(hex2binString("4B1C02030501A900"));
+    testDecompress(hex2binString("4A00280003031C140038150F160216000000003981190003"));
+    testDecompress(hex2binString("4B1C03020006CFAA0101A8000201A9000301AA000401A800"));
+    testDecompress(hex2binString("4B1C03030501A900"));
+    */
+    /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
     testCompressDecompress(hex2binString("01020304"));
     testCompressDecompress("The quick brown fox jumps over the lazy dog");
+
+    */
 }
