@@ -58,8 +58,12 @@ public:
      */
     uint8_t pop();
     /**
-     * add trailing bits meaning nothing
-     */
+     * The last byte can contain 1..8 bits and 0..7 unused garbage bits.
+     * To avoid unpacking dummy data, appendPaddingBits() adds
+     * labeled byte prefix of 01<byte> sequence.
+     * Since there are 7 free bits, there is no room to decode the tag byte, and
+     * junk bits are not decoded.
+     **/
     void appendPaddingBits();
 };
 
@@ -156,7 +160,7 @@ uint32_t BitBufferReader::pop(uint8_t bits, bool &hasBits)
 }
 
 /**
- * pop 1 bit
+ * pop one bit
  * @return byte value
  */
 uint32_t BitBufferReader::pop1(bool &hasBits)
@@ -256,6 +260,7 @@ void BitBufferWriter::appendPaddingBits()
 }
 
 /*
+ * Huffman canonical codes
  * 0  1
  * 1  0010
  * 2  00001
@@ -265,7 +270,7 @@ void BitBufferWriter::appendPaddingBits()
  * fd 00010
  * fe 00011
  * ff 0011
- * 8 01 prefix
+ * 8 01 prefix of the byte itself (which is not in the table)
  */
 
 // Huffman code length in bits
@@ -305,7 +310,7 @@ uint16_t encodeHuffman(
 }
 
 /**
- * Logger compress
+ * Logger compress skip first two bytes
  * @param outStrm output stream
  * @param srcBuffer source
  * @param srcSize size in bytes
@@ -324,6 +329,13 @@ size_t compressLogger(
     return encodeHuffman(outStrm, ((const char *) srcBuffer) + 2, srcSize - 2);
 }
 
+/**
+ * Decompress using Huffman tree
+ * @param outStrm output stream
+ * @param srcBuffer source
+ * @param srcSize size in bytes
+ * @return bits in the stream
+ */
 size_t decodeHuffman(
     std::ostream &outStrm,
     const char *srcBuffer,
@@ -362,7 +374,7 @@ size_t decodeHuffman(
 }
 
 /**
- * Logger decompress
+ * Logger decompress skip first two bytes
  * @param outStrm output stream
  * @param srcBuffer source
  * @param srcSize size
@@ -381,6 +393,14 @@ size_t decompressLogger(
     return decodeHuffman(outStrm, ((const char *) srcBuffer) + 2, srcSize - 8 * 2);
 }
 
+/**
+ * Compress buffer skipping first two bytes
+ * @param outBuffer output buffer
+ * @param outSize buffer size
+ * @param srcBuffer data to compress
+ * @param srcSize data size
+ * @return compressed size in bits not bytes
+ */
 size_t compressLoggerBuffer(
     char *outBuffer,
     size_t outSize,
@@ -392,6 +412,14 @@ size_t compressLoggerBuffer(
     return compressLogger(ss, srcBuffer, srcSize);
 }
 
+/**
+ * Decompress buffer skipping first two bytes
+ * @param outBuffer output buffer
+ * @param outSize buffer size
+ * @param srcBuffer data to compress
+ * @param srcSize data size
+ * @return size in bytes
+ */
 size_t decompressLoggerBuffer(
     char *outBuffer,
     size_t outSize,
@@ -403,6 +431,11 @@ size_t decompressLoggerBuffer(
     return decompressLogger(ss, srcBuffer, srcSize);
 }
 
+/**
+ * Compress data stored in the string skipping first two bytes
+ * @param value data to compress
+ * @return compressed data
+ */
 std::string compressLoggerString(const std::string &value)
 {
     std::ostringstream ss;
@@ -410,6 +443,11 @@ std::string compressLoggerString(const std::string &value)
     return ss.str();
 }
 
+/**
+ * Decompress data stored in the string skipping first two bytes
+ * @param value data to decompress
+ * @return decompressed data
+ */
 std::string decompressLoggerString(const std::string &value)
 {
     std::ostringstream ss;

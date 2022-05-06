@@ -65,6 +65,8 @@ void testCompressDecompress(
 
     std::string t = decompressLoggerString(c);
     std::cout << "DECOMPRESSED " << bin2hexString(t) << " size: " << t.size() << std::endl << std::endl;
+
+    assert(value == t);
 }
 
 int main(int argc, char **argv) {

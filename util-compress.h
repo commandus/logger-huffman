@@ -13,9 +13,9 @@ extern "C++" {
  * @return bits in the stream
  */
 size_t compressLogger(
-        std::ostream &outStrm,
-        const void *srcBuffer,
-        size_t srcSize
+    std::ostream &outStrm,
+    const void *srcBuffer,
+    size_t srcSize
 );
 
 /**
@@ -26,9 +26,9 @@ size_t compressLogger(
  * @return bits in the stream
  */
 size_t decompressLogger(
-        std::ostream &outStrm,
-        const void *srcBuffer,
-        size_t srcSize
+    std::ostream &outStrm,
+    const void *srcBuffer,
+    size_t srcSize
 );
 
 /**
@@ -37,7 +37,7 @@ size_t decompressLogger(
  * @return compressed string
  */
 std::string compressLoggerString(
-        const std::string &value
+    const std::string &value
 );
 
 /**
@@ -46,7 +46,7 @@ std::string compressLoggerString(
  * @return decompressed string
  */
 std::string decompressLoggerString(
-        const std::string &value
+    const std::string &value
 );
 
 }
