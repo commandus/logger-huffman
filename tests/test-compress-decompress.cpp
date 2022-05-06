@@ -69,9 +69,8 @@ void testCompressDecompress(
 
 int main(int argc, char **argv) {
 
+    testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
     testCompressDecompress(hex2binString("01020304"));
-    testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress("The quick brown fox jumps over the lazy dog");
-    testCompressDecompress("cd");
 }

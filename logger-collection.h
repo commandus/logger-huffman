@@ -258,7 +258,4 @@ const char *strerror_logger_huffman(int errCode);
 
 void clear_LOGGER_MEASUREMENT_HDR(LOGGER_MEASUREMENT_HDR &value);
 
-std::string compressLoggerString(const std::string &value);
-std::string decompressLoggerString(const std::string &value);
-
 #endif

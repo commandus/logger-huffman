@@ -187,12 +187,12 @@ static void
 set_week_number_mon4(struct tm *timeptr, int wnum)
 {
 	int fday = (first_day(timeptr->tm_year + tm_year_base) + 6) % 7;
-	int offsetBits = 0;
+	int bitCount = 0;
 
 	if (fday < 4)
-		offsetBits += 7;
+		bitCount += 7;
 
-	timeptr->tm_yday = offsetBits + (wnum - 1) * 7 + timeptr->tm_wday - fday;
+	timeptr->tm_yday = bitCount + (wnum - 1) * 7 + timeptr->tm_wday - fday;
 	if (timeptr->tm_yday < 0) {
 		timeptr->tm_wday = fday;
 		timeptr->tm_yday = 0;

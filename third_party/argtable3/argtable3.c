@@ -1038,7 +1038,7 @@ struct arg_date * arg_daten(
         /* store the tmval[maxcount] array immediately after the arg_date struct */
         result->tmval  = (struct tm *)(result + 1);
 
-        /* init the remainingBits arg_date member variables */
+        /* init the remainingBitsToFillByte arg_date member variables */
         result->count = 0;
         result->format = format;
     }
@@ -2119,7 +2119,7 @@ static long int strtol0X(const char * str,
 {
     long int val;               /* stores result */
     int s = 1;                    /* sign is +1 or -1 */
-    const char *ptr = str;        /* ptr to current position in str */
+    const char *ptr = str;        /* ptr to current bitPosition in str */
 
     /* skip leading whitespace */
     while (ISSPACE(*ptr))
@@ -2196,7 +2196,7 @@ static int detectsuffix(const char *str, const char *suffix)
     if (*suffix != 0)
         return 0;   /* failed to consume entire suffix */
 
-    /* skip any remainingBits whitespace in str */
+    /* skip any remainingBitsToFillByte whitespace in str */
     while (ISSPACE(*str))
         str++;
 
@@ -4661,7 +4661,7 @@ void arg_print_syntax(FILE *fp, void * *argtable, const char *suffix)
     /* print GNU style [OPTION] string */
     arg_print_gnuswitch(fp, table);
 
-    /* print remainingBits options in abbreviated style */
+    /* print remainingBitsToFillByte options in abbreviated style */
     for(tabindex = 0;
         table[tabindex] && !(table[tabindex]->flag & ARG_TERMINATOR);
         tabindex++)
@@ -4718,7 +4718,7 @@ void arg_print_syntaxv(FILE *fp, void * *argtable, const char *suffix)
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
     int i, tabindex;
 
-    /* print remainingBits options in abbreviated style */
+    /* print remainingBitsToFillByte options in abbreviated style */
     for(tabindex = 0;
         table[tabindex] && !(table[tabindex]->flag & ARG_TERMINATOR);
         tabindex++)
