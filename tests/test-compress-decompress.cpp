@@ -2,6 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <sys/time.h>
 
 #include "logger-huffman.h"
 
@@ -87,18 +88,82 @@ void testCompressDecompressBuffer(
     assert(value == t);
 }
 
+/**
+ * @param result
+ * @param x
+ * @param y
+ * @return
+ * @see https://www.gnu.org/software/libc/manual/html_node/Calculating-Elapsed-Time.html
+ */
+static int timeval_subtract (struct timeval *result, struct timeval *x, struct timeval *y)
+{
+    /* Perform the carry for the later subtraction by updating y. */
+    if (x->tv_usec < y->tv_usec) {
+        int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+        y->tv_usec -= 1000000 * nsec;
+        y->tv_sec += nsec;
+    }
+    if (x->tv_usec - y->tv_usec > 1000000) {
+        int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+        y->tv_usec += 1000000 * nsec;
+        y->tv_sec -= nsec;
+    }
+
+    /* Compute the time remaining to wait. tv_usec is certainly positive. */
+    result->tv_sec = x->tv_sec - y->tv_sec;
+    result->tv_usec = x->tv_usec - y->tv_usec;
+
+    /* Return 1 if result is negative. */
+    return x->tv_sec < y->tv_sec;
+}
+
+void testPerformance(int count, int size)
+{
+    struct timeval t0, t1, df;
+    gettimeofday(&t0, NULL);
+
+    std::string s;
+    s.resize(size);
+    const char *c = s.c_str();
+    for (int i = 0; i < size; i++) {
+        std::stringstream ss;
+        encodeHuffman(ss, c, size);
+        std::string encoded = ss.str();
+        std::ostringstream ss1;
+        decodeHuffman(ss1, encoded.c_str(), encoded.size());
+        std::string s1 = ss1.str();
+        if (s != s1) {
+            std::cerr
+                << "Count: " << i
+                    << ", s != s1 s.size: " << std::dec << s.size() << ", s1.size: " << s1.size() << std::endl;
+
+            return;
+        }
+    }
+
+    gettimeofday(&t1, NULL);
+    timeval_subtract(&df, &t1, &t0);
+
+    std::cout
+            << "Count: " << std::dec << count << ", size: " << size
+            << ", elapsed time: " << std::dec << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
+
+}
+
 int main(int argc, char **argv)
 {
-    // testDecompress2();
+    testDecompress2();
     testCompressDecompressBuffer(hex2binString("123456"));
-    /*
+
     testDecompress(hex2binString("4A00280002031C140038100F160216000000003981190002"));
     testDecompress(hex2binString("4B1C02020006CFAA0101A8000201A8000301A9000401A900"));
     testDecompress(hex2binString("4B1C02030501A900"));
     testDecompress(hex2binString("4A00280003031C140038150F160216000000003981190003"));
     testDecompress(hex2binString("4B1C03020006CFAA0101A8000201A9000301AA000401A800"));
     testDecompress(hex2binString("4B1C03030501A900"));
-    */
+
+    testPerformance(100, 2048);
+
     /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
