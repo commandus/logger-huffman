@@ -195,7 +195,9 @@ int main(int argc, char **argv)
             } else {
                 // read from command line
                 for (int i = 0; i < config.values.size(); i++) {
-                    decodeHuffman(std::cout, config.values[i].c_str(), config.values[i].size());
+                    std::string s = config.values[i];
+                    std::cerr << "==" << bin2hexString(s) << std::endl;
+                    decodeHuffman(std::cout, s.c_str(), s.size());
                 }
             }
             return 0;
