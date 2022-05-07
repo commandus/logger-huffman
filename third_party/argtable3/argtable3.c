@@ -2119,7 +2119,7 @@ static long int strtol0X(const char * str,
 {
     long int val;               /* stores result */
     int s = 1;                    /* sign is +1 or -1 */
-    const char *ptr = str;        /* ptr to current bitPosition in str */
+    const char *ptr = str;        /* ptr to current lastBitPosition in str */
 
     /* skip leading whitespace */
     while (ISSPACE(*ptr))

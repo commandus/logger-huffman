@@ -5,11 +5,60 @@
 
 #ifdef __cplusplus
 extern "C++" {
+
+/**
+ * Encode stream
+ * @param outStrm output stream
+ * @param inStrm input stream
+ * @return
+ */
+size_t encodeHuffmanStream(
+        std::ostream &outStrm,
+        std::istream &inStrm
+);
+
+/**
+ * Encode buffer
+ * @param outStrm output stream
+ * @param srcBuffer input buffer
+ * @param srcSize input buffer size in bytes
+ * @return
+ */
+size_t encodeHuffman(
+    std::ostream &outStrm,
+    const char *srcBuffer,
+    size_t srcSize
+);
+
+/**
+ * Decompress buffer using Huffman tree
+ * @param outStrm output stream
+ * @param srcBuffer source
+ * @param srcSize size in bytes
+ * @return bits in the stream
+ */
+size_t decodeHuffman(
+    std::ostream &outStrm,
+    const char *srcBuffer,
+    size_t srcSize
+);
+
+/**
+ * Decompress stream using Huffman tree
+ * @param outStrm output stream
+ * @param inStrm source stream
+ * @return bits in the stream
+ */
+size_t decodeHuffmanStream(
+    std::ostream &outStrm,
+    std::istream &inStrm
+);
+
 /**
  * Logger compress
  * @param outStrm output stream
  * @param srcBuffer source
- * @param srcSize szie
+ * @param srcSize size in bytes
  * @return bits in the stream
  */
 size_t compressLogger(
@@ -19,10 +68,10 @@ size_t compressLogger(
 );
 
 /**
- * Logger decompress
+ * Decompress logger buffer using Huffman tree
  * @param outStrm output stream
  * @param srcBuffer source
- * @param srcSize szie
+ * @param srcSize size in bytes
  * @return bits in the stream
  */
 size_t decompressLogger(
