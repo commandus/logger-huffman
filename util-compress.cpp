@@ -483,7 +483,7 @@ size_t decodeHuffmanStream(
 {
     BitStreamReader bf(inStrm);
     HuffmanTreeNode *n = &huffmanTreeRoot;
-    size_t r = outStrm.tellp();
+    size_t count = 0;
     while (true) {
         uint32_t lr = bf.pop1();
         if (bf.reachEof)
@@ -492,23 +492,23 @@ size_t decodeHuffmanStream(
             n = n->right;
         else
             n = n->left;
-        if (n->symbol) {
-            // terminal
-            if (*n->symbol == 8) {
-                // tag, read next byte
-                uint8_t v = bf.pop(8);
-                if (bf.reachEof)
-                    break;
-                // store byte
-                outStrm.put(v);
-            } else
-                outStrm.put(*n->symbol);
-            // start from beginning
-            n = &huffmanTreeRoot;
-        }
+        if (!n->symbol)
+            continue;
+        // terminal
+        uint8_t v;
+        if (*n->symbol == 8) {
+            // tag, read next byte
+            v = bf.pop(8);
+            if (bf.reachEof)
+                break;
+        } else
+            v = *n->symbol;
+        outStrm.put(v);
+        count++;
+        // start from beginning
+        n = &huffmanTreeRoot;
     }
-    size_t r2 = outStrm.tellp();
-    return r2 - r;
+    return count;
 }
 
 /**
