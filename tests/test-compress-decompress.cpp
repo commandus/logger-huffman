@@ -1,6 +1,7 @@
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <sstream>
 
 #include "logger-huffman.h"
 
@@ -68,9 +69,28 @@ void testCompressDecompress(
     assert(value == t);
 }
 
+void testCompressDecompressBuffer(
+        const std::string &value
+)
+{
+    std::ostringstream ss;
+    encodeHuffman(ss, value.c_str(), value.size());
+    std::string c = ss.str();
+    std::cout << "Source       " << bin2hexString(value) << ", size: " << value.size() << std::endl;
+    std::cout << "Compressed   " << bin2hexString(c) << ", size: " << c.size() << std::endl;
+
+    std::ostringstream ss1;
+    decodeHuffman(ss1, c.c_str(), c.size());
+    std::string t = ss1.str();
+    std::cout << "Decompressed " << bin2hexString(t) << ", size: " << t.size() << std::endl << std::endl;
+
+    assert(value == t);
+}
+
 int main(int argc, char **argv)
 {
-    testDecompress2();
+    // testDecompress2();
+    testCompressDecompressBuffer(hex2binString("123456"));
     /*
     testDecompress(hex2binString("4A00280002031C140038100F160216000000003981190002"));
     testDecompress(hex2binString("4B1C02020006CFAA0101A8000201A8000301A9000401A900"));
