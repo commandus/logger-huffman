@@ -41,6 +41,12 @@ typedef enum {
 
 } LOGGER_OUTPUT_FORMAT;
 
+typedef enum {
+    MODE_PACKET = 0,
+    MODE_COMPRESS = 1,
+    MODE_DECOMPRESS = 2
+} MODE;
+
 static const std::string SQL_DIALECT_NAME[] = {
     "postgresql", "mysql", "firebird", "sqlite"
 };
@@ -49,8 +55,9 @@ class LoggerHuffmanPrintConfiguration {
 public:
     std::vector<std::string> values;            // packet data
     std::string passportDir;                    // passport directory
-    int mode;                                   // 0- binary from stdin, 1- hex in command line parameter
     LOGGER_OUTPUT_FORMAT outputFormat;          // default 0- JSON
+    bool readStdin;                             // read stdin
+    MODE processingMode;                        // default packet processing
     int verbosity;                              // verbosity level
     bool hasValue;
 };
@@ -69,7 +76,7 @@ int parseCmd(
     // device path
     struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
-    struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table|postgresql|mysql|firebird|sqlite", "Default json");
+    struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table|postgresql|mysql|firebird|sqlite|compress|decompress", "Default json");
 
     struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Loogger passports directory or file name");
 
@@ -109,15 +116,20 @@ int parseCmd(
                 config->outputFormat = LOGGER_OUTPUT_FORMAT_FB;
             if (s == "sqlite")
                 config->outputFormat = LOGGER_OUTPUT_FORMAT_SQLITE;
+            config->processingMode = MODE_PACKET;
+            if (s == "compress")
+                config->processingMode = MODE_COMPRESS;
+            if (s == "decompress")
+                config->processingMode = MODE_DECOMPRESS;
         }
         config->verbosity = a_verbosity->count;
+        config->readStdin = a_value_stdin->count > 0;
         if (a_value_hex->count) {
             for (int i = 0; i < a_value_hex->count; i++) {
                 config->values.push_back(hex2binString(a_value_hex->sval[i], strlen(*a_value_hex->sval)));
             }
-            
         } else {
-            if (a_value_stdin->count) {
+            if (config->processingMode == MODE_PACKET && config->readStdin) {
                 // read from stdin
                 std::istreambuf_iterator<char> begin(std::cin), end;
                 config->values.push_back(std::string(begin, end));
@@ -164,6 +176,31 @@ int main(int argc, char **argv)
     if (r != 0)
         printErrorAndExit(r);
 
+    switch (config.processingMode) {
+        case MODE_COMPRESS:
+            if (config.readStdin) {
+                // read from stdin
+                encodeHuffmanStream(std::cout, std::cin);
+            } else {
+                // read from command line
+                for (int i = 0; i < config.values.size(); i++) {
+                    encodeHuffman(std::cout, config.values[i].c_str(), config.values[i].size());
+                }
+            }
+            return 0;
+        case MODE_DECOMPRESS:
+            if (config.readStdin) {
+                // read from stdin
+                decodeHuffmanStream(std::cout, std::cin);
+            } else {
+                // read from command line
+                for (int i = 0; i < config.values.size(); i++) {
+                    decodeHuffman(std::cout, config.values[i].c_str(), config.values[i].size());
+                }
+            }
+            return 0;
+    }
+
     void *loggerParserEnv = initLoggerParser(config.passportDir, nullptr);
     LoggerKosaCollection *c = (LoggerKosaCollection*) getLoggerKosaCollection(loggerParserEnv);
 
@@ -172,21 +209,21 @@ int main(int argc, char **argv)
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
 
-    std::string s;
+    std::string outputString;
 
     switch (config.outputFormat) {
         case LOGGER_OUTPUT_FORMAT_JSON:
-            s = c->toJsonString();
+            outputString = c->toJsonString();
             break;
         case LOGGER_OUTPUT_FORMAT_TEXT:
-            s = c->toString();
+            outputString = c->toString();
             break;
         case LOGGER_OUTPUT_FORMAT_TABLE:
-            s = c->toTableString();
+            outputString = c->toTableString();
             break;
         default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
-            s = sqlInsertPackets1(loggerParserEnv, config.outputFormat);
+            outputString = sqlInsertPackets1(loggerParserEnv, config.outputFormat);
     }
-    std::cout << s << std::endl;
+    std::cout << outputString << std::endl;
     doneLoggerParser(loggerParserEnv);
 }
