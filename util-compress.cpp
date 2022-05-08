@@ -283,29 +283,30 @@ void BitBufferWriter::push(uint8_t value, uint8_t bits)
 {
     if (bits == 0)
         return;
-    // How many bits there left in the current target byte
-    uint8_t sz = size();
+    // bits left in the target byte
+    size_t sz = size();
     while (buffer.size() <= sz)
         buffer.push_back(0);
     uint8_t *cur_dst = &buffer[sz];  // ?!!
     uint8_t bits_left = 8 - bitCount % 8;
 
-    // How many bits are necessary and the mask for that count of bits
+    // bits are necessary
     uint8_t bits_to_use = bits_left < bits ? bits_left : bits;
+    // mask for count of bits
     const uint8_t mask = (1 << bits_to_use) - 1;
 
-    // The desired range of bits from the source value
+    // range of bits from the source
     uint8_t value_off = bits - bits_to_use;
     const uint8_t value_bits = (value >> value_off) & mask;
 
-    // Writing the bits to the destination
+    // push bits to destination
     uint8_t cur_data = *cur_dst;
     uint8_t off = bits_left - bits_to_use;
     cur_data &= ~(mask << off);
     cur_data |= value_bits << off;
     *cur_dst = cur_data;
 
-    // Tail recursion to the rest of data
+    // recursion to the rest of data
     bitCount += bits_to_use;
     push(value, bits - bits_to_use);
 }
@@ -428,7 +429,7 @@ size_t encodeHuffman(
 {
     BitBufferWriter bf;
     uint8_t taggedSymbol;
-    for (int i = 0; i < srcSize; i++) {
+    for (size_t i = 0; i < srcSize; i++) {
         uint8_t symbol = srcBuffer[i];
         bool symbolInTable = (symbol <= 4) || (symbol >= 0xfc);
         if (symbolInTable) {
@@ -445,7 +446,7 @@ size_t encodeHuffman(
             bf.push(taggedSymbol, 8);
     }
     bf.appendPaddingBits();
-    for (int i = 0; i < bf.buffer.size(); i++)
+    for (size_t i = 0; i < bf.buffer.size(); i++)
         outStrm.put(bf.buffer[i]);
     return bf.bitSize();
 }

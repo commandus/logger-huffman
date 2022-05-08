@@ -122,23 +122,17 @@ void testPerformance(int count, int size)
     struct timeval t0, t1, df;
     gettimeofday(&t0, NULL);
 
-    std::string s;
-    s.resize(size);
-    const char *c = s.c_str();
+    std::string source;
+    source.resize(size);
+    const char *c = source.c_str();
     for (int i = 0; i < size; i++) {
         std::stringstream ss;
         encodeHuffman(ss, c, size);
         std::string encoded = ss.str();
         std::ostringstream ss1;
         decodeHuffman(ss1, encoded.c_str(), encoded.size());
-        std::string s1 = ss1.str();
-        if (s != s1) {
-            std::cerr
-                << "Count: " << i
-                    << ", s != s1 s.size: " << std::dec << s.size() << ", s1.size: " << s1.size() << std::endl;
-
-            return;
-        }
+        std::string decoded = ss1.str();
+        assert(decoded == source);
     }
 
     gettimeofday(&t1, NULL);
@@ -146,12 +140,13 @@ void testPerformance(int count, int size)
 
     std::cout
             << "Count: " << std::dec << count << ", size: " << size
-            << ", elapsed time: " << std::dec << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
+            << ", elapsed time: " << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
 
 }
 
 int main(int argc, char **argv)
 {
+    /*
     testDecompress2();
     testCompressDecompressBuffer(hex2binString("123456"));
 
@@ -161,8 +156,8 @@ int main(int argc, char **argv)
     testDecompress(hex2binString("4A00280003031C140038150F160216000000003981190003"));
     testDecompress(hex2binString("4B1C03020006CFAA0101A8000201A9000301AA000401A800"));
     testDecompress(hex2binString("4B1C03030501A900"));
-
-    testPerformance(100, 2048);
+    */
+    testPerformance(1024, 1024);
 
     /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
