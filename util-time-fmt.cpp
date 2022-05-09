@@ -75,32 +75,3 @@ time_t string2time(
 	}
 	return r;
 }
-
-time_t logger2time
-(
-	uint8_t year2000,
-	uint8_t month,
-	uint8_t date,
-	uint8_t hours,
-	uint8_t minutes,
-	uint8_t seconds,
-	bool isLocaltime
-)
-{
-	struct tm m;
-	m.tm_sec = seconds;			/* Seconds.	[0-60] (1 leap second) */
-  	m.tm_min = minutes;			/* Minutes.	[0-59] */
-  	m.tm_hour = hours;			/* Hours.	[0-23] */
-  	m.tm_mday = date;			/* Day.		[1-31] */
-  	m.tm_mon = month;			/* Month.	[1-12] */
-  	m.tm_year = year2000 + 100;	/* Year	- 1900.  */
-  	m.tm_wday = 0;				/* Day of week.	[0-6] */
-  	m.tm_yday = 0;			/* Days in year.[0-365]	*/
-  	m.tm_isdst = 0;			/* DST.		[-1/0/1]*/
-
-	time_t r = mktime(&m);
-
-	if (!isLocaltime)
-		r -= timezone;
-	return r;
-}

@@ -23,7 +23,7 @@ AM_CPPFLAGS = $(COMMON_C_FLAGS)
 HDRS = \
 	platform.h logger-huffman.h util-compress.h errlist.h logger-collection.h \
 	util-time-fmt.h logger-sql-clause.h logger-parse.h strptime.h \
-    third_party/logger-passport/logger-passport.h third_party/argtable3/argtable3.h
+	third_party/logger-passport/logger-passport.h third_party/argtable3/argtable3.h
 
 #
 # Binaries

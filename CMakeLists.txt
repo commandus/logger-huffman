@@ -17,7 +17,7 @@ endif(ENABLE_LOGGER_PASSPORT)
 set(LIB_LOGGER_HUFFMAN_SRC
 	logger-parse.cpp
 	logger-collection.cpp
-	logger-sql-clause.cpp  
+	logger-sql-clause.cpp
 	util-compress.cpp
 	util-time-fmt.cpp
 	logger-huffman.c
