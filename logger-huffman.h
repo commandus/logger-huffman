@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <inttypes.h>
+#include <time.h>
 
 #include "platform.h"
 #include "util-compress.h"
@@ -26,21 +27,21 @@ typedef enum {
 } LOGGER_PACKET_TYPE;
 
 typedef ALIGN struct {
-	uint8_t memblockoccupation;				// 0- memory block occupied
-	uint8_t seconds;						// 0..59
-	uint8_t minutes;						// 0..59
-	uint8_t hours;							// 0..23
-	uint8_t day;							// 1..31
-	uint8_t month;							// 1..12
-	uint8_t year;							// 0..99 year - 2000 = last 2 digits
-	uint8_t kosa;							// номер косы в году
-	uint8_t kosa_year;						// год косы - 2000 (номер года последние 2 цифры)
-	uint8_t rfu1;							// reserved
-	uint8_t rfu2;							// reserved
-	uint8_t vcc;							// V cc bus voltage, V
-	uint8_t vbat;							// V battery, V
-	uint8_t pcnt;							// pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-	uint16_t used;							// record number, 1..65535
+	uint8_t memblockoccupation;				// 0 0- memory block occupied
+	uint8_t seconds;						// 1 0..59
+	uint8_t minutes;						// 2 0..59
+	uint8_t hours;							// 3 0..23
+	uint8_t day;							// 4 1..31
+	uint8_t month;							// 5 1..12
+	uint8_t year;							// 6 0..99 year - 2000 = last 2 digits
+	uint8_t kosa;							// 7 номер косы в году
+	uint8_t kosa_year;						// 8 год косы - 2000 (номер года последние 2 цифры)
+	uint8_t rfu1;							// 9 reserved
+	uint8_t rfu2;							// 10 reserved
+	uint8_t vcc;							// 11 V cc bus voltage, V
+	uint8_t vbat;							// 12 V battery, V
+	uint8_t pcnt;							// 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+	uint16_t used;							// 14 record number, 1..65535
 } PACKED LOGGER_MEASUREMENT_HDR;			// 16 bytes
 
 // первый пакет typ 4a- plain 48- delta 4c- huffman
@@ -179,6 +180,49 @@ double vcc2double(
 
 double vbat2double(
 	uint8_t value
+);
+
+time_t LOGGER_MEASUREMENT_HDR2time_t(
+    LOGGER_MEASUREMENT_HDR *header,
+    int isLocaltime
+);
+
+time_t logger2time(
+    uint8_t year2000,
+    uint8_t month,
+    uint8_t date,
+    uint8_t hours,
+    uint8_t minutes,
+    uint8_t seconds,
+    int isLocaltime
+);
+
+/**
+ * short (diff) version of LOGGER_MEASUREMENT_HDR(15 bytes)
+ * 10 bytes long
+ */
+typedef ALIGN struct {
+    int16_t used;							// 0 record number diff
+    int8_t delta_sec;				        // 2 seconds
+    int8_t kosa;							// 3 номер косы в году
+    int8_t kosa_year;						// 4 год косы - 2000 (номер года последние 2 цифры)
+    int8_t rfu1;							// 5 reserved
+    int8_t rfu2;							// 6 reserved
+    int8_t vcc; 							// 7 V cc bus voltage, V
+    int8_t vbat;							// 8 V battery, V
+    int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+} PACKED LOGGER_MEASUREMENT_HDR_DIFF;		// 10 bytes
+
+/**
+ * Convert LOGGER_MEASUREMENT_HDR to the short version of header
+ * @param retval return short(diff) version
+ * @param h1 current header
+ * @param h0 base header
+ */
+void LOGGER_MEASUREMENT_HDR_delta(
+    LOGGER_MEASUREMENT_HDR_DIFF *retval,
+    LOGGER_MEASUREMENT_HDR *h1,
+    LOGGER_MEASUREMENT_HDR *h0
 );
 
 #ifdef __cplusplus

@@ -1,3 +1,5 @@
+#include <bits/types/time_t.h>
+#include <time.h>
 #include "platform.h"
 
 #include "logger-huffman.h"
@@ -228,11 +230,92 @@ double vbat2double(
 	return (value * 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08;
 }
 
-uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value)
-{
+uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value) {
 #if BYTE_ORDER == BIG_ENDIAN
-	return value;
+    return value;
 #else
-	return NTOH2(value);
+    return NTOH2(value);
 #endif
 }
+
+time_t LOGGER_MEASUREMENT_HDR2time_t(
+    LOGGER_MEASUREMENT_HDR *header,
+    int isLocaltime
+)
+{
+    struct tm m;
+    if (!header)
+        return 0;
+    m.tm_sec = header->seconds;			// 0-60 (1 leap second)
+    m.tm_min = header->minutes;			// 0-59
+    m.tm_hour = header->hours;			// 0-23
+    m.tm_mday = header->day;			// 1-31
+    m.tm_mon = header->month;			// 1-12
+    m.tm_year = header->year + 200;	    // Year	- 1900
+    m.tm_wday = 0;      				// Day of week.	0-6
+    m.tm_yday = 0;		        	    // Days in year. 0-365
+    m.tm_isdst = 0;			            // DST.		-1/0/1]
+
+    time_t r = mktime(&m);
+
+    if (!isLocaltime)
+        r -= __timezone;
+    return r;
+}
+
+time_t logger2time(
+    uint8_t year2000,
+    uint8_t month,
+    uint8_t date,
+    uint8_t hours,
+    uint8_t minutes,
+    uint8_t seconds,
+    int isLocaltime
+)
+{
+    struct tm m;
+    m.tm_sec = seconds;			// 0-60 (1 leap second)
+    m.tm_min = minutes;			// 0-59
+    m.tm_hour = hours;			// 0-23
+    m.tm_mday = date;			// 1-31
+    m.tm_mon = month;			// 1-12
+    m.tm_year = year2000 + 100;	// Year	- 1900
+    m.tm_wday = 0;				// Day of week.	0-6
+    m.tm_yday = 0;			    // Days in year. 0-365
+    m.tm_isdst = 0;			    // DST.		-1/0/1]
+
+    time_t r = mktime(&m);
+
+    if (!isLocaltime)
+        r -= __timezone;
+    return r;
+}
+
+void LOGGER_DATA_TEMPERATURE_RAW_delta(
+    int16_t *retval,
+    LOGGER_DATA_TEMPERATURE_RAW *value1,
+    LOGGER_DATA_TEMPERATURE_RAW *value0
+)
+{
+    *retval = value1->value.t.t00625 - value0->value.t.t00625;
+}
+
+void LOGGER_MEASUREMENT_HDR_delta(
+    LOGGER_MEASUREMENT_HDR_DIFF *retval,
+    LOGGER_MEASUREMENT_HDR *h1,
+    LOGGER_MEASUREMENT_HDR *h0
+)
+{
+    // retval.used = h1->used - h0->used;						// 0 record number diff
+    retval->used = h1->used;                                    // does not compress
+    retval->delta_sec = LOGGER_MEASUREMENT_HDR2time_t(h1, 1) - LOGGER_MEASUREMENT_HDR2time_t(h0, 1);				        // 2 seconds
+    retval->kosa = h1->kosa - h0->kosa;							// 3 номер косы в году
+    retval->kosa_year = h1->kosa_year - h0->kosa_year;			// 4 год косы - 2000 (номер года последние 2 цифры)
+    retval->rfu1 = h1->rfu1 - h0->rfu1;							// 5 reserved
+    retval->rfu2 = h1->rfu2 - h0->rfu2;							// 6 reserved
+    retval->vcc = h1->vcc - h0->vcc;						    // 7 V cc bus voltage, V
+    retval->vbat = h1->vbat - h0->vbat;							// 8 V battery, V
+    retval->pcnt = h1->pcnt - h0->pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+}
+
+
