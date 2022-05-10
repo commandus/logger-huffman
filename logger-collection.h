@@ -79,7 +79,7 @@ class LoggerItem {
 		bool operator!=(const LoggerItem &another) const;
 		bool operator!=(const LoggerItemId &id) const;
 
-		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, const void *buffer, size_t size);
+		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, const void *aBuffer, size_t aSize);
 		bool get(std::map<uint8_t, double> &t) const;
 
 		std::string toString() const;
@@ -244,6 +244,9 @@ std::string vbat2string(uint8_t value);
 
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(const LOGGER_DATA_TEMPERATURE_RAW *value);
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(const LOGGER_DATA_TEMPERATURE_RAW *value);
+std::string LOGGER_MEASUREMENT_HDR_DIFF_2_json(const LOGGER_MEASUREMENT_HDR_DIFF *value);
+std::string LOGGER_MEASUREMENT_HDR_DIFF_2_string(const LOGGER_MEASUREMENT_HDR_DIFF *value);
+
 std::string LOGGER_PACKET_FIRST_HDR_2_string(const LOGGER_PACKET_FIRST_HDR &value);
 std::string LOGGER_PACKET_FIRST_HDR_2_json(const LOGGER_PACKET_FIRST_HDR &value);
 std::string LOGGER_PACKET_SECOND_HDR_2_json(const LOGGER_PACKET_SECOND_HDR &value);

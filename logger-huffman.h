@@ -44,7 +44,23 @@ typedef ALIGN struct {
 	uint16_t used;							// 14 record number, 1..65535
 } PACKED LOGGER_MEASUREMENT_HDR;			// 16 bytes
 
-// первый пакет typ 4a- plain 48- delta 4c- huffman
+/**
+ * short (diff) version of LOGGER_MEASUREMENT_HDR(15 bytes)
+ * 10 bytes long
+ */
+typedef ALIGN struct {
+    int16_t used;							// 0 record number diff
+    int8_t delta_sec;				        // 2 seconds
+    int8_t kosa;							// 3 номер косы в году
+    int8_t kosa_year;						// 4 год косы - 2000 (номер года последние 2 цифры)
+    int8_t rfu1;							// 5 reserved
+    int8_t rfu2;							// 6 reserved
+    int8_t vcc; 							// 7 V cc bus voltage, V
+    int8_t vbat;							// 8 V battery, V
+    int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+} PACKED LOGGER_MEASUREMENT_HDR_DIFF;		// 10 bytes
+
+// first packet types: 4a- plain 48- delta 4c- huffman
 /**
  * typ:
  * 		LOGGER_PACKET_RAW		0x00 формируется, но не отправляется, 
@@ -167,6 +183,11 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 	size_t bufferSize
 );
 
+LOGGER_MEASUREMENT_HDR_DIFF *extractDiffHdr(
+    const void *buffer,
+    size_t bufferSize
+);
+
 double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 );
@@ -196,22 +217,6 @@ time_t logger2time(
     uint8_t seconds,
     int isLocaltime
 );
-
-/**
- * short (diff) version of LOGGER_MEASUREMENT_HDR(15 bytes)
- * 10 bytes long
- */
-typedef ALIGN struct {
-    int16_t used;							// 0 record number diff
-    int8_t delta_sec;				        // 2 seconds
-    int8_t kosa;							// 3 номер косы в году
-    int8_t kosa_year;						// 4 год косы - 2000 (номер года последние 2 цифры)
-    int8_t rfu1;							// 5 reserved
-    int8_t rfu2;							// 6 reserved
-    int8_t vcc; 							// 7 V cc bus voltage, V
-    int8_t vbat;							// 8 V battery, V
-    int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-} PACKED LOGGER_MEASUREMENT_HDR_DIFF;		// 10 bytes
 
 /**
  * Convert LOGGER_MEASUREMENT_HDR to the short version of header

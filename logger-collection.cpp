@@ -28,15 +28,15 @@ std::string LOGGER_PACKET_TYPE_2_string(
 )
 {
 	switch (value) {
-		case LOGGER_PACKET_RAW:			// raw w/o packet headers. замер, разбитый по пакетам в 24 байта (в hex 48 байт). Используется для передачи 0 замера
+		case LOGGER_PACKET_RAW:			// 0x00 raw w/o packet headers. замер, разбитый по пакетам в 24 байта (в hex 48 байт). Используется для передачи 0 замера
 			return "raw";
- 		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
+ 		case LOGGER_PACKET_PKT_1:		// 0x4a with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
 			return "pkt1";
- 		case LOGGER_PACKET_PKT_2:		// with packet header (next)
+ 		case LOGGER_PACKET_PKT_2:		// 0x4b with packet header (next)
 			return "pkt2";
- 		case LOGGER_PACKET_DELTA_1:		// дельты замеров от 0 замера.
+ 		case LOGGER_PACKET_DELTA_1:		// 0x48 deltas(first)
 			return "delta1";
-		case LOGGER_PACKET_DELTA_2:		// дельты замеров от 0 замера.
+		case LOGGER_PACKET_DELTA_2:		// 0x49 deltas(next)
 			return "delta2";
  		case LOGGER_PACKET_HUFF_1:		// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
 			return "huff1";
@@ -153,26 +153,25 @@ std::string LOGGER_MEASUREMENT_HDR_2_table(
     bool isLocaltime = true;
 
     time_t t = logger2time(
-            value.year,
-            value.month - 1,
-            value.day,
-            value.hours,
-            value.minutes,
-            value.seconds,
-            isLocaltime
+        value.year,
+        value.month - 1,
+        value.day,
+        value.hours,
+        value.minutes,
+        value.seconds,
+        isLocaltime
     );
 
-    ss
-            << (int) value.memblockoccupation << "\t"
-            << t << "\t"
-            << time2string(t, true) << "\t"
-            << time2string(t, false) << "\t"
-            << (int) value.kosa << "\t"
-            << (int) value.kosa_year << "\t"
-            << vcc2double(value.vcc) << "\t"
-            << vbat2double(value.vbat) << "\t"
-            << (int) value.pcnt << "\t"
-            << LOGGER_MEASUREMENT_HDR_USED(value.used) << "\t";
+    ss  << (int) value.memblockoccupation << "\t"
+        << t << "\t"
+        << time2string(t, true) << "\t"
+        << time2string(t, false) << "\t"
+        << (int) value.kosa << "\t"
+        << (int) value.kosa_year << "\t"
+        << vcc2double(value.vcc) << "\t"
+        << vbat2double(value.vbat) << "\t"
+        << (int) value.pcnt << "\t"
+        << LOGGER_MEASUREMENT_HDR_USED(value.used) << "\t";
     return ss.str();
 }
 
@@ -204,7 +203,7 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
 		<< "packets\t" << (int) value.packets << std::endl
 		<< "kosa\t" << (int) value.kosa  << std::endl
 		<< "year\t" << (int) value.kosa_year + 2000 << std::endl;
-	return ss.str();
+    return ss.str();
 }
 
 std::string LOGGER_PACKET_FIRST_HDR_2_json(
@@ -259,13 +258,53 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
 
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(
         const LOGGER_DATA_TEMPERATURE_RAW *value
-) {
+)
+{
     std::stringstream ss;
     if (value)
         ss << (int) value->sensor
            << std::fixed << std::setprecision(2)
            << "\t" << TEMPERATURE_2_BYTES_2_double(value->value)
            << "\t";
+    return ss.str();
+}
+
+std::string LOGGER_MEASUREMENT_HDR_DIFF_2_json(
+        const LOGGER_MEASUREMENT_HDR_DIFF *value
+)
+{
+    std::stringstream ss;
+    if (value)
+        ss
+            << "{\"used\": " << (int) value->used
+            << ", \"delta_sec\": " << (int) value->delta_sec		        // 2 seconds
+            << ", \"kosa\": " << (int) value->kosa							// 3 номер косы в году
+            << ", \"year\": " << (int) value->kosa_year						// 4 год косы - 2000 (номер года последние 2 цифры)
+            << ", \"rfu1\": " << (int) value->rfu1							// 5 reserved
+            << ", \"rfu2\": " << (int) value->rfu2							// 6 reserved
+            << ", \"vcc\": " << (int) value->vcc 							// 7 V cc bus voltage, V
+            << ", \"vbat\": " << (int) value->vbat							// 8 V battery, V
+            << ", \"pcnt\": " << (int) value->pcnt							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+        << "}";
+    return ss.str();
+}
+
+std::string LOGGER_MEASUREMENT_HDR_DIFF_2_string(
+    const LOGGER_MEASUREMENT_HDR_DIFF *value
+)
+{
+    std::stringstream ss;
+    if (value)
+        ss << (int) value->used
+            << "\t" << (int) value->delta_sec				        // 2 seconds
+            << "\t" << (int) value->kosa							// 3 номер косы в году
+            << "\t" << (int) value->kosa_year						// 4 год косы - 2000 (номер года последние 2 цифры)
+            << "\t" << (int) value->rfu1							// 5 reserved
+            << "\t" << (int) value->rfu2							// 6 reserved
+            << "\t" << (int) value->vcc 							// 7 V cc bus voltage, V
+            << "\t" << (int) value->vbat							// 8 V battery, V
+            << "\t" << (int) value->pcnt							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+        ;
     return ss.str();
 }
 
@@ -624,6 +663,19 @@ std::string LoggerItem::toString() const
 				}
 				s = ss.str();
 			}
+            break;
+        case LOGGER_PACKET_DELTA_1:		// 0x48 deltas(first)
+            {
+                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
+                if (!headerMeasurement)
+                    break;
+                std::stringstream ss;
+                ss << LOGGER_MEASUREMENT_HDR_DIFF_2_string(headerMeasurement) << std::endl;
+                s = ss.str();
+            }
+            break;
+        case LOGGER_PACKET_DELTA_2:		// 0x48 deltas(next)
+            break;
 		default:
 			break;
 	}
@@ -686,6 +738,18 @@ std::string LoggerItem::toJsonString() const
 				}
 				ss << "]";
 			}
+            break;
+        case LOGGER_PACKET_DELTA_1:		// 0x48 deltas(first)
+            {
+                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
+                if (!headerMeasurement)
+                    break;
+                ss << LOGGER_MEASUREMENT_HDR_DIFF_2_json(headerMeasurement) << std::endl;
+            }
+            break;
+        case LOGGER_PACKET_DELTA_2:		// 0x48 deltas(next)
+            break;
+
 		default:
 			break;
 	}
@@ -698,6 +762,11 @@ std::string LoggerItem::toTableString() const
 	return "Not implemented";
 }
 
+/**
+ * Get sensor value
+ * @param retval
+ * @return
+ */
 bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 {
 	LOGGER_MEASUREMENT_HDR *hdr;
@@ -730,47 +799,101 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 	return true;
 }
 
+void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
+    LOGGER_MEASUREMENT_HDR *retval,
+    LOGGER_MEASUREMENT_HDR_DIFF *value
+)
+{
+    if (retval && value) {
+        retval->memblockoccupation = 0;				// 0 0- memory block occupied
+        retval->seconds = 0;						// 1 0..59
+        retval->minutes = 0;						// 2 0..59
+        retval->hours = 0;							// 3 0..23
+        retval->day = 0;							// 4 1..31
+        retval->month = 0;							// 5 1..12
+        retval->year = 0;							// 6 0..99 year - 2000 = last 2 digits
+        retval->kosa = 0;							// 7 номер косы в году
+        retval->kosa_year = 0;						// 8 год косы - 2000 (номер года последние 2 цифры)
+        retval->rfu1 = 0;							// 9 reserved
+        retval->rfu2 = 0;							// 10 reserved
+        retval->vcc = 0;							// 11 V cc bus voltage, V
+        retval->vbat = 0;							// 12 V battery, V
+        retval->pcnt = 0;							// 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+        retval->used = 0;							// 14 record number, 1..65535
+    }
+}
+
+std::string LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR_string(
+    const void *aBuffer,
+    size_t aSize
+)
+{
+    std::string r;
+    if (aSize < sizeof(LOGGER_MEASUREMENT_HDR_DIFF))
+        return "";
+    r.resize(aSize + 6);
+    LOGGER_MEASUREMENT_HDR h;
+    memmove((void *) r.c_str(), &h, sizeof(LOGGER_MEASUREMENT_HDR));
+    memmove((void *) (r.c_str() + sizeof(LOGGER_MEASUREMENT_HDR)),
+            (char *)aBuffer + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), aSize);
+    return r;
+}
+
 LOGGER_PACKET_TYPE LoggerItem::set(
 	uint8_t &retPackets,
 	size_t &retSize,
-	const void *abuffer,
-	size_t asize
+	const void *aBuffer,
+	size_t aSize
 )
 {
-	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&retSize, abuffer, asize);	// 
+	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&retSize, aBuffer, aSize);	//
 	if (t == LOGGER_PACKET_UNKNOWN) {
-		retSize = asize; // go to the end
+		retSize = aSize; // go to the end
 		return t;
 	}
-    packet = std::string((const char *) abuffer, retSize);
+    switch (t) {
+        case LOGGER_PACKET_DELTA_1:
+            packet = LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR_string(aBuffer, retSize);
+            break;
+        default:
+            packet = std::string((const char *) aBuffer, retSize);
+    }
+
     LOGGER_MEASUREMENT_HDR *hdr;
 	
 	switch (t) {
 		case LOGGER_PACKET_RAW:
-			extractMeasurementHeader(&hdr, packet.c_str(), asize);
+			extractMeasurementHeader(&hdr, packet.c_str(), aSize);
 			id.set(hdr->kosa, 0, -1, hdr->kosa_year);	// -1: first packet (with no data)
 			// retPackets unknown
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-                extractFirstHdr(&h1, &measurement, packet.c_str(), asize);
+                extractFirstHdr(&h1, &measurement, packet.c_str(), aSize);
                 id.set(h1->kosa, h1->measure, -1, h1->kosa_year);	// -1: first packet (with no data)
 
 				// LOGGER_MEASUREMENT_HDR *measurementHeader;
-                // extractMeasurementHeader(&measurementHeader, packet.c_str(), asize);
+                // extractMeasurementHeader(&measurementHeader, packet.c_str(), aSize);
 				retPackets = h1->packets;
 			}
 			break;
 		case LOGGER_PACKET_PKT_2:
 			{
 				LOGGER_PACKET_SECOND_HDR *h2;
-				extractSecondHdr(&h2, packet.c_str(), asize);
+				extractSecondHdr(&h2, packet.c_str(), aSize);
 				id.set(h2->kosa, h2->measure, h2->packet, 0);
 			}
 			break;
+        case LOGGER_PACKET_DELTA_1:
+            {
+                extractMeasurementHeader(&measurement, packet.c_str(), aSize);
+                id.set(measurement->kosa, measurement->used, 0, measurement->kosa_year);
+                retPackets = 0;
+            }
+            break;
 		default: //case LOGGER_PACKET_UNKNOWN:
-			retSize = asize;
+			retSize = aSize;
 			break;
 	}
 	return t;
@@ -909,18 +1032,25 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
     if (retHeaders) {
         switch (t) {
             case LOGGER_PACKET_RAW:
-            {
-                LoggerMeasurementHeader mh((LOGGER_MEASUREMENT_HDR *) buffer, size);
-                retHeaders->push_back(mh);
-            }
+                {
+                    LoggerMeasurementHeader mh((LOGGER_MEASUREMENT_HDR *) buffer, size);
+                    retHeaders->push_back(mh);
+                }
                 break;
             case LOGGER_PACKET_PKT_1:
-            {
-				// memmove(&item.measurement->id, &item.id, sizeof();
-				item.id.assign(item.measurement);
-                LoggerMeasurementHeader mh(item.measurement, sizeof(LOGGER_MEASUREMENT_HDR));
-                retHeaders->push_back(mh);
-            }
+                {
+                    // memmove(&item.measurement->id, &item.id, sizeof();
+                    item.id.assign(item.measurement);
+                    LoggerMeasurementHeader mh(item.measurement, sizeof(LOGGER_MEASUREMENT_HDR));
+                    retHeaders->push_back(mh);
+                }
+                break;
+            case LOGGER_PACKET_DELTA_1:
+                {
+                    item.id.assign(item.measurement);
+                    LoggerMeasurementHeader mh(item.measurement, sizeof(LOGGER_MEASUREMENT_HDR));
+                    retHeaders->push_back(mh);
+                }
                 break;
         }
     }

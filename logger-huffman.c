@@ -165,6 +165,16 @@ int16_t extractSecondHdr(
 	}
 }
 
+LOGGER_MEASUREMENT_HDR_DIFF *extractDiffHdr(
+    const void *buffer,
+    size_t bufferSize
+)
+{
+    if (bufferSize < sizeof(LOGGER_MEASUREMENT_HDR_DIFF))
+        return NULL;
+    return (LOGGER_MEASUREMENT_HDR_DIFF *) buffer;
+}
+
 LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 	int p,
 	const void *buffer,
