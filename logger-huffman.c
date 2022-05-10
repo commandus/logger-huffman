@@ -136,7 +136,7 @@ int extractFirstHdr(
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, buffer, bufferSize);
 	switch (t) {
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
-			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + + sizeof (LOGGER_MEASUREMENT_HDR))	// 24 bytes
+			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof (LOGGER_MEASUREMENT_HDR))	// 24 bytes
 				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 			*retHdr = (LOGGER_PACKET_FIRST_HDR*) buffer;
 			*retMeasurement = (LOGGER_MEASUREMENT_HDR *) ((char *) buffer + sizeof (LOGGER_PACKET_FIRST_HDR));

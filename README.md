@@ -132,6 +132,11 @@ cat packet-data.bin | ./logger-huffman-print
 
 Examples:
 
+Print as text
+```
+./logger-huffman-print -f text 486226000203261301001900000000010000000000000000 49260202000000ff00000000000000000000000000000000 492602030000
+```
+
 Specify logger passport directory:
 ```
 ./logger-huffman-print -f sqlite 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900 -p ../logger-passport/tests/passport
@@ -326,3 +331,50 @@ T ST    MMPPKKYY================================
 	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
 	                                        used = 512?,record number, 1..65535
 ```
+
+
+
+tt  KKuu uussKKYY
+48622600 02032613
+r1r2VcVb pc
+01001900 00 000001     
+0000 0000 00000000 18 + 6
+
+ttKK  PP
+49260202 000000ff  4 + 20
+00000000 00000000
+00000000 00000000
+
+ttKK  PP
+49260203 0000        4 + 2
+
+
+int16_t used;							// 0 record number diff
+int8_t delta_sec;				        // 2 seconds
+int8_t kosa;							// 3 номер косы в году
+int8_t kosa_year;	YY
+int8_t rfu1;							// 5 reserved
+int8_t rfu2;							// 6 reserved
+int8_t vcc; 							// 7 V cc bus voltage, V
+int8_t vbat;							// 8 V battery, V
+int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+
+
+    4
+
+
+  	uint8_t memblockoccupation;				// 0 0- memory block occupied
+	uint8_t seconds;						// 1 0..59
+	uint8_t minutes;						// 2 0..59
+	uint8_t hours;							// 3 0..23
+	uint8_t day;							// 4 1..31
+	uint8_t month;							// 5 1..12
+	uint8_t year;							// 6 0..99 year - 2000 = last 2 digits
+	uint8_t kosa;							// 7 номер косы в году
+	uint8_t kosa_year;						// 8 год косы - 2000 (номер года последние 2 цифры)
+	uint8_t rfu1;							// 9 reserved
+	uint8_t rfu2;							// 10 reserved
+	uint8_t vcc;							// 11 V cc bus voltage, V
+	uint8_t vbat;							// 12 V battery, V
+	uint8_t pcnt;							// 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+	uint16_t used;							// 14 record number, 1..65535

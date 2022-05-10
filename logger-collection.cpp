@@ -831,7 +831,7 @@ std::string LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR_string(
     std::string r;
     if (aSize < sizeof(LOGGER_MEASUREMENT_HDR_DIFF))
         return "";
-    r.resize(aSize + 6);
+    r.resize(aSize + sizeof(LOGGER_MEASUREMENT_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF));
     LOGGER_MEASUREMENT_HDR h;
     memmove((void *) r.c_str(), &h, sizeof(LOGGER_MEASUREMENT_HDR));
     memmove((void *) (r.c_str() + sizeof(LOGGER_MEASUREMENT_HDR)),

@@ -49,6 +49,15 @@ typedef ALIGN struct {
  * 10 bytes long
  */
 typedef ALIGN struct {
+    uint8_t typ;						    // 	LOGGER_PACKET_RAW, LOGGER_PACKET_PKT_1, LOGGER_PACKET_DELTA_1, LOGGER_PACKET_HUFF_1
+    union {
+        uint8_t data_bits: 3;
+        uint8_t rfu: 4;
+        uint8_t command_change: 1;
+        uint8_t b;							// статус замера, биты 0-3 битовая длина тела данных замера, бит 7 – получена команда на смену 0 замера.
+    } status;
+    uint8_t kosa0;							// идентификатор косы (номер, дата)
+
     int16_t used;							// 0 record number diff
     int8_t delta_sec;				        // 2 seconds
     int8_t kosa;							// 3 номер косы в году
