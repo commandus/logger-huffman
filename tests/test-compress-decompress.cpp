@@ -146,10 +146,11 @@ void testPerformance(int count, int size)
 
 int main(int argc, char **argv)
 {
+    // expected 010204010410041f (last byte may be different)
+    testCompressDecompress(hex2binString("01020304010203040102"));
     /*
     testDecompress2();
     testCompressDecompressBuffer(hex2binString("123456"));
-
     testDecompress(hex2binString("4A00280002031C140038100F160216000000003981190002"));
     testDecompress(hex2binString("4B1C02020006CFAA0101A8000201A8000301A9000401A900"));
     testDecompress(hex2binString("4B1C02030501A900"));
@@ -158,12 +159,10 @@ int main(int argc, char **argv)
     testDecompress(hex2binString("4B1C03030501A900"));
     */
     testPerformance(1024, 1024);
-
     /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
     testCompressDecompress(hex2binString("01020304"));
     testCompressDecompress("The quick brown fox jumps over the lazy dog");
-
     */
 }

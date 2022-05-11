@@ -1,4 +1,3 @@
-#include <bits/types/time_t.h>
 #include <time.h>
 #include "platform.h"
 
@@ -44,16 +43,16 @@ size_t getLoggerPacketTypeSize(
 			r = sizeof(LOGGER_MEASUREMENT_HDR);
 			break;
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
-			r = sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR);	// 24
+			r = sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR);	// 8 + 16 = 24
 			break;
  		case LOGGER_PACKET_PKT_2:		// with packet header (next)
-			r = sizeof(LOGGER_PACKET_SECOND_HDR) + 5 * sizeof(LOGGER_DATA_TEMPERATURE_RAW);	// 24
+			r = sizeof(LOGGER_PACKET_SECOND_HDR) + 5 * sizeof(LOGGER_DATA_TEMPERATURE_RAW);	// 4 + 5 * 4 = 24
 			break;
  		case LOGGER_PACKET_DELTA_1:		// дельты замеров от 0 замера.
-		 	r = 24; // max
+            r = sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF) + 6 * sizeof(uint8_t);	// 8 + 10 + (1..6) = 18..24
 			break;
 		case LOGGER_PACKET_DELTA_2:		// дельты замеров от 0 замера.
-			r = 24; // max
+            r = sizeof(LOGGER_PACKET_SECOND_HDR) + 20 * sizeof(uint8_t);	// 4 + 20 * 1 = 24
 			break;
  		case LOGGER_PACKET_HUFF_1:		// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
 		 	r = 24; // max
@@ -181,9 +180,11 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 	size_t bufferSize
 )
 {
-	LOGGER_DATA_TEMPERATURE_RAW *r = (LOGGER_DATA_TEMPERATURE_RAW *) buffer + p + 1;
-	if ((char *) r >= (char *) buffer + bufferSize)
-		return NULL;
+    LOGGER_DATA_TEMPERATURE_RAW *r =
+            (LOGGER_DATA_TEMPERATURE_RAW *) (buffer + sizeof(LOGGER_PACKET_SECOND_HDR))
+            + p;
+    if (r >= (char *) buffer + bufferSize)
+        return NULL;
 	return r;
 }
 

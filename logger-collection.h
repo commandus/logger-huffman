@@ -135,9 +135,7 @@ class LoggerCollection {
 		/**
 		 * Put collection of strings
 		 */
-		LOGGER_PACKET_TYPE put(
-                std::vector<LoggerMeasurementHeader> *retHeaders,
-                const std::vector<std::string> values);
+		LOGGER_PACKET_TYPE put(std::vector<LoggerMeasurementHeader> *retHeaders, const std::vector<std::string> values);
 
 		bool completed() const;
 		bool get(std::map<uint8_t, double> &retval) const;
@@ -160,40 +158,51 @@ class LoggerKosaCollection; // forward declaration
  * Kosa packets collection
  */
 class LoggerKosaPackets {
-	public:
-		LoggerKosaCollection *collection;
-		LoggerItemId id;
-		time_t start;
-        LOGGER_MEASUREMENT_HDR header;
-		LoggerCollection packets;
+private:
+    // base record for diff, loaded by loadBaseKosa() from collection (if set)
+    LoggerKosaPackets *baseKosa;
+public:
+    // parent provides access to the passport
+    LoggerKosaCollection *collection;
+    LoggerItemId id;
+    time_t start;
+    LOGGER_MEASUREMENT_HDR header;
+    LoggerCollection packets;
 
-		LoggerKosaPackets();
-		LoggerKosaPackets(LoggerKosaCollection *collection);
-		LoggerKosaPackets(const LoggerKosaPackets &value);
-		LoggerKosaPackets(const LoggerItem &value);
-		virtual ~LoggerKosaPackets();
+    LoggerKosaPackets();
+    LoggerKosaPackets(LoggerKosaCollection *collection);
+    LoggerKosaPackets(const LoggerKosaPackets &value);
+    LoggerKosaPackets(const LoggerItem &value);
+    virtual ~LoggerKosaPackets();
 
-		bool expired() const;
+    bool expired() const;
 
-		bool add(const LoggerItem &value);
+    bool add(const LoggerItem &value);
 
-		// do not nodeCompare with packet!
-		bool operator==(const LoggerItemId &another) const;
-		bool operator!=(const LoggerItemId &another) const;
+    // do not nodeCompare with packet!
+    bool operator==(const LoggerItemId &another) const;
+    bool operator!=(const LoggerItemId &another) const;
 
-		bool operator==(uint8_t kosa) const;
-		bool operator!=(uint8_t kosa) const;
+    bool operator==(uint8_t kosa) const;
+    bool operator!=(uint8_t kosa) const;
 
-        time_t measured() const;
+    time_t measured() const;
 
-        std::string toString() const;
-		std::string toJsonString() const;
-		std::string toTableString() const;
+    std::string toString() const;
+    std::string toJsonString() const;
+    std::string toTableString() const;
 
-        void temperatureCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
-		void temperaturePolyCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
-        void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
-        void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
+    void temperatureCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+    void temperaturePolyCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+    void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
+    void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
+
+    LoggerKosaPackets *loadBaseKosa();
+};
+
+class LoggerKosaPacketsLoader {
+public:
+    virtual LoggerKosaPackets *load(uint8_t kosa, uint8_t year2000) = 0;
 };
 
 /** 
@@ -202,6 +211,7 @@ class LoggerKosaPackets {
 class LoggerKosaCollection {
 	public:
 		void *passportDescriptor;
+        LoggerKosaPacketsLoader *loggerKosaPacketsLoader;
 		std::vector<LoggerKosaPackets> koses;
 
 		LoggerKosaCollection();
@@ -230,6 +240,7 @@ class LoggerKosaCollection {
         bool addHeader(const LoggerMeasurementHeader &header);
 
 		void setPassports(void *passportDescriptor);
+        void setLoggerKosaPacketsLoader(LoggerKosaPacketsLoader *);
 };
 
 std::string LOGGER_PACKET_TYPE_2_string(const LOGGER_PACKET_TYPE &value);
