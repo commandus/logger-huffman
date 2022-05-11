@@ -4,6 +4,13 @@
  * Copyright (c) 2022 andrey.ivanov@ikfia.ysn.ru
  * Yu.G. Shafer Institute of Cosmophysical Research and Aeronomy of Siberian Branch of the Russian Academy of Sciences
  * MIT license
+ *
+ * ./logger-huffman-print -f text 486226000203261301001900000000010000000000000000
+ *  49260202000000ff00000000000000000000000000000000 492602030000
+ * -b 4a0080000207261300011512010115261300003e3d710002 -b 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00
+ * -b 4b26020305e3ff0006e0ff0007e2ff0008ddff0009e2ff00 -b 4b2602040adeff000bdaff000cdfff000debff000ee8ff00
+ * -b 4b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff00 -b 4b26020614dcff0015dcff0016eaff0017e5ff0018dfff00
+ * -b 4b26020719dfff001adaff001be6ff00
  */
 #include <string>
 #include <vector>
@@ -54,6 +61,7 @@ static const std::string SQL_DIALECT_NAME[] = {
 class LoggerHuffmanPrintConfiguration {
 public:
     std::vector<std::string> values;            // packet data
+    std::vector<std::string> baseValues;        // "base" packet data
     std::string passportDir;                    // passport directory
     LOGGER_OUTPUT_FORMAT outputFormat;          // default 0- JSON
     bool readStdin;                             // read stdin
@@ -61,6 +69,28 @@ public:
     int verbosity;                              // verbosity level
     bool hasValue;
 };
+
+class DumbLoggerKosaPacketsLoader: public LoggerKosaPacketsLoader {
+public:
+    LoggerKosaCollection *collection;
+    DumbLoggerKosaPacketsLoader()
+        : collection(nullptr)
+    {
+
+    }
+
+    LoggerKosaPackets *load(uint8_t kosa, uint8_t year2000) override {
+        if (collection && (!collection->koses.empty()))
+            return &collection->koses[0];
+        else
+            return nullptr;
+    }
+
+    void setCollection(LoggerKosaCollection *aCollection) {
+        collection = aCollection;
+    }
+};
+
 
 /**
  * Parse command linelogger-huffman-impl
@@ -75,17 +105,18 @@ int parseCmd(
 {
     // device path
     struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
+    struct arg_str *a_value_base_hex = arg_strn("b", "base", "<packet>", 0, 100, "Base packet data in hex");
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
     struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table|postgresql|mysql|firebird|sqlite|compress|decompress", "Default json");
 
-    struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Loogger passports directory or file name");
+    struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Logger passports directory or file name");
 
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
     struct arg_end *a_end = arg_end(20);
 
     void *argtable[] = {
-        a_value_hex, a_value_stdin, a_output_format, a_passport_dir,
+        a_value_hex, a_value_stdin, a_value_base_hex, a_output_format, a_passport_dir,
         a_verbosity, a_help, a_end
     };
 
@@ -126,7 +157,7 @@ int parseCmd(
         config->readStdin = a_value_stdin->count > 0;
         if (a_value_hex->count) {
             for (int i = 0; i < a_value_hex->count; i++) {
-                config->values.push_back(hex2binString(a_value_hex->sval[i], strlen(*a_value_hex->sval)));
+                config->values.push_back(hex2binString(a_value_hex->sval[i], strlen(a_value_hex->sval[i])));
             }
         } else {
             if (config->processingMode == MODE_PACKET && config->readStdin) {
@@ -135,6 +166,10 @@ int parseCmd(
                 config->values.push_back(std::string(begin, end));
             }
         }
+    }
+
+    for (int i = 0; i < a_value_base_hex->count; i++) {
+        config->baseValues.push_back(hex2binString(a_value_base_hex->sval[i], strlen(*a_value_base_hex->sval)));
     }
 
     // special case: '--help' takes precedence over error reporting
@@ -210,6 +245,18 @@ int main(int argc, char **argv)
 
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
+
+    // set "base" loader
+    LoggerKosaCollection lkcBase;
+    DumbLoggerKosaPacketsLoader lkl;
+    if (!config.baseValues.empty()) {
+        lkcBase.put(config.baseValues);
+        lkl.setCollection(&lkcBase);
+        c->setLoggerKosaPacketsLoader(&lkl);
+        if (config.verbosity > 2) {
+            std::cerr << "Base packets: " << lkcBase.toString() << std::endl;
+        }
+    }
 
     std::string outputString;
 

@@ -332,15 +332,40 @@ T ST    MMPPKKYY================================
 	                                        used = 512?,record number, 1..65535
 ```
 
+typedef struct packet_title_var_t
+{
+unsigned char      type;    //1    0x Тип 0х1С (X = 0x4С) это 0b 0100 1000 – установлен резервный бит
+unsigned char      param;   //2 Для сжатого пакета, во втором байте,
+unsigned char     status;   //3 статус  замера 0 ( и ошибки подготовки если пакет 30 байт ошибочный)
+unsigned int     compress_bytes;  //4 5 или как инт просто?? - до 10 бит ? 6 на другое
+unsigned int        num;     //6 7  used??? именно передачи! после замены зап.0 снова с 1 !!??
+unsigned char         ident[2];   //8 9  идентификатор косы Идентификатор прибора
+} packet_title_var_t;
+
+	uint8_t typ;						    // 	LOGGER_PACKET_RAW, LOGGER_PACKET_PKT_1, LOGGER_PACKET_DELTA_1, LOGGER_PACKET_HUFF_1
+	union {
+		uint8_t data_bits: 3;
+		uint8_t rfu: 4;
+		uint8_t command_change: 1;
+		uint8_t b;							// статус замера, биты 0-3 битовая длина тела данных замера, бит 7 – получена команда на смену 0 замера.
+	} status;
+	uint16_t size;							// (compressed) общая длина данных, bytes
+	uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
+	uint8_t packets;						// количество пакетов в замере! (лора по 24 байта с шапками пакетов)
+	uint8_t kosa;							// идентификатор косы (номер, дата)
+	uint8_t kosa_year;						// год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
 
 
-tt  KKuu uussKKYY
-48622600 02032613
-r1r2VcVb pc
-01001900 00 000001     
-0000 0000 00000000 18 + 6
+{0x4A, 0b01000111,0x00, 0x0000, 0x0000,{22,19}}; //
+ttsszzzz mmppkkyy  
+      0  1 2 3 4  5 6 7 8  9 
+tt  KKuu uussKKYY r1r2VcVb pc
+48622600 02032613 01001900 00 000001
+0 1 2 3  4 5 6 7  8 9 
+     
+00000000 00000000 8 + 10 + 6
 
-ttKK  PP
+ttKKZZPP
 49260202 000000ff  4 + 20
 00000000 00000000
 00000000 00000000

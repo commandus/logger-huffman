@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
-#include <locale>
 
 #include "util-time-fmt.h"
 #include "logger-collection.h"
@@ -16,7 +15,6 @@
  * Conditional defines:
  *  PRINT_DEBUG - print out temperature raw lo, hi bytes in hex, rfu1 value
  */
-
 
 /**
  * To string
@@ -263,7 +261,7 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(
     std::stringstream ss;
     if (value)
         ss << (int) value->sensor
-           << std::fixed << std::setprecision(2)
+           << std::fixed << std::setprecision(4)
            << "\t" << TEMPERATURE_2_BYTES_2_double(value->value)
            << "\t";
     return ss.str();
@@ -627,7 +625,7 @@ std::string LoggerItem::toString() const
 				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
 				for (int i = 0; i < cnt; i++) {
                     LOGGER_DATA_TEMPERATURE_RAW *tp;
-					uint16_t t = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
+					double r = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
                     ss << LOGGER_DATA_TEMPERATURE_RAW_2_text(tp);
 				}
 				s = ss.str();
@@ -636,13 +634,13 @@ std::string LoggerItem::toString() const
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-				LOGGER_MEASUREMENT_HDR *measurement;
-				int r = extractFirstHdr(&h1, &measurement, packet.c_str(), packet.size());
+				LOGGER_MEASUREMENT_HDR *measurementHeader;
+				int r = extractFirstHdr(&h1, &measurementHeader, packet.c_str(), packet.size());
 				if (r)
 					break;
 				std::stringstream ss;
 				ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl
-					<< LOGGER_MEASUREMENT_HDR_2_string(*measurement) << std::endl;
+                   << LOGGER_MEASUREMENT_HDR_2_string(*measurementHeader) << std::endl;
 				s = ss.str();
 			}
 			break;
@@ -657,7 +655,7 @@ std::string LoggerItem::toString() const
 						break;
 					ss
 						<< (int) v->sensor
-						<< std::fixed << std::setprecision(2)
+						<< std::fixed << std::setprecision(4)
 						<< "\t" << TEMPERATURE_2_BYTES_2_double(v->value)
 						<< std::endl;
 				}
@@ -698,7 +696,7 @@ std::string LoggerItem::toJsonString() const
 				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
 				for (int i = 0; i < cnt; i++) {
 					LOGGER_DATA_TEMPERATURE_RAW *tp;
-					uint16_t t = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
+					double r = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
 					if (first)
 						first = false;
 					else
@@ -711,12 +709,12 @@ std::string LoggerItem::toJsonString() const
 		case LOGGER_PACKET_PKT_1:
 			{
 				LOGGER_PACKET_FIRST_HDR *h1;
-				LOGGER_MEASUREMENT_HDR *measurement;
-				int r = extractFirstHdr(&h1, &measurement, packet.c_str(), packet.size());
+				LOGGER_MEASUREMENT_HDR *measurementHeader;
+				int r = extractFirstHdr(&h1, &measurementHeader, packet.c_str(), packet.size());
 				if (r)
 					break;
 				ss << "\"first_packet\": " << LOGGER_PACKET_FIRST_HDR_2_json(*h1) << ", "
-					<< "\"measurement_header\": " << LOGGER_MEASUREMENT_HDR_2_json(*measurement) << std::endl;
+                   << "\"measurement_header\": " << LOGGER_MEASUREMENT_HDR_2_json(*measurementHeader) << std::endl;
 			}
 			break;
 		case LOGGER_PACKET_PKT_2:
@@ -793,6 +791,24 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 					retval[v->sensor] = TEMPERATURE_2_BYTES_2_double(v->value);
 				}
 			}
+            break;
+        case LOGGER_PACKET_DELTA_2:
+        {
+            // get packet number from header
+            LOGGER_PACKET_SECOND_HDR *h;
+            int16_t r = extractSecondHdr(&h, packet.c_str(), packet.size());
+            if (r)
+                return false;
+            // packet number => value index
+            uint8_t ofs = 6 + (h->packet - 2) * 20; // first(header) contains 6 values, 2.. - 20
+            for (int p = ofs; p < ofs + 20; p++) {
+                LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
+                if (!v)
+                    break;
+                retval[v->sensor] = TEMPERATURE_2_BYTES_2_double(v->value);
+            }
+            break;
+        }
 		default:
 			break;
 	}
@@ -1196,7 +1212,7 @@ std::string LoggerCollection::toTableString(
 }
 
 LoggerKosaPackets::LoggerKosaPackets()
-	: collection(nullptr), start(0)
+	: collection(nullptr), start(0), baseKosa(nullptr)
 {
     clear_LOGGER_MEASUREMENT_HDR(header);
 }
@@ -1204,7 +1220,7 @@ LoggerKosaPackets::LoggerKosaPackets()
 LoggerKosaPackets::LoggerKosaPackets(
 	LoggerKosaCollection *value
 )
-	: collection(value), start(0)
+	: collection(value), start(0), baseKosa(nullptr)
 {
 
 }
@@ -1212,7 +1228,7 @@ LoggerKosaPackets::LoggerKosaPackets(
 LoggerKosaPackets::LoggerKosaPackets(
 	const LoggerKosaPackets &value
 )
-	: collection(value.collection), id(value.id), start(value.start), header(value.header)
+	: collection(value.collection), id(value.id), start(value.start), header(value.header), baseKosa(value.baseKosa)
 {
 	std::copy(value.packets.items.begin(), value.packets.items.end(), std::back_inserter(packets.items));
 }
@@ -1220,7 +1236,7 @@ LoggerKosaPackets::LoggerKosaPackets(
 LoggerKosaPackets::LoggerKosaPackets(
 	const LoggerItem &value
 )
-	: collection(nullptr)
+	: collection(nullptr), baseKosa(nullptr)
 {
 	start = time(NULL);
 	id = value.id;
@@ -1230,7 +1246,10 @@ LoggerKosaPackets::LoggerKosaPackets(
 
 LoggerKosaPackets::~LoggerKosaPackets()
 {
-
+    if (baseKosa) {
+        delete baseKosa;
+        baseKosa = nullptr;
+    }
 }
 
 bool LoggerKosaPackets::expired() const 
@@ -1397,6 +1416,19 @@ void LoggerKosaPackets::rawCommaString(
     }
 }
 
+LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa()
+{
+    if (baseKosa)
+        return baseKosa;
+    if (collection) {
+        if (collection->loggerKosaPacketsLoader) {
+            baseKosa = collection->loggerKosaPacketsLoader->load(header.kosa, header.kosa_year);
+            return baseKosa;
+        }
+    }
+    return nullptr;
+}
+
 /**
  * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw
  * @param retval
@@ -1427,6 +1459,7 @@ void LoggerKosaPackets::toStrings(
 }
 
 LoggerKosaCollection::LoggerKosaCollection()
+    : passportDescriptor(nullptr), loggerKosaPacketsLoader(nullptr)
 {
 
 }
@@ -1491,6 +1524,7 @@ LOGGER_PACKET_TYPE LoggerKosaCollection::put(
 )
 {
 	LoggerCollection c;
+    // collect headers from the packet(s)
     std::vector<LoggerMeasurementHeader> mhs;
 	LOGGER_PACKET_TYPE r = c.put(retSize, &mhs, buffer, size);
     // copy items from raw collection group by logger
@@ -1592,6 +1626,11 @@ void LoggerKosaCollection::setPassports(
 )
 {
 	passportDescriptor = value;
+}
+
+void LoggerKosaCollection::setLoggerKosaPacketsLoader(LoggerKosaPacketsLoader *value)
+{
+    loggerKosaPacketsLoader = value;
 }
 
 void clear_LOGGER_MEASUREMENT_HDR(
