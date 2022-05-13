@@ -49,7 +49,7 @@ Source code example:
 std::string r = createTableSQLClause(OUTPUT_FORMAT_SQL, dialect);
 ...
 // load packet
-LoggerKosaCollection c;
+LoggerKosaCollector c;
 std::vector<std::string> s;
     s.push_back(hex2binString(packet0));
     LOGGER_PACKET_TYPE t = c.put(s);

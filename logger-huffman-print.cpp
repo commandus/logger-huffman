@@ -48,15 +48,41 @@ typedef enum {
 
 } LOGGER_OUTPUT_FORMAT;
 
+#define LOGGER_OUTPUT_FORMAT_EN_STRING_COUNT    7
+const char *LOGGER_OUTPUT_FORMAT_EN_STRING[LOGGER_OUTPUT_FORMAT_EN_STRING_COUNT] = {
+    "postgresql",
+    "mysql",
+    "firebird",
+    "sqlite",
+    "json",
+    "text",
+    "table"
+};
+
 typedef enum {
     MODE_PACKET = 0,
     MODE_COMPRESS = 1,
     MODE_DECOMPRESS = 2
 } MODE;
 
-static const std::string SQL_DIALECT_NAME[] = {
-    "postgresql", "mysql", "firebird", "sqlite"
+const char *LOGGER_MODE_EN_STRINGS[3] = {
+        "packet",
+        "compress",
+        "decompress"
 };
+
+/**
+ * Used in command line help
+ * @return list of modes and formats
+ */
+std::string formatModeList() {
+    std::stringstream ss;
+    for (int i = 0; i < LOGGER_OUTPUT_FORMAT_EN_STRING_COUNT; i++) {
+        ss << LOGGER_OUTPUT_FORMAT_EN_STRING[i] << "|";
+    }
+    ss << LOGGER_MODE_EN_STRINGS[1] << "|" << LOGGER_MODE_EN_STRINGS[2];
+    return ss.str();
+}
 
 class LoggerHuffmanPrintConfiguration {
 public:
@@ -72,7 +98,7 @@ public:
 
 class DumbLoggerKosaPacketsLoader: public LoggerKosaPacketsLoader {
 public:
-    LoggerKosaCollection *collection;
+    LoggerKosaCollector *collection;
     DumbLoggerKosaPacketsLoader()
         : collection(nullptr)
     {
@@ -86,7 +112,7 @@ public:
             return nullptr;
     }
 
-    void setCollection(LoggerKosaCollection *aCollection) {
+    void setCollection(LoggerKosaCollector *aCollection) {
         collection = aCollection;
     }
 };
@@ -104,10 +130,11 @@ int parseCmd(
         char *argv[])
 {
     // device path
+    std::string formatModeListString = formatModeList();
     struct arg_str *a_value_hex = arg_strn(NULL, NULL, "<packet>", 0, 100, "Packet data in hex. By default read binary from stdin");
     struct arg_str *a_value_base_hex = arg_strn("b", "base", "<packet>", 0, 100, "Base packet data in hex");
     struct arg_lit *a_value_stdin = arg_lit0("r", "read", "Read binary data from stdin");
-    struct arg_str *a_output_format = arg_str0("f", "format", "json|text|table|postgresql|mysql|firebird|sqlite|compress|decompress", "Default json");
+    struct arg_str *a_output_format = arg_str0("f", "format", formatModeListString.c_str(),"Default json");
 
     struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Logger passports directory or file name");
 
@@ -130,28 +157,25 @@ int parseCmd(
 
     if ((nerrors == 0) && (a_help->count == 0)) {
         config->outputFormat = LOGGER_OUTPUT_FORMAT_JSON;
+        config->processingMode = MODE_PACKET;
+
         if (a_passport_dir->count) {
             config->passportDir = *a_passport_dir->sval;
         }
         if (a_output_format->count) {
             std::string s(*a_output_format->sval);
-            if (s == "text")
-                config->outputFormat = LOGGER_OUTPUT_FORMAT_TEXT;
-            if (s == "table")
-                config->outputFormat = LOGGER_OUTPUT_FORMAT_TABLE;
-            if (s == "postgresql")
-                config->outputFormat = LOGGER_OUTPUT_FORMAT_PG;
-            if (s == "mysql")
-                config->outputFormat = LOGGER_OUTPUT_FORMAT_MYSQL;
-            if (s == "firebird")
-                config->outputFormat = LOGGER_OUTPUT_FORMAT_FB;
-            if (s == "sqlite")
-                config->outputFormat = LOGGER_OUTPUT_FORMAT_SQLITE;
-            config->processingMode = MODE_PACKET;
-            if (s == "compress")
-                config->processingMode = MODE_COMPRESS;
-            if (s == "decompress")
-                config->processingMode = MODE_DECOMPRESS;
+            for (int i = 0; i < 7; i++) {
+                if (s == LOGGER_OUTPUT_FORMAT_EN_STRING[i]) {
+                    config->outputFormat = (LOGGER_OUTPUT_FORMAT) i;
+                    break;
+                }
+            }
+            for (int i = 0; i < 3; i++) {
+                if (s == LOGGER_MODE_EN_STRINGS[i]) {
+                    config->processingMode = (MODE) i;
+                    break;
+                }
+            }
         }
         config->verbosity = a_verbosity->count;
         config->readStdin = a_value_stdin->count > 0;
@@ -169,7 +193,7 @@ int parseCmd(
     }
 
     for (int i = 0; i < a_value_base_hex->count; i++) {
-        config->baseValues.push_back(hex2binString(a_value_base_hex->sval[i], strlen(*a_value_base_hex->sval)));
+        config->baseValues.push_back(hex2binString(a_value_base_hex->sval[i], strlen(a_value_base_hex->sval[i])));
     }
 
     // special case: '--help' takes precedence over error reporting
@@ -199,8 +223,6 @@ static void printErrorAndExit(
     std::cerr << ERR_MESSAGE << errCode << ": " << strerror_logger_huffman(errCode) << std::endl;
     exit(errCode);
 }
-
-const char* TAB_DELIMITER = "\t";
 
 int main(int argc, char **argv)
 {
@@ -239,7 +261,7 @@ int main(int argc, char **argv)
     }
 
     void *loggerParserEnv = initLoggerParser(config.passportDir, nullptr);
-    LoggerKosaCollection *c = (LoggerKosaCollection*) getLoggerKosaCollection(loggerParserEnv);
+    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(loggerParserEnv);
 
     LOGGER_PACKET_TYPE t = c->put(config.values);
 
@@ -247,7 +269,7 @@ int main(int argc, char **argv)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
 
     // set "base" loader
-    LoggerKosaCollection lkcBase;
+    LoggerKosaCollector lkcBase;
     DumbLoggerKosaPacketsLoader lkl;
     if (!config.baseValues.empty()) {
         lkcBase.put(config.baseValues);

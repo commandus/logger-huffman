@@ -11,7 +11,7 @@
 class LoggerParserEnv {
     public:
         void *passportDescriptor;
-        LoggerKosaCollection *lkc;
+        LoggerKosaCollector *lkc;
 };
 
 void *initLoggerParser(
@@ -25,7 +25,7 @@ void *initLoggerParser(
 #else
     r->passportDescriptor = nullptr;
 #endif    
-    r->lkc = new LoggerKosaCollection();
+    r->lkc = new LoggerKosaCollector();
     r->lkc->setPassports(r->passportDescriptor);
     return r;
 }
@@ -41,7 +41,7 @@ void *initLoggerParser(
 #else
     r->passportDescriptor = nullptr;
 #endif    
-    r->lkc = new LoggerKosaCollection();
+    r->lkc = new LoggerKosaCollector();
     r->lkc->setPassports(r->passportDescriptor);
     return r;
 }
@@ -50,7 +50,7 @@ void flushLoggerParser(void *env)
 {
     if (!env)
         return;
-    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     c->rmExpired();
 }
 
@@ -58,7 +58,7 @@ void doneLoggerParser(void *env)
 {
     if (!env)
         return;
-    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     delete c;
 #ifdef ENABLE_LOGGER_PASSPORT
     if (((LoggerParserEnv*) env)->passportDescriptor) {
@@ -80,7 +80,7 @@ std::string loggerParserState(
 {
     if (!env)
         return "";
-    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     switch (format) {
         case 4:
             return c->toJsonString();
@@ -100,7 +100,7 @@ int parsePacket(
 {
     if (!env)
         return 0;
-    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     LOGGER_PACKET_TYPE t = c->put(packet);
     // kosaCollection->rmExpired();
     return (int) t;
@@ -124,7 +124,7 @@ int sqlInsertPackets(
 {
     if (!env)
         return 0;
-    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     int cnt = 0;
     for (std::vector<LoggerKosaPackets>::const_iterator it(c->koses.begin()); it != c->koses.end(); it++) {
         if (it->packets.completed() | it->expired()) {
@@ -147,7 +147,7 @@ void rmCompletedOrExpired(
 {
     if (!env)
         return;
-    LoggerKosaCollection *c = ((LoggerParserEnv*) env)->lkc;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     for (std::vector<LoggerKosaPackets>::const_iterator it(c->koses.begin()); it != c->koses.end(); ) {
         bool ready2delete = it->packets.completed() | it->expired();
         if (ready2delete) {

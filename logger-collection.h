@@ -49,10 +49,12 @@ class LoggerItemId {
 
         std::string kosaString() const;							// идентификатор косы (номер, дата)
         std::string measureString() const;						// мл. Байт номера замера, lsb used (или addr_used?)
-        std::string packetStrng() const;						// packet number
+        std::string packetString() const;						// packet number
         std::string kosaYearString() const; 					// reserved for first packet
         void set(const LOGGER_MEASUREMENT_HDR &param);
 };
+
+class LoggerCollection;
 
 /**
  * Keep measurements
@@ -63,10 +65,11 @@ class LoggerItem {
 		std::string packet;
 		time_t parsed;
 		int errCode;
-
-		LOGGER_MEASUREMENT_HDR *measurement;
-		// std::string errDescription;
+        // owner
+        LoggerCollection *collection;
+		LOGGER_MEASUREMENT_HDR *getMeasurementHeaderIfExists() const;
 		LoggerItem();
+        LoggerItem(LoggerCollection *collection);
 		LoggerItem(time_t t);
 		LoggerItem(const LoggerItem &value);
 		LoggerItem(const void *aBuffer, size_t aSize);
@@ -100,7 +103,7 @@ public:
 
     LoggerMeasurementHeader();
     LoggerMeasurementHeader(const LoggerMeasurementHeader &value);
-    LoggerMeasurementHeader(const LOGGER_MEASUREMENT_HDR *pheader , size_t sz);
+    LoggerMeasurementHeader(const LOGGER_MEASUREMENT_HDR *pheader, size_t sz);
 
     LoggerMeasurementHeader& operator=(const LOGGER_MEASUREMENT_HDR &value);
     bool operator==(const LoggerItemId &another) const;
@@ -114,6 +117,7 @@ public:
     void assign(LOGGER_MEASUREMENT_HDR &retval) const;
 };
 
+class LoggerKosaPackets;
 /** 
  * Raw collection of packets
  */
@@ -122,12 +126,14 @@ class LoggerCollection {
 		std::vector<LoggerItem> items;
 		uint8_t expectedPackets;	// keep expected packets
 		int errCode;
+        // kosa owns packet items
+        LoggerKosaPackets *kosa;
 
 		LoggerCollection();
 		LoggerCollection(const LoggerCollection &value);
 		virtual ~LoggerCollection();
 
-		void push(const LoggerItem &value);
+		void push(LoggerItem &value);
         /**
           * Put char buffer
           */
@@ -152,7 +158,7 @@ private:
 //  5'
 #define MAX_SECONDS_WAIT_KOSA_PACKETS 5 * 60
 
-class LoggerKosaCollection; // forward declaration
+class LoggerKosaCollector; // forward declaration
 
 /** 
  * Kosa packets collection
@@ -163,21 +169,21 @@ private:
     LoggerKosaPackets *baseKosa;
 public:
     // parent provides access to the passport
-    LoggerKosaCollection *collection;
+    LoggerKosaCollector *collector;
     LoggerItemId id;
     time_t start;
-    LOGGER_MEASUREMENT_HDR header;
+    LOGGER_MEASUREMENT_HDR measurementHeader;
     LoggerCollection packets;
 
     LoggerKosaPackets();
-    LoggerKosaPackets(LoggerKosaCollection *collection);
+    LoggerKosaPackets(LoggerKosaCollector *collection);
     LoggerKosaPackets(const LoggerKosaPackets &value);
     LoggerKosaPackets(const LoggerItem &value);
     virtual ~LoggerKosaPackets();
 
     bool expired() const;
 
-    bool add(const LoggerItem &value);
+    bool add(LoggerItem &value);
 
     // do not nodeCompare with packet!
     bool operator==(const LoggerItemId &another) const;
@@ -208,14 +214,14 @@ public:
 /** 
  * Make an collection of kosa
  */
-class LoggerKosaCollection {
+class LoggerKosaCollector {
 	public:
 		void *passportDescriptor;
         LoggerKosaPacketsLoader *loggerKosaPacketsLoader;
 		std::vector<LoggerKosaPackets> koses;
 
-		LoggerKosaCollection();
-		virtual ~LoggerKosaCollection();
+		LoggerKosaCollector();
+		virtual ~LoggerKosaCollector();
 
 		int rmExpired();
 

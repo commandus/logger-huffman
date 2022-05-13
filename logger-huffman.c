@@ -94,21 +94,6 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 		 	*retHdr = (LOGGER_MEASUREMENT_HDR*) (char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR);
 			break;
- 		case LOGGER_PACKET_PKT_2:		// with packet header (next)
-		 	*retHdr = NULL;
-			break;
- 		case LOGGER_PACKET_DELTA_1:		// дельты замеров от 0 замера.
-		 	*retHdr = NULL;
-			break;
-		case LOGGER_PACKET_DELTA_2:		// дельты замеров от 0 замера.
-			*retHdr = NULL;
-			break;
- 		case LOGGER_PACKET_HUFF_1:		// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
-		 	*retHdr = NULL;
-			break;
-		case LOGGER_PACKET_HUFF_2:		// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
-			*retHdr = NULL;
-			break;
 		default:
 			// case LOGGER_PACKET_UNKNOWN:
 			*retHdr = NULL;
@@ -120,13 +105,11 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 /**
  * Extract header only
  * @param retHdr return header pointer
- * @param retMeasurement, return measurement header pointer
  * @param buffer data
  * @param size buffer size
  */
 int extractFirstHdr(
 	LOGGER_PACKET_FIRST_HDR **retHdr,
-	LOGGER_MEASUREMENT_HDR **retMeasurement,
 	const void *buffer,
 	size_t bufferSize
 )
@@ -138,7 +121,7 @@ int extractFirstHdr(
 			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof (LOGGER_MEASUREMENT_HDR))	// 24 bytes
 				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 			*retHdr = (LOGGER_PACKET_FIRST_HDR*) buffer;
-			*retMeasurement = (LOGGER_MEASUREMENT_HDR *) ((char *) buffer + sizeof (LOGGER_PACKET_FIRST_HDR));
+			// *retMeasurement = (LOGGER_MEASUREMENT_HDR *) ((char *) buffer + sizeof (LOGGER_PACKET_FIRST_HDR));
 			return 0;
 		default:
 		 	return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
@@ -183,7 +166,7 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
     LOGGER_DATA_TEMPERATURE_RAW *r =
             (LOGGER_DATA_TEMPERATURE_RAW *) (buffer + sizeof(LOGGER_PACKET_SECOND_HDR))
             + p;
-    if (r >= (char *) buffer + bufferSize)
+    if ((char *) r >= (char *) buffer + bufferSize)
         return NULL;
 	return r;
 }
