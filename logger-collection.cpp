@@ -1244,9 +1244,9 @@ LoggerKosaPackets::LoggerKosaPackets()
 }
 
 LoggerKosaPackets::LoggerKosaPackets(
-    LoggerKosaCollector *value
+    LoggerKosaCollector *aCollector
 )
-	: collector(value), start(0), baseKosa(nullptr)
+	: collector(aCollector), start(0), baseKosa(nullptr)
 {
     packets.kosa = this;
 }
@@ -1488,6 +1488,15 @@ void LoggerKosaPackets::toStrings(
     retval.push_back(ssr.str());
 }
 
+void LoggerKosaPackets::updateKosaAfterCopy()
+{
+    packets.kosa = this;
+    // set parent pointer
+    for (auto it(packets.items.begin()); it != packets.items.end(); it++) {
+        it->collection = &packets;
+    }
+}
+
 LoggerKosaCollector::LoggerKosaCollector()
     : passportDescriptor(nullptr), loggerKosaPacketsLoader(nullptr)
 {
@@ -1540,8 +1549,8 @@ void LoggerKosaCollector::add(
             LoggerKosaPackets p(this);
             p.add(*itItem);
             koses.push_back(p);
-            LoggerKosaPackets *kp = &*koses.end();
-            kp->packets.kosa = kp;
+            LoggerKosaPackets *kp = &koses[0];
+            kp->updateKosaAfterCopy();
             if (value.expectedPackets) {
                 kp->packets.expectedPackets = value.expectedPackets;
             }

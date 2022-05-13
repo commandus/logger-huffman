@@ -176,7 +176,7 @@ public:
     LoggerCollection packets;
 
     LoggerKosaPackets();
-    LoggerKosaPackets(LoggerKosaCollector *collection);
+    LoggerKosaPackets(LoggerKosaCollector *aCollector);
     LoggerKosaPackets(const LoggerKosaPackets &value);
     LoggerKosaPackets(const LoggerItem &value);
     virtual ~LoggerKosaPackets();
@@ -204,6 +204,8 @@ public:
     void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
 
     LoggerKosaPackets *loadBaseKosa();
+
+    void updateKosaAfterCopy();
 };
 
 class LoggerKosaPacketsLoader {
