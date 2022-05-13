@@ -14,7 +14,7 @@ typedef std::function<void(
 		const std::string &message)>
 LOG_CALLBACK;
 
-class LoggerKosaCollection;
+class LoggerKosaCollector;
 
 /**
  * Return CREATE table SQL clause in 

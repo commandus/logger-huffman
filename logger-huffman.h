@@ -162,13 +162,11 @@ size_t getLoggerPacketTypeSize(
 /**
  * Extract header only
  * @param retHdr return header pointer
- * @param retMeasurement, return measurement header pointer
  * @param buffer data
  * @param size buffer size
  */
 int extractFirstHdr(
 	LOGGER_PACKET_FIRST_HDR **retHdr,
-	LOGGER_MEASUREMENT_HDR **retMeasurement,
 	const void *buffer,
 	size_t bufferSize
 );
