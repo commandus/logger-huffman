@@ -118,12 +118,15 @@ int extractFirstHdr(
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, buffer, bufferSize);
 	switch (t) {
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
-			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof (LOGGER_MEASUREMENT_HDR))	// 24 bytes
-				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
-			*retHdr = (LOGGER_PACKET_FIRST_HDR*) buffer;
-			// *retMeasurement = (LOGGER_MEASUREMENT_HDR *) ((char *) buffer + sizeof (LOGGER_PACKET_FIRST_HDR));
+        case LOGGER_PACKET_DELTA_1:
+			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR)) {
+                *retHdr = NULL;
+                return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+            }
+            *retHdr = (LOGGER_PACKET_FIRST_HDR*) buffer;
 			return 0;
 		default:
+            *retHdr = NULL;
 		 	return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	}
 }
@@ -138,11 +141,15 @@ int16_t extractSecondHdr(
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, buffer, bufferSize);
 	switch (t) {
  		case LOGGER_PACKET_PKT_2:		// with packet header (second)
-			if (bufferSize < sizeof(LOGGER_PACKET_SECOND_HDR))
-				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+        case LOGGER_PACKET_DELTA_2:
+			if (bufferSize < sizeof(LOGGER_PACKET_SECOND_HDR)) {
+                *retHdr = NULL;
+                return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+            }
 			*retHdr = (LOGGER_PACKET_SECOND_HDR*) buffer;
 			return 0;
 		default:
+            *retHdr = NULL;
 		 	return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	}
 }
@@ -152,9 +159,9 @@ LOGGER_MEASUREMENT_HDR_DIFF *extractDiffHdr(
     size_t bufferSize
 )
 {
-    if (bufferSize < sizeof(LOGGER_MEASUREMENT_HDR_DIFF))
+    if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF))
         return NULL;
-    return (LOGGER_MEASUREMENT_HDR_DIFF *) buffer;
+    return (LOGGER_MEASUREMENT_HDR_DIFF *) ((char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR));
 }
 
 LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(

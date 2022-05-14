@@ -877,16 +877,16 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 	}
     packet = std::string((const char *) aBuffer, retSize);
 
-    if (t == LOGGER_PACKET_DELTA_1)
-        setMeasurementHeaderFromDiffIfExists();
 
-    LOGGER_MEASUREMENT_HDR *hdr;
 	
 	switch (t) {
-		case LOGGER_PACKET_RAW:
-			extractMeasurementHeader(&hdr, packet.c_str(), aSize);
-			id.set(hdr->kosa, 0, -1, hdr->kosa_year);	// -1: first packet (with no data)
-			// retPackets unknown
+        case LOGGER_PACKET_RAW:
+            {
+                LOGGER_MEASUREMENT_HDR *hdr;
+                extractMeasurementHeader(&hdr, packet.c_str(), aSize);
+                id.set(hdr->kosa, 0, -1, hdr->kosa_year);    // -1: first packet (with no data)
+                // retPackets unknown
+            }
 			break;
 		case LOGGER_PACKET_PKT_1:
 			{
@@ -908,7 +908,18 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 			break;
         case LOGGER_PACKET_DELTA_1:
             {
-                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurementDiff = extractDiffHdr(packet.c_str(), packet.size());
+                LOGGER_PACKET_FIRST_HDR *h1;
+                extractFirstHdr(&h1, packet.c_str(), aSize);
+                id.set(h1->kosa, h1->measure, -1, h1->kosa_year);	// -1: first packet (with no data)
+                retPackets = h1->packets;
+            }
+            break;
+        case LOGGER_PACKET_DELTA_2:
+            {
+                LOGGER_PACKET_SECOND_HDR *h2;
+                extractSecondHdr(&h2, packet.c_str(), aSize);
+                id.set(h2->kosa, h2->measure, h2->packet, 0);
+
                 if (collection) {
                     if (collection->kosa) {
                         LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa();
@@ -917,14 +928,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
                         }
                     }
                 }
-                retPackets = 0;
-            }
-            break;
-        case LOGGER_PACKET_DELTA_2:
-            {
-                LOGGER_PACKET_SECOND_HDR *h2;
-                extractSecondHdr(&h2, packet.c_str(), aSize);
-                id.set(h2->kosa, h2->measure, h2->packet, 0);
+
             }
             break;
 		default: //case LOGGER_PACKET_UNKNOWN:
@@ -1100,9 +1104,8 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
                 break;
             case LOGGER_PACKET_DELTA_1:
                 {
-                    LOGGER_MEASUREMENT_HDR *measurementHeader = item.getMeasurementHeaderIfExists();
-                    if (measurementHeader) {
-                        item.id.assign(measurementHeader);
+                    if (item.setMeasurementHeaderFromDiffIfExists()) {
+                        // item.id.assign(measurementHeader);
                         LoggerMeasurementHeader mh(item.getMeasurementHeaderIfExists(), sizeof(LOGGER_MEASUREMENT_HDR));
                         retHeaders->push_back(mh);
                     }
