@@ -88,6 +88,8 @@ class LoggerItem {
 		std::string toString() const;
 		std::string toJsonString() const;
 		std::string toTableString() const;
+
+    bool setMeasurementHeaderFromDiffIfExists();
 };
 
 /**

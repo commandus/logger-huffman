@@ -23,7 +23,7 @@ git clone https://github.com/commandus/logger-huffman.git
 
 Static library liblogger-huffman.a (-l logger-huffman).
 
-There are two way to use a library:
+There are two ways to use a library:
 
 - include headers with types (first way)
 - include only one "void *" type header (second way)

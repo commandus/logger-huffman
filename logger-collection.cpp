@@ -830,42 +830,37 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 
 void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
     LOGGER_MEASUREMENT_HDR *retval,
-    LOGGER_MEASUREMENT_HDR_DIFF *value
+    LOGGER_MEASUREMENT_HDR_DIFF *value,
+    LOGGER_MEASUREMENT_HDR &baseHeader
 )
 {
-    if (retval && value) {
-        retval->memblockoccupation = 0;				// 0 0- memory block occupied
-        retval->seconds = 0;						// 1 0..59
-        retval->minutes = 0;						// 2 0..59
-        retval->hours = 0;							// 3 0..23
-        retval->day = 0;							// 4 1..31
-        retval->month = 0;							// 5 1..12
-        retval->year = 0;							// 6 0..99 year - 2000 = last 2 digits
-        retval->kosa = 0;							// 7 номер косы в году
-        retval->kosa_year = 0;						// 8 год косы - 2000 (номер года последние 2 цифры)
-        retval->rfu1 = 0;							// 9 reserved
-        retval->rfu2 = 0;							// 10 reserved
-        retval->vcc = 0;							// 11 V cc bus voltage, V
-        retval->vbat = 0;							// 12 V battery, V
-        retval->pcnt = 0;							// 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-        retval->used = 0;							// 14 record number, 1..65535
-    }
-}
+    if (!retval)
+        return;
+    retval->memblockoccupation = baseHeader.memblockoccupation;				// 0 0- memory block occupied
+    retval->seconds = baseHeader.seconds + value->delta_sec;           						// 1 0..59
+    retval->minutes = baseHeader.minutes;           						// 2 0..59
+    retval->hours = baseHeader.hours;           							// 3 0..23
+    retval->day = baseHeader.day;				                			// 4 1..31
+    retval->month = baseHeader.month;							            // 5 1..12
+    retval->year = baseHeader.year;             							// 6 0..99 year - 2000 = last 2 digits
+    retval->kosa = baseHeader.kosa;				                			// 7 номер косы в году
+    retval->kosa_year = baseHeader.kosa_year;					        	// 8 год косы - 2000 (номер года последние 2 цифры)
+    retval->rfu1 = baseHeader.rfu1;							                // 9 reserved
+    retval->rfu2 = baseHeader.rfu2;							                // 10 reserved
+    retval->vcc = baseHeader.vcc;							                // 11 V cc bus voltage, V
+    retval->vbat = baseHeader.vbat;							                // 12 V battery, V
+    retval->pcnt = baseHeader.pcnt;							                // 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+    retval->used = baseHeader.used + value->used;			                // 14 record number, 1..65535
 
-std::string LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR_string(
-    const void *aBuffer,
-    size_t aSize
-)
-{
-    std::string r;
-    if (aSize < sizeof(LOGGER_MEASUREMENT_HDR_DIFF))
-        return "";
-    r.resize(aSize + sizeof(LOGGER_MEASUREMENT_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF));
-    LOGGER_MEASUREMENT_HDR h;
-    memmove((void *) r.c_str(), &h, sizeof(LOGGER_MEASUREMENT_HDR));
-    memmove((void *) (r.c_str() + sizeof(LOGGER_MEASUREMENT_HDR)),
-            (char *)aBuffer + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), aSize);
-    return r;
+    if (value) {
+        retval->seconds += value->delta_sec;           						// 1 0..59
+        retval->rfu1 += value->rfu1;							                // 9 reserved
+        retval->rfu2 += value->rfu2;							                // 10 reserved
+        retval->vcc += value->vcc;							                // 11 V cc bus voltage, V
+        retval->vbat += value->vbat;							                // 12 V battery, V
+        retval->pcnt += value->pcnt;							                // 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+        retval->used += value->used;			                // 14 record number, 1..65535
+    }
 }
 
 LOGGER_PACKET_TYPE LoggerItem::set(
@@ -880,13 +875,10 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 		retSize = aSize; // go to the end
 		return t;
 	}
-    switch (t) {
-        case LOGGER_PACKET_DELTA_1:
-            packet = LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR_string(aBuffer, retSize);
-            break;
-        default:
-            packet = std::string((const char *) aBuffer, retSize);
-    }
+    packet = std::string((const char *) aBuffer, retSize);
+
+    if (t == LOGGER_PACKET_DELTA_1)
+        setMeasurementHeaderFromDiffIfExists();
 
     LOGGER_MEASUREMENT_HDR *hdr;
 	
@@ -916,9 +908,15 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 			break;
         case LOGGER_PACKET_DELTA_1:
             {
-                const LOGGER_MEASUREMENT_HDR *measurementHeader = getMeasurementHeaderIfExists();
-                if (measurementHeader)
-                    id.set(measurementHeader->kosa, measurementHeader->used, 0, measurementHeader->kosa_year);
+                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurementDiff = extractDiffHdr(packet.c_str(), packet.size());
+                if (collection) {
+                    if (collection->kosa) {
+                        LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa();
+                        if (baseKosa) {
+                            id = baseKosa->id;
+                        }
+                    }
+                }
                 retPackets = 0;
             }
             break;
@@ -934,6 +932,23 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 			break;
 	}
 	return t;
+}
+
+bool LoggerItem::setMeasurementHeaderFromDiffIfExists() {
+    if (collection) {
+        if (collection->kosa) {
+            LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa();
+            if (baseKosa) {
+                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
+                if (headerMeasurement) {
+                    LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(&collection->kosa->measurementHeader,
+                        headerMeasurement, baseKosa->measurementHeader);
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 LoggerMeasurementHeader::LoggerMeasurementHeader()

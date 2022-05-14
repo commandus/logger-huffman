@@ -263,11 +263,6 @@ int main(int argc, char **argv)
     void *loggerParserEnv = initLoggerParser(config.passportDir, nullptr);
     LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(loggerParserEnv);
 
-    LOGGER_PACKET_TYPE t = c->put(config.values);
-
-    if (t == LOGGER_PACKET_UNKNOWN)
-        printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
-
     // set "base" loader
     LoggerKosaCollector lkcBase;
     DumbLoggerKosaPacketsLoader lkl;
@@ -279,6 +274,11 @@ int main(int argc, char **argv)
             std::cerr << "Base packets: " << lkcBase.toString() << std::endl;
         }
     }
+
+    LOGGER_PACKET_TYPE t = c->put(config.values);
+
+    if (t == LOGGER_PACKET_UNKNOWN)
+        printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
 
     std::string outputString;
 
