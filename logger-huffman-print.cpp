@@ -224,6 +224,8 @@ static void printErrorAndExit(
     exit(errCode);
 }
 
+const uint32_t DEVICE_ADDR_INT = 42;
+
 int main(int argc, char **argv)
 {
     LoggerHuffmanPrintConfiguration config;
@@ -267,7 +269,7 @@ int main(int argc, char **argv)
     LoggerKosaCollector lkcBase;
     DumbLoggerKosaPacketsLoader lkl;
     if (!config.baseValues.empty()) {
-        lkcBase.put(config.baseValues);
+        lkcBase.put(DEVICE_ADDR_INT, config.baseValues);
         lkl.setCollection(&lkcBase);
         c->setLoggerKosaPacketsLoader(&lkl);
         if (config.verbosity > 2) {
@@ -275,7 +277,7 @@ int main(int argc, char **argv)
         }
     }
 
-    LOGGER_PACKET_TYPE t = c->put(config.values);
+    LOGGER_PACKET_TYPE t = c->put(DEVICE_ADDR_INT, config.values);
 
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);

@@ -529,19 +529,19 @@ void LoggerItemId::set(
 }
 
 LoggerItem::LoggerItem()
-	: errCode(0), collection(nullptr)
+	: errCode(0), collection(nullptr), addr(0)
 {
 	time(&parsed);
 }
 
 LoggerItem::LoggerItem(LoggerCollection *aCollection)
-    : errCode(0), collection(aCollection)
+    : errCode(0), collection(aCollection), addr(0)
 {
     time(&parsed);
 }
 
 LoggerItem::LoggerItem(time_t value)
-	: errCode(0), parsed(value), collection(nullptr)
+	: errCode(0), parsed(value), collection(nullptr), addr(0)
 {
 }
 
@@ -555,15 +555,17 @@ LOGGER_MEASUREMENT_HDR *LoggerItem::getMeasurementHeaderIfExists() const
 LoggerItem::LoggerItem(
 	const LoggerItem &value
 )
-	: id(value.id), packet(value.packet), errCode(value.errCode), parsed(value.parsed), collection(value.collection)
+	: id(value.id), packet(value.packet), errCode(value.errCode), parsed(value.parsed), collection(value.collection),
+    addr(value.addr)
 {
 }
 
 LoggerItem::LoggerItem(
-	const void *aBuffer,
-	size_t aSize
+    uint32_t aAddr,
+    const void *aBuffer,
+    size_t aSize
 )
-    : collection(nullptr)
+    : collection(nullptr), addr(aAddr)
 {
 	size_t sz;
 	uint8_t packets;
@@ -582,6 +584,7 @@ LoggerItem& LoggerItem::operator=(
 	errCode = other.errCode;
 	packet = other.packet;
     parsed = other.parsed;
+    addr = other.addr;
 	return *this;
 }
 
@@ -591,6 +594,7 @@ bool LoggerItem::operator==(
 {
 	return 
 		(id.kosa == another.id.kosa)
+        && (addr == another.addr)   // diff packet does not contain kosa year, use address instead
 		&& (id.measure == another.id.measure);
 }
 
@@ -600,6 +604,7 @@ bool LoggerItem::operator==(
 {
 	return 
 		(id.kosa == aid.kosa)
+        && (id.kosa_year == aid.kosa_year)
 		&& (id.measure == aid.measure);
 }
 
@@ -683,7 +688,7 @@ std::string LoggerItem::toString() const
                 s = ss.str();
             }
             break;
-        case LOGGER_PACKET_DELTA_2:		// 0x48 deltas(next)
+        case LOGGER_PACKET_DELTA_2:		// 0x49 deltas(next)
             break;
 		default:
 			break;
@@ -1105,10 +1110,15 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
             case LOGGER_PACKET_DELTA_1:
                 {
                     if (item.setMeasurementHeaderFromDiffIfExists()) {
+                        // nothing to do, already set
                         // item.id.assign(measurementHeader);
-                        LoggerMeasurementHeader mh(item.getMeasurementHeaderIfExists(), sizeof(LOGGER_MEASUREMENT_HDR));
-                        retHeaders->push_back(mh);
+                        // LoggerMeasurementHeader mh(item.getMeasurementHeaderIfExists(), sizeof(LOGGER_MEASUREMENT_HDR));
+                        // retHeaders->push_back(mh);
                     }
+                }
+                break;
+            case LOGGER_PACKET_DELTA_2:
+                {
                 }
                 break;
         }
@@ -1162,10 +1172,8 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
     return t;
 }
 
-LOGGER_PACKET_TYPE LoggerCollection::put(
-    std::vector<LoggerMeasurementHeader> *retHeaders,
-	const std::vector<std::string> values
-)
+LOGGER_PACKET_TYPE LoggerCollection::put(std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+                                         const std::vector<std::string> &values)
 {
 	LOGGER_PACKET_TYPE t = LOGGER_PACKET_UNKNOWN;
 	for (std::vector<std::string>::const_iterator it(values.begin()); it != values.end(); it++) {
@@ -1601,13 +1609,14 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
  * Put collection of strings
  */
 LOGGER_PACKET_TYPE LoggerKosaCollector::put(
-	const std::vector<std::string> values
+    uint32_t addr,
+    const std::vector<std::string> &values
 )
 {
 	// temporary raw collection
 	LoggerCollection c;
     std::vector<LoggerMeasurementHeader> mhs;
-	LOGGER_PACKET_TYPE r = c.put(&mhs, values);
+	LOGGER_PACKET_TYPE r = c.put(&mhs, addr, values);
 	// copy items from raw collection group by logger
     add(c);
 

@@ -64,6 +64,7 @@ class LoggerItem {
 		LoggerItemId id;
 		std::string packet;
 		time_t parsed;
+        uint32_t addr;  // source address
 		int errCode;
         // owner
         LoggerCollection *collection;
@@ -72,7 +73,7 @@ class LoggerItem {
         LoggerItem(LoggerCollection *collection);
 		LoggerItem(time_t t);
 		LoggerItem(const LoggerItem &value);
-		LoggerItem(const void *aBuffer, size_t aSize);
+		LoggerItem(uint32_t addr, const void *aBuffer, size_t aSize);
 		virtual ~LoggerItem();
 
 		LoggerItem& operator=(const LoggerItem& other);
@@ -143,7 +144,8 @@ class LoggerCollection {
 		/**
 		 * Put collection of strings
 		 */
-		LOGGER_PACKET_TYPE put(std::vector<LoggerMeasurementHeader> *retHeaders, const std::vector<std::string> values);
+        LOGGER_PACKET_TYPE put(std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+                               const std::vector<std::string> &values);
 
 		bool completed() const;
 		bool get(std::map<uint8_t, double> &retval) const;
@@ -242,7 +244,7 @@ class LoggerKosaCollector {
         /**
 		 * Put collection of strings
 		 */
-		LOGGER_PACKET_TYPE put(const std::vector<std::string> values);
+        LOGGER_PACKET_TYPE put(uint32_t addr, const std::vector<std::string> &values);
 
 		std::string toString() const;
 		std::string toJsonString() const;
