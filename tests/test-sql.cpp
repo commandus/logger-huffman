@@ -6,6 +6,8 @@
 #include "logger-sql-clause.h"
 #include "errlist.h"
 
+const uint32_t DEV_ADDR_INT = 42;
+
 const std::string packet0 = "002614121f0c14261300003d3d71000100cf06aa01e6ff00"
                             "02deff0003eaff0004dcff0005e3ff0006e0ff0007e2ff00"
                             "08ddff0009e3ff000adeff000bdaff000cdfff000debff00"
@@ -60,7 +62,7 @@ void testLoggerParse() {
         r = sqlCreateTable1(dialect);
         std::cout << r << std::endl;
 
-        r = parsePacket(env, hex2binString(packet0));
+        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packet0));
         std::cout << sqlInsertPackets1(env, dialect) << std::endl;
 
         std::cout << sqlInsertRaw(dialect, "111") << std::endl;
@@ -75,13 +77,13 @@ void testIncompletePacket() {
     int dialect = SQL_POSTGRESQL;
     int r;
     for (int i = 0; i < 2; i++) {
-        r = parsePacket(env, hex2binString(packetIncomplete));
+        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r1: " << r << std::endl;
-        r = parsePacket(env, hex2binString(packetIncomplete));
+        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r2: " << r << std::endl;
-        r = parsePacket(env, hex2binString(packetIncomplete));
+        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r3: " << r << std::endl;
-        r = parsePacket(env, hex2binString(packetIncomplete));
+        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r4: " << r << std::endl;
 
 

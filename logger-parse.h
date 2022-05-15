@@ -66,7 +66,7 @@ void *getLoggerKosaCollection(void *env);
  */
 std::string loggerParserState(void *env, int format);
 
-int parsePacket(void *env, const std::string &packet);
+int parsePacket(void *env, uint32_t addr, const std::string &packet);
 
 /**
  * Return INSERT clause(s) in retClauses
