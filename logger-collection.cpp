@@ -680,11 +680,16 @@ std::string LoggerItem::toString() const
             break;
         case LOGGER_PACKET_DELTA_1:		// 0x48 deltas(first)
             {
-                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
-                if (!headerMeasurement)
-                    break;
                 std::stringstream ss;
-                ss << LOGGER_MEASUREMENT_HDR_DIFF_2_string(headerMeasurement) << std::endl;
+                LOGGER_PACKET_FIRST_HDR *h1;
+                extractFirstHdr(&h1, packet.c_str(), packet.size());
+                ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl;
+                if (collection && collection->kosa)
+                    ss << LOGGER_MEASUREMENT_HDR_2_string(collection->kosa->measurementHeader) << std::endl;
+                LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
+                if (headerMeasurement) {
+                    ss << LOGGER_MEASUREMENT_HDR_DIFF_2_string(headerMeasurement) << std::endl;
+                }
                 s = ss.str();
             }
             break;
@@ -1374,7 +1379,7 @@ bool LoggerKosaPackets::operator==(
 	const LoggerItemId &another
 ) const
 {
-	return (id.kosa == another.kosa) && (id.measure == another.measure);	
+	return (id.kosa == another.kosa) && (id.kosa_year == another.kosa_year);
 }
 
 bool LoggerKosaPackets::operator!=(
