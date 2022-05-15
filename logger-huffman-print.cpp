@@ -105,11 +105,12 @@ public:
 
     }
 
-    LoggerKosaPackets *load(uint32_t addr) override {
-        if (collection && (!collection->koses.empty()))
-            return &collection->koses[0];
-        else
-            return nullptr;
+    bool load(LoggerKosaPackets &retVal, uint32_t addr) override {
+        if (collection && (!collection->koses.empty())) {
+            retVal = collection->koses[0];
+            return true;
+        } else
+            return false;
     }
 
     void setCollection(LoggerKosaCollector *aCollection) {

@@ -917,7 +917,7 @@ LoggerItem::set(
             {
                 LOGGER_PACKET_FIRST_HDR *h1;
                 extractFirstHdr(&h1, packet.c_str(), aSize);
-                id.set(h1->kosa, h1->measure, -1, h1->kosa_year);	// -1: first packet (with no data)
+                id.set(h1->kosa, h1->measure, 1, h1->kosa_year);	// -1: first packet (with no data)
                 retPackets = h1->packets;
             }
             break;
@@ -926,23 +926,16 @@ LoggerItem::set(
                 LOGGER_PACKET_SECOND_HDR *h2;
                 extractSecondHdr(&h2, packet.c_str(), aSize);
                 if (collection) {
-                    if (collection->kosa) {
-                        LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa(addr);
-                        if (baseKosa) {
-                            id = baseKosa->id;
-                        }
-                    } else {
-                        if (collection->collector) {
-                            if (collection->collector->loggerKosaPacketsLoader) {
-                                LoggerKosaPackets *kp = collection->collector->loggerKosaPacketsLoader->load(addr);
-                                if (kp) {
-                                    id = kp->id;
-                                }
+                    if (collection->collector) {
+                        if (collection->collector->loggerKosaPacketsLoader) {
+                            LoggerKosaPackets kp;
+                            if (collection->collector->loggerKosaPacketsLoader->load(kp, addr)) {
+                                id = kp.id;
                             }
                         }
                     }
                 }
-
+                id.packet = h2->packet;
             }
             break;
 		default: //case LOGGER_PACKET_UNKNOWN:
@@ -1099,7 +1092,7 @@ void LoggerCollection::push(
 LOGGER_PACKET_TYPE
 LoggerCollection::put1(
         size_t &retSize,
-        std::vector<LoggerMeasurementHeader> *retHeaders,
+        std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders,
         uint32_t addr,
         const void *buffer, size_t size)
 {
@@ -1111,8 +1104,7 @@ LoggerCollection::put1(
         switch (t) {
             case LOGGER_PACKET_RAW:
                 {
-                    LoggerMeasurementHeader mh((LOGGER_MEASUREMENT_HDR *) buffer, size);
-                    retHeaders->push_back(mh);
+                    retHeaders->push_back(*(LOGGER_MEASUREMENT_HDR *) buffer);
                 }
                 break;
             case LOGGER_PACKET_PKT_1:
@@ -1121,30 +1113,44 @@ LoggerCollection::put1(
                     LOGGER_MEASUREMENT_HDR *mh;
                     extractMeasurementHeader(&mh, item.packet.c_str(), item.packet.size());
                     item.id.assign(mh);
-                    LoggerMeasurementHeader mho(mh, sizeof(LOGGER_MEASUREMENT_HDR));
-                    retHeaders->push_back(mho);
+                    retHeaders->push_back(*mh);
                 }
                 break;
             case LOGGER_PACKET_DELTA_1:
                 {
-                    if (item.setMeasurementHeaderFromDiffIfExists()) {
-                        // nothing to do, already set
-                        // item.id.assign(measurementHeader);
-                        // LoggerMeasurementHeader mh(item.getMeasurementHeaderIfExists(), sizeof(LOGGER_MEASUREMENT_HDR));
-                        // retHeaders->push_back(mh);
+                    LOGGER_PACKET_FIRST_HDR *h1;
+                    int r = extractFirstHdr(&h1, item.packet.c_str(), item.packet.size());
+                    if (r)
+                        break;
+                    item.id.set(h1->kosa, h1->measure, 1, h1->kosa_year);	// -1: first packet (with no data)
+
+                    if (collector) {
+                        if (collector->loggerKosaPacketsLoader) {
+                            LoggerKosaPackets lkpBase;
+                            if (collector->loggerKosaPacketsLoader->load(lkpBase, item.addr)) {
+                                LOGGER_MEASUREMENT_HDR_DIFF *mhd = extractDiffHdr(item.packet.c_str(), item.packet.size());
+                                if (mhd) {
+                                    LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(&lkpBase.measurementHeader, mhd, lkpBase.measurementHeader);
+                                    retHeaders->push_back(lkpBase.measurementHeader);
+                                }
+                            }
+                        }
                     }
                 }
                 break;
             case LOGGER_PACKET_DELTA_2:
                 {
+                    LOGGER_PACKET_SECOND_HDR *h2;
+                    extractSecondHdr(&h2, buffer, size);
                     if (collector) {
                         if (collector->loggerKosaPacketsLoader) {
-                            LoggerKosaPackets *kp = collector->loggerKosaPacketsLoader->load(item.addr);
-                            if (kp) {
-                                item.id = kp->id;
+                            LoggerKosaPackets kp;
+                            if (collector->loggerKosaPacketsLoader->load(kp, item.addr)) {
+                                item.id = kp.id;
                             }
                         }
                     }
+                    item.id.packet = h2->packet;
                 }
                 break;
         }
@@ -1177,7 +1183,7 @@ void LoggerCollection::putRaw(
 LOGGER_PACKET_TYPE
 LoggerCollection::put(
         size_t &retSize,
-        std::vector<LoggerMeasurementHeader> *retHeaders,
+        std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders,
         uint32_t addr,
         const void *buffer,
         size_t asize
@@ -1202,13 +1208,16 @@ LoggerCollection::put(
     return t;
 }
 
-LOGGER_PACKET_TYPE LoggerCollection::put(std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
-                                         const std::vector<std::string> &values)
+LOGGER_PACKET_TYPE LoggerCollection::put(
+        std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders,
+        uint32_t addr,
+        const std::vector<std::string> &values
+)
 {
 	LOGGER_PACKET_TYPE t = LOGGER_PACKET_UNKNOWN;
 	for (std::vector<std::string>::const_iterator it(values.begin()); it != values.end(); it++) {
 		size_t sz;
-        t = put(sz, retHeaders, 0, it->c_str(), it->size());
+        t = put(sz, retHeaders, addr, it->c_str(), it->size());
 	}
 	return t;
 }
@@ -1508,7 +1517,7 @@ LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa(uint32_t addr)
         return baseKosa;
     if (collector) {
         if (collector->loggerKosaPacketsLoader) {
-            baseKosa = collector->loggerKosaPacketsLoader->load(addr);
+            collector->loggerKosaPacketsLoader->load(*baseKosa, addr);
             return baseKosa;
         }
     }
@@ -1628,13 +1637,13 @@ LoggerKosaCollector::put(
 {
 	LoggerCollection c(aCollector);
     // collect headers from the packet(s)
-    std::vector<LoggerMeasurementHeader> mhs;
+    std::vector<LOGGER_MEASUREMENT_HDR> mhs;
 	LOGGER_PACKET_TYPE r = c.put(retSize, &mhs, addr, buffer, size);
     // copy items from raw collection group by logger
 	add(c);
 
     // copy header(s)
-    for (std::vector<LoggerMeasurementHeader>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
+    for (std::vector<LOGGER_MEASUREMENT_HDR>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
         addHeader(*it);
     }
     return r;
@@ -1650,13 +1659,13 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
 {
 	// temporary raw collection
 	LoggerCollection c(this);
-    std::vector<LoggerMeasurementHeader> mhs;
+    std::vector<LOGGER_MEASUREMENT_HDR> mhs;
 	LOGGER_PACKET_TYPE r = c.put(&mhs, addr, values);
 	// copy items from raw collection group by logger
     add(c);
 
     // copy header(s)
-    for (std::vector<LoggerMeasurementHeader>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
+    for (std::vector<LOGGER_MEASUREMENT_HDR>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
         addHeader(*it);
     }
     return r;
@@ -1714,13 +1723,14 @@ std::string LoggerKosaCollector::toTableString() const
 }
 
 bool LoggerKosaCollector::addHeader(
-    const LoggerMeasurementHeader &value
+        const LOGGER_MEASUREMENT_HDR &value
 )
 {
-    std::vector<LoggerKosaPackets>::iterator it(std::find(koses.begin(), koses.end(), value.id));
+    LoggerMeasurementHeader v(&value, sizeof(LOGGER_MEASUREMENT_HDR));
+    std::vector<LoggerKosaPackets>::iterator it(std::find(koses.begin(), koses.end(), v.id));
     if (it == koses.end())
         return false;
-    value.assign(it->measurementHeader);
+    v.assign(it->measurementHeader);
     return true;
 }
 

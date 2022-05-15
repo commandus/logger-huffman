@@ -144,12 +144,12 @@ class LoggerCollection {
         /**
           * Put char buffer
           */
-        LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+        LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders, uint32_t addr,
                                const void *buffer, size_t asize);
 		/**
 		 * Put collection of strings
 		 */
-        LOGGER_PACKET_TYPE put(std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+        LOGGER_PACKET_TYPE put(std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders, uint32_t addr,
                                const std::vector<std::string> &values);
 
 		bool completed() const;
@@ -159,7 +159,7 @@ class LoggerCollection {
 		std::string toJsonString() const;
 		std::string toTableString(const LoggerItemId &id, const time_t &t, const LOGGER_MEASUREMENT_HDR &header) const;
 private:
-    LOGGER_PACKET_TYPE put1(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+    LOGGER_PACKET_TYPE put1(size_t &retSize, std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders, uint32_t addr,
                             const void *buffer, size_t size);
     void putRaw(size_t &retSize, uint32_t addr, const void *buffer, size_t size);
 };
@@ -219,7 +219,7 @@ public:
 
 class LoggerKosaPacketsLoader {
 public:
-    virtual LoggerKosaPackets *load(uint32_t addr) = 0;
+    virtual bool load(LoggerKosaPackets &retVal, uint32_t addr) = 0;
 };
 
 /** 
@@ -255,7 +255,7 @@ class LoggerKosaCollector {
 		std::string toString() const;
 		std::string toJsonString() const;
 		std::string toTableString() const;
-        bool addHeader(const LoggerMeasurementHeader &header);
+        bool addHeader(const LOGGER_MEASUREMENT_HDR &value);
 
 		void setPassports(void *passportDescriptor);
         void setLoggerKosaPacketsLoader(LoggerKosaPacketsLoader *);
