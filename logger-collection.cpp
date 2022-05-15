@@ -569,7 +569,7 @@ LoggerItem::LoggerItem(
 {
 	size_t sz;
 	uint8_t packets;
-	LOGGER_PACKET_TYPE t = set(packets, sz, aBuffer, aSize);
+	LOGGER_PACKET_TYPE t = set(packets, sz, 0, aBuffer, aSize);
 	if (t == LOGGER_PACKET_UNKNOWN)
 		errCode = ERR_LOGGER_HUFFMAN_INVALID_PACKET;
 	else
@@ -868,11 +868,13 @@ void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
     }
 }
 
-LOGGER_PACKET_TYPE LoggerItem::set(
-	uint8_t &retPackets,
-	size_t &retSize,
-	const void *aBuffer,
-	size_t aSize
+LOGGER_PACKET_TYPE
+LoggerItem::set(
+        uint8_t &retPackets,
+        size_t &retSize,
+        uint32_t addr,
+        const void *aBuffer,
+        size_t aSize
 )
 {
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&retSize, aBuffer, aSize);	//
@@ -923,13 +925,20 @@ LOGGER_PACKET_TYPE LoggerItem::set(
             {
                 LOGGER_PACKET_SECOND_HDR *h2;
                 extractSecondHdr(&h2, packet.c_str(), aSize);
-                id.set(h2->kosa, h2->measure, h2->packet, 0);
-
                 if (collection) {
                     if (collection->kosa) {
-                        LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa();
+                        LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa(addr);
                         if (baseKosa) {
                             id = baseKosa->id;
+                        }
+                    } else {
+                        if (collection->collector) {
+                            if (collection->collector->loggerKosaPacketsLoader) {
+                                LoggerKosaPackets *kp = collection->collector->loggerKosaPacketsLoader->load(addr);
+                                if (kp) {
+                                    id = kp->id;
+                                }
+                            }
                         }
                     }
                 }
@@ -946,7 +955,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 bool LoggerItem::setMeasurementHeaderFromDiffIfExists() {
     if (collection) {
         if (collection->kosa) {
-            LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa();
+            LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa(0);
             if (baseKosa) {
                 LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
                 if (headerMeasurement) {
@@ -1054,16 +1063,24 @@ void LoggerMeasurementHeader::assign(
 }
 
 LoggerCollection::LoggerCollection()
-	: errCode(0), expectedPackets(0), kosa(nullptr)
+	: errCode(0), expectedPackets(0), kosa(nullptr), collector(nullptr)
 {
 }
 
 LoggerCollection::LoggerCollection(
 	const LoggerCollection &value
 )
-	: expectedPackets(value.expectedPackets), errCode(value.errCode), kosa(value.kosa)
+	: expectedPackets(value.expectedPackets), errCode(value.errCode), kosa(value.kosa), collector(value.collector)
 {
 	std::copy(value.items.begin(), value.items.end(), std::back_inserter(items));
+}
+
+LoggerCollection::LoggerCollection(
+        LoggerKosaCollector *aCollector
+)
+    : errCode(0), expectedPackets(0), kosa(nullptr), collector(aCollector)
+{
+
 }
 
 LoggerCollection::~LoggerCollection()
@@ -1079,15 +1096,16 @@ void LoggerCollection::push(
 	items.push_back(value);
 }
 
-LOGGER_PACKET_TYPE LoggerCollection::put1(
-	size_t &retSize,
-    std::vector<LoggerMeasurementHeader> *retHeaders,
-	const void *buffer,
-	size_t size
-)
+LOGGER_PACKET_TYPE
+LoggerCollection::put1(
+        size_t &retSize,
+        std::vector<LoggerMeasurementHeader> *retHeaders,
+        uint32_t addr,
+        const void *buffer, size_t size)
 {
 	LoggerItem item(this);
-	LOGGER_PACKET_TYPE t = item.set(expectedPackets, retSize, buffer, size);
+    item.addr = addr;
+	LOGGER_PACKET_TYPE t = item.set(expectedPackets, retSize, addr, buffer, size);
 
     if (retHeaders) {
         switch (t) {
@@ -1119,6 +1137,14 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
                 break;
             case LOGGER_PACKET_DELTA_2:
                 {
+                    if (collector) {
+                        if (collector->loggerKosaPacketsLoader) {
+                            LoggerKosaPackets *kp = collector->loggerKosaPacketsLoader->load(item.addr);
+                            if (kp) {
+                                item.id = kp->id;
+                            }
+                        }
+                    }
                 }
                 break;
         }
@@ -1133,22 +1159,26 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
 }
 
 void LoggerCollection::putRaw(
-	size_t &retSize,
-	const void *buffer,
-	size_t size
+        size_t &retSize,
+        uint32_t addr,
+        const void *buffer,
+        size_t size
 )
 {
 	retSize = size;
 	if (items.empty())
 		return;
 	LoggerItem &item = items.front();
+    item.addr = addr;
 	item.packet = item.packet + std::string((const char *) buffer, size);
 	expectedPackets = items.size();
 }
 
-LOGGER_PACKET_TYPE LoggerCollection::put(
+LOGGER_PACKET_TYPE
+LoggerCollection::put(
         size_t &retSize,
         std::vector<LoggerMeasurementHeader> *retHeaders,
+        uint32_t addr,
         const void *buffer,
         size_t asize
 )
@@ -1160,9 +1190,9 @@ LOGGER_PACKET_TYPE LoggerCollection::put(
 
     while (true) {
         if (t == LOGGER_PACKET_RAW) {
-            putRaw(sz, next, retSize);
+            putRaw(sz, addr, next, retSize);
         } else {
-            t = put1(sz, retHeaders, next, retSize);
+            t = put1(sz, retHeaders, addr, next, retSize);
         }
         if (sz >= retSize)
             break;
@@ -1178,7 +1208,7 @@ LOGGER_PACKET_TYPE LoggerCollection::put(std::vector<LoggerMeasurementHeader> *r
 	LOGGER_PACKET_TYPE t = LOGGER_PACKET_UNKNOWN;
 	for (std::vector<std::string>::const_iterator it(values.begin()); it != values.end(); it++) {
 		size_t sz;
-        t = put(sz, retHeaders, it->c_str(), it->size());
+        t = put(sz, retHeaders, 0, it->c_str(), it->size());
 	}
 	return t;
 }
@@ -1472,13 +1502,13 @@ void LoggerKosaPackets::rawCommaString(
     }
 }
 
-LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa()
+LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa(uint32_t addr)
 {
     if (baseKosa)
         return baseKosa;
     if (collector) {
         if (collector->loggerKosaPacketsLoader) {
-            baseKosa = collector->loggerKosaPacketsLoader->load(measurementHeader.kosa, measurementHeader.kosa_year);
+            baseKosa = collector->loggerKosaPacketsLoader->load(addr);
             return baseKosa;
         }
     }
@@ -1587,14 +1617,19 @@ void LoggerKosaCollector::add(
 /**
  * Put char buffer
  */
-LOGGER_PACKET_TYPE LoggerKosaCollector::put(
-    size_t &retSize, const void *buffer, size_t size
+LOGGER_PACKET_TYPE
+LoggerKosaCollector::put(
+        LoggerKosaCollector *aCollector,
+        size_t &retSize,
+        uint32_t addr,
+        const void *buffer,
+        size_t size
 )
 {
-	LoggerCollection c;
+	LoggerCollection c(aCollector);
     // collect headers from the packet(s)
     std::vector<LoggerMeasurementHeader> mhs;
-	LOGGER_PACKET_TYPE r = c.put(retSize, &mhs, buffer, size);
+	LOGGER_PACKET_TYPE r = c.put(retSize, &mhs, addr, buffer, size);
     // copy items from raw collection group by logger
 	add(c);
 
@@ -1614,7 +1649,7 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
 )
 {
 	// temporary raw collection
-	LoggerCollection c;
+	LoggerCollection c(this);
     std::vector<LoggerMeasurementHeader> mhs;
 	LOGGER_PACKET_TYPE r = c.put(&mhs, addr, values);
 	// copy items from raw collection group by logger
@@ -1635,7 +1670,7 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
 )
 {
     size_t sz;
-    return put(sz, value.c_str(), value.size());
+    return put(nullptr, sz, 0, value.c_str(), value.size());
 }
 
 std::string LoggerKosaCollector::toString() const

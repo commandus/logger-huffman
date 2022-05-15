@@ -105,7 +105,7 @@ public:
 
     }
 
-    LoggerKosaPackets *load(uint8_t kosa, uint8_t year2000) override {
+    LoggerKosaPackets *load(uint32_t addr) override {
         if (collection && (!collection->koses.empty()))
             return &collection->koses[0];
         else

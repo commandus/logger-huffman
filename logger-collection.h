@@ -83,7 +83,7 @@ class LoggerItem {
 		bool operator!=(const LoggerItem &another) const;
 		bool operator!=(const LoggerItemId &id) const;
 
-		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, const void *aBuffer, size_t aSize);
+		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, uint32_t addr, const void *aBuffer, size_t aSize);
 		bool get(std::map<uint8_t, double> &t) const;
 
 		std::string toString() const;
@@ -121,26 +121,31 @@ public:
 };
 
 class LoggerKosaPackets;
+class LoggerKosaCollector;
+
 /** 
  * Raw collection of packets
  */
 class LoggerCollection {
 	public:
-		std::vector<LoggerItem> items;
+        std::vector<LoggerItem> items;
 		uint8_t expectedPackets;	// keep expected packets
 		int errCode;
+        LoggerKosaCollector *collector;
         // kosa owns packet items
         LoggerKosaPackets *kosa;
 
 		LoggerCollection();
-		LoggerCollection(const LoggerCollection &value);
+        LoggerCollection(LoggerKosaCollector *aCollector);
+        LoggerCollection(const LoggerCollection &value);
 		virtual ~LoggerCollection();
 
 		void push(LoggerItem &value);
         /**
           * Put char buffer
           */
-        LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, const void *buffer, size_t size);
+        LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+                               const void *buffer, size_t asize);
 		/**
 		 * Put collection of strings
 		 */
@@ -154,9 +159,9 @@ class LoggerCollection {
 		std::string toJsonString() const;
 		std::string toTableString(const LoggerItemId &id, const time_t &t, const LOGGER_MEASUREMENT_HDR &header) const;
 private:
-    LOGGER_PACKET_TYPE put1(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders,
-        const void *buffer, size_t size);
-    void putRaw(size_t &retSize, const void *buffer, size_t size);
+    LOGGER_PACKET_TYPE put1(size_t &retSize, std::vector<LoggerMeasurementHeader> *retHeaders, uint32_t addr,
+                            const void *buffer, size_t size);
+    void putRaw(size_t &retSize, uint32_t addr, const void *buffer, size_t size);
 };
 
 //  5'
@@ -207,14 +212,14 @@ public:
     void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
     void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
 
-    LoggerKosaPackets *loadBaseKosa();
+    LoggerKosaPackets *loadBaseKosa(uint32_t addr);
 
     void updateKosaAfterCopy();
 };
 
 class LoggerKosaPacketsLoader {
 public:
-    virtual LoggerKosaPackets *load(uint8_t kosa, uint8_t year2000) = 0;
+    virtual LoggerKosaPackets *load(uint32_t addr) = 0;
 };
 
 /** 
@@ -236,7 +241,8 @@ class LoggerKosaCollector {
 		/**
 		 * Put char buffer
 		 */
-		LOGGER_PACKET_TYPE put(size_t &retSize, const void *buffer, size_t size);
+        LOGGER_PACKET_TYPE put(LoggerKosaCollector *aCollector, size_t &retSize, uint32_t addr, const void *buffer,
+                               size_t size);
         /**
         * Put one string
         */

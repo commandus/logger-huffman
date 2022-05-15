@@ -93,10 +93,7 @@ std::string loggerParserState(
     }
 }
 
-int parsePacket(
-    void *env,
-    const std::string &packet
-)
+int parsePacket(void *env, uint32_t addr, const std::string &packet)
 {
     if (!env)
         return 0;
