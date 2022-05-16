@@ -15,6 +15,7 @@ extern "C" {
 #define MAX_SENSOR_COUNT			28
 #define MAX_HDR_DATA_SIZE			24	// bytes
 
+
 typedef enum {
 	LOGGER_PACKET_RAW = 0,			// raw w/o packet headers. замер, разбитый по пакетам в 24 байта (в hex 48 байт). Используется для передачи 0 замера
 	LOGGER_PACKET_UNKNOWN = 1,		// reserved for unknown
@@ -25,6 +26,22 @@ typedef enum {
  	LOGGER_PACKET_HUFF_1 = 0x4c,	// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
 	LOGGER_PACKET_HUFF_2 = 0x4d	// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
 } LOGGER_PACKET_TYPE;
+
+/*
+ * Packet sequence:
+ *
+ *  00 Raw
+ *   LOGGER_PACKET_RAW(16+4*) := LOGGER_MEASUREMENT_HDR(16 bytes) LOGGER_DATA_TEMPERATURE_RAW(4)
+ *   LOGGER_DATA_TEMPERATURE_RAW(4) := sensor(1) temperature(2) rfu1(1)
+ *  4a (first packet)
+ *   LOGGER_PACKET_PKT_1(24) := LOGGER_PACKET_FIRST_HDR(8) LOGGER_MEASUREMENT_HDR(16)
+ *  4b (next packets, 8..24 bytes)
+ *   LOGGER_PACKET_PKT_2(4 + 4*) := LOGGER_PACKET_SECOND_HDR(4) LOGGER_DATA_TEMPERATURE_RAW(4)*
+ *  48 (first diff packet with 1..6 temperature differences
+ *   LOGGER_PACKET_PKT_DIFF_1(24) := LOGGER_PACKET_FIRST_HDR(8) LOGGER_MEASUREMENT_HDR_DIFF(10) LOGGER_DATA_TEMPERATURE_DIFF(1..2)*
+ *  49 (next diff packet)
+ *   LOGGER_PACKET_PKT_DIFF_2(24) := LOGGER_PACKET_SECOND_HDR(4) LOGGER_DATA_TEMPERATURE_DIFF(1..2)*
+ */
 
 typedef ALIGN struct {
 	uint8_t memblockoccupation;				// 0 0- memory block occupied
@@ -49,15 +66,6 @@ typedef ALIGN struct {
  * 10 bytes long
  */
 typedef ALIGN struct {
-    uint8_t typ;						    // 	LOGGER_PACKET_RAW, LOGGER_PACKET_PKT_1, LOGGER_PACKET_DELTA_1, LOGGER_PACKET_HUFF_1
-    union {
-        uint8_t data_bits: 3;
-        uint8_t rfu: 4;
-        uint8_t command_change: 1;
-        uint8_t b;							// статус замера, биты 0-3 битовая длина тела данных замера, бит 7 – получена команда на смену 0 замера.
-    } status;
-    uint8_t kosa0;							// идентификатор косы (номер, дата)
-
     int16_t used;							// 0 record number diff
     int8_t delta_sec;				        // 2 seconds
     int8_t kosa;							// 3 номер косы в году
@@ -235,6 +243,19 @@ void LOGGER_MEASUREMENT_HDR_delta(
     LOGGER_MEASUREMENT_HDR_DIFF *retval,
     LOGGER_MEASUREMENT_HDR *h1,
     LOGGER_MEASUREMENT_HDR *h0
+);
+
+/**
+ * Return diff value
+ * @param buffer packet
+ * @param bits 1 or 2
+ * @param index zero based index
+ * @return diff value
+ */
+int getDiff(
+    const void *buffer,
+    int bits,
+    int index
 );
 
 #ifdef __cplusplus

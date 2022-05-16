@@ -84,6 +84,7 @@ class LoggerItem {
 		bool operator!=(const LoggerItemId &id) const;
 
 		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, uint32_t addr, const void *aBuffer, size_t aSize);
+        bool get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const;
 		bool get(std::map<uint8_t, double> &t) const;
 
 		std::string toString() const;
@@ -91,6 +92,8 @@ class LoggerItem {
 		std::string toTableString() const;
 
     bool setMeasurementHeaderFromDiffIfExists();
+
+    int getDataBits() const;
 };
 
 /**
@@ -106,7 +109,7 @@ public:
 
     LoggerMeasurementHeader();
     LoggerMeasurementHeader(const LoggerMeasurementHeader &value);
-    LoggerMeasurementHeader(const LOGGER_MEASUREMENT_HDR *pheader, size_t sz);
+    LoggerMeasurementHeader(const LOGGER_MEASUREMENT_HDR *aHeader, size_t sz);
 
     LoggerMeasurementHeader& operator=(const LOGGER_MEASUREMENT_HDR &value);
     bool operator==(const LoggerItemId &another) const;
@@ -134,6 +137,7 @@ class LoggerCollection {
         LoggerKosaCollector *collector;
         // kosa owns packet items
         LoggerKosaPackets *kosa;
+        // point to the first header
 
 		LoggerCollection();
         LoggerCollection(LoggerKosaCollector *aCollector);
@@ -153,7 +157,13 @@ class LoggerCollection {
                                const std::vector<std::string> &values);
 
 		bool completed() const;
-		bool get(std::map<uint8_t, double> &retval) const;
+		bool get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const;
+        bool get(std::map<uint8_t, double> &retval) const;
+        /**
+         * Get bits size 1 or 2 bits in
+         * @return bullptr if not exists
+         */
+        LOGGER_PACKET_FIRST_HDR *getFirstHeader();
 
 		std::string toString() const;
 		std::string toJsonString() const;
@@ -162,6 +172,7 @@ private:
     LOGGER_PACKET_TYPE put1(size_t &retSize, std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders, uint32_t addr,
                             const void *buffer, size_t size);
     void putRaw(size_t &retSize, uint32_t addr, const void *buffer, size_t size);
+
 };
 
 //  5'
