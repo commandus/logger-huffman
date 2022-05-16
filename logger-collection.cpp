@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <iostream>
 
 #include "util-time-fmt.h"
 #include "logger-collection.h"
@@ -195,12 +196,12 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
 		<< "type\t" << (int) value.typ << std::endl
 		<< "size\t" << (int) value.size << std::endl
 		<< "status\t" << (int) value.status.b << std::endl
-		<< "bits\t" <<  (int) value.status.data_bits << std::endl
+		<< "data_bits\t" <<  (int) value.status.data_bits << std::endl
 		<< "cmd ch\t" << (int) value.status.command_change << std::endl
 		<< "measure\t" << (int) value.measure << std::endl
 		<< "packets\t" << (int) value.packets << std::endl
 		<< "kosa\t" << (int) value.kosa  << std::endl
-		<< "year\t" << (int) value.kosa_year + 2000 << std::endl;
+		<< "koss_year\t" << (int) value.kosa_year + 2000 << std::endl;
     return ss.str();
 }
 
@@ -734,7 +735,7 @@ std::string LoggerItem::toJsonString() const
 				if (r)
 					break;
                 const LOGGER_MEASUREMENT_HDR *measurementHeader = getMeasurementHeaderIfExists();
-				ss << "\"first_packet\": " << LOGGER_PACKET_FIRST_HDR_2_json(*h1) << ", "
+				ss << "\"first_header\": " << LOGGER_PACKET_FIRST_HDR_2_json(*h1) << ", "
                    << "\"measurement_header\": ";
                 if (measurementHeader)
                     ss << LOGGER_MEASUREMENT_HDR_2_json(*measurementHeader) << std::endl;
@@ -745,7 +746,7 @@ std::string LoggerItem::toJsonString() const
 				LOGGER_PACKET_SECOND_HDR *h2;
 				int r = extractSecondHdr(&h2, packet.c_str(), packet.size());
 				if (r == 0) {
-					ss << "\"second_packet\": " << LOGGER_PACKET_SECOND_HDR_2_json(*h2) << ", \"measurements\": [";
+					ss << "\"second_header\": " << LOGGER_PACKET_SECOND_HDR_2_json(*h2) << ", \"measurements\": [";
 					for (int p = 0; p < 5; p++) {
 						LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
 						if (!v)
@@ -763,12 +764,58 @@ std::string LoggerItem::toJsonString() const
         case LOGGER_PACKET_DELTA_1:		// 0x48 deltas(first)
             {
                 LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
-                if (!headerMeasurement)
-                    break;
-                ss << LOGGER_MEASUREMENT_HDR_DIFF_2_json(headerMeasurement) << std::endl;
+                LOGGER_PACKET_FIRST_HDR *h1;
+                int r = extractFirstHdr(&h1, packet.c_str(), packet.size());
+                if (!r) {
+                    const LOGGER_MEASUREMENT_HDR *measurementHeader = getMeasurementHeaderIfExists();
+                    ss << "\"first_header\": " << LOGGER_PACKET_FIRST_HDR_2_json(*h1) << ", ";
+                }
+                if (headerMeasurement) {
+                    ss << "\"delta_header\": "
+                       << LOGGER_MEASUREMENT_HDR_DIFF_2_json(headerMeasurement) << ", ";
+                }
+
+                if (collection) {
+                    if (collection->kosa) {
+                        ss << "\"measurement_header\": "
+                           << LOGGER_MEASUREMENT_HDR_2_json(collection->kosa->measurementHeader) << ", ";
+                    }
+
+                    int dataBits = getDataBits();
+                    int cnt = (packet.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBits;
+                    ss << "\"diff_measurements\": [";
+                    bool isFirst = true;
+                    for (int i = 0; i < cnt; i++) {
+                        if (isFirst)
+                            isFirst = false;
+                        else
+                            ss << ", ";
+                        int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, i);
+                        ss << diff;
+                    }
+                    ss << "]";
+                }
             }
             break;
         case LOGGER_PACKET_DELTA_2:		// 0x48 deltas(next)
+            {
+                if (collection) {
+                    int dataBits = getDataBits();
+                    int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBits;
+                    ss << "\"diff_measurements\": [";
+                    bool isFirst = true;
+                    for (int i = 0; i < cnt; i++) {
+                        if (isFirst)
+                            isFirst = false;
+                        else
+                            ss << ", ";
+                        int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, i);
+                        ss << diff;
+                    }
+                    ss << "]";
+                }
+
+            }
             break;
 
 		default:
@@ -781,6 +828,37 @@ std::string LoggerItem::toJsonString() const
 std::string LoggerItem::toTableString() const
 {
 	return "Not implemented";
+}
+
+bool LoggerItem::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
+{
+    LOGGER_MEASUREMENT_HDR *hdr;
+    LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, packet.c_str(), packet.size());
+    switch (t) {
+        case LOGGER_PACKET_RAW: {
+            int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+            for (int i = 0; i < cnt; i++) {
+                LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) packet.c_str()
+                                                                                  + sizeof(LOGGER_MEASUREMENT_HDR) +
+                                                                                  sizeof(LOGGER_DATA_TEMPERATURE_RAW) *
+                                                                                  i);
+                retval[p->sensor] = p->value;
+            }
+        }
+            break;
+        case LOGGER_PACKET_PKT_1:
+            break;
+        case LOGGER_PACKET_PKT_2: {
+            int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+            for (int p = 0; p < cnt; p++) {
+                LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
+                if (!v)
+                    break;
+                retval[v->sensor] = v->value;
+            }
+        }
+            break;
+    }
 }
 
 /**
@@ -807,13 +885,38 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 			break;
 		case LOGGER_PACKET_PKT_2:
 			{
-				for (int p = 0; p < 5; p++) {
+                int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+				for (int p = 0; p < cnt; p++) {
 					LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
 					if (!v)
 						break;
 					retval[v->sensor] = TEMPERATURE_2_BYTES_2_double(v->value);
 				}
 			}
+            break;
+        case LOGGER_PACKET_DELTA_1:
+            {
+                if (!collection)
+                    return false;
+                if (!collection->kosa)
+                    return false;
+
+                LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
+                std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
+                base->packets.get(baseT);
+
+                int dataBits = getDataBits();
+                int cnt = (packet.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBits;
+                // get packet number from header
+                LOGGER_PACKET_SECOND_HDR *h;
+                // packet number => value index
+                for (int c = 0; c < cnt; c++) {
+                    int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, c);
+                    TEMPERATURE_2_BYTES v;
+                    v.t.t00625 = baseT[c].t.t00625 + diff;
+                    retval[c] = TEMPERATURE_2_BYTES_2_double(v);
+                }
+            }
             break;
         case LOGGER_PACKET_DELTA_2:
         {
@@ -873,13 +976,12 @@ void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
     }
 }
 
-LOGGER_PACKET_TYPE
-LoggerItem::set(
-        uint8_t &retPackets,
-        size_t &retSize,
-        uint32_t addr,
-        const void *aBuffer,
-        size_t aSize
+LOGGER_PACKET_TYPE LoggerItem::set(
+    uint8_t &retPackets,
+    size_t &retSize,
+    uint32_t addr,
+    const void *aBuffer,
+    size_t aSize
 )
 {
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&retSize, aBuffer, aSize);	//
@@ -889,8 +991,6 @@ LoggerItem::set(
 	}
     packet = std::string((const char *) aBuffer, retSize);
 
-
-	
 	switch (t) {
         case LOGGER_PACKET_RAW:
             {
@@ -922,7 +1022,7 @@ LoggerItem::set(
             {
                 LOGGER_PACKET_FIRST_HDR *h1;
                 extractFirstHdr(&h1, packet.c_str(), aSize);
-                id.set(h1->kosa, h1->measure, 1, h1->kosa_year);	// -1: first packet (with no data)
+                id.set(h1->kosa, h1->measure, 1, h1->kosa_year);    // -1: first packet (with no data)
                 retPackets = h1->packets;
             }
             break;
@@ -967,6 +1067,21 @@ bool LoggerItem::setMeasurementHeaderFromDiffIfExists() {
     return false;
 }
 
+/**
+ * Return data bits for diff packets
+ * @return
+ */
+int LoggerItem::getDataBits() const {
+    int dataBits = 1;
+    if (collection) {
+        LOGGER_PACKET_FIRST_HDR *h1 = collection->getFirstHeader();
+        if (h1) {
+            dataBits = h1->status.data_bits;
+        }
+    }
+    return dataBits;
+}
+
 LoggerMeasurementHeader::LoggerMeasurementHeader()
     : header(NULL), start(0), vcc(0), vbat(0)
 {
@@ -982,11 +1097,11 @@ LoggerMeasurementHeader::LoggerMeasurementHeader(
 }
 
 LoggerMeasurementHeader::LoggerMeasurementHeader(
-    const LOGGER_MEASUREMENT_HDR *pheader,
+    const LOGGER_MEASUREMENT_HDR *aHeader,
     size_t sz
 )
 {
-    setHdr(pheader, sz);
+    setHdr(aHeader, sz);
 }
 
 LoggerMeasurementHeader &LoggerMeasurementHeader::operator=(
@@ -1232,9 +1347,15 @@ bool LoggerCollection::completed() const
 	return (items.size() >= expectedPackets) && (expectedPackets > 0);
 }
 
+bool LoggerCollection::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
+{
+    for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
+        it->get(retval);
+    }
+}
+
 bool LoggerCollection::get(std::map<uint8_t, double> &retval) const
 {
-	// if (!completed()) return false;
 	for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
 		it->get(retval);
 	}
@@ -1253,6 +1374,31 @@ time_t LoggerKosaPackets::measured() const
         true
     );
     return t;
+}
+
+/**
+ * Get bits size 1 or 2 bits in
+ * @return bullptr if not exists
+ */
+LOGGER_PACKET_FIRST_HDR *LoggerCollection::getFirstHeader()
+{
+    for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++ ) {
+        size_t sz;
+        LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, it->packet.c_str(), it->packet.size());
+        switch (t) {
+            case LOGGER_PACKET_PKT_1:
+            case LOGGER_PACKET_DELTA_1:
+                {
+                    LOGGER_PACKET_FIRST_HDR *h1;
+                    int r = extractFirstHdr(&h1, it->packet.c_str(), it->packet.size());
+                    if (r)
+                        return nullptr;
+                    return h1;
+                }
+            default:
+                return nullptr;
+        }
+    }
 }
 
 std::string LoggerCollection::toString() const
@@ -1274,7 +1420,7 @@ std::string LoggerCollection::toJsonString() const
 			first = false;
 		else
 			ss << ", ";
-		ss << "{\"item\": " << it->toJsonString() << "}";
+		ss << it->toJsonString();
 	}
 	ss << "]";
 	return ss.str();
@@ -1666,6 +1812,7 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
 	LoggerCollection c(this);
     std::vector<LOGGER_MEASUREMENT_HDR> mhs;
 	LOGGER_PACKET_TYPE r = c.put(&mhs, addr, values);
+
 	// copy items from raw collection group by logger
     add(c);
 
@@ -1699,7 +1846,6 @@ std::string LoggerKosaCollector::toString() const
 			ss << ", ";
 		ss << it->toString();
 	}
-
 	return ss.str();
 }
 
@@ -1729,7 +1875,7 @@ std::string LoggerKosaCollector::toTableString() const
 }
 
 bool LoggerKosaCollector::addHeader(
-        const LOGGER_MEASUREMENT_HDR &value
+    const LOGGER_MEASUREMENT_HDR &value
 )
 {
     LoggerMeasurementHeader v(&value, sizeof(LOGGER_MEASUREMENT_HDR));

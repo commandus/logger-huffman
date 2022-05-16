@@ -204,7 +204,7 @@ cd logger-huffman
 autogen.sh
 ```
 
-Configure and make project using Autotools without logger passords library:
+Configure and make project using Autotools without logger passwords library:
 ```
 cd logger-huffman
 ./configure

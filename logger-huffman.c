@@ -319,4 +319,27 @@ void LOGGER_MEASUREMENT_HDR_delta(
     retval->pcnt = h1->pcnt - h0->pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
 }
 
-
+/**
+ * Return diff value
+ * @param buffer packet
+ * @param bits 1 or 2
+ * @param index zero based index
+ * @return diff value
+ */
+int getDiff(
+    const void *buffer,
+    int bits,
+    int index
+)
+{
+    switch (bits) {
+        case 2:
+#if BYTE_ORDER == BIG_ENDIAN
+            return htobe16(((int16_t*) buffer)[index]);
+#else
+            return ((int16_t*) buffer)[index];
+#endif
+        default:
+            return ((int8_t*) buffer)[index];
+    }
+}
