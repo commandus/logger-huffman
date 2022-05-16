@@ -92,7 +92,7 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
 			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR))
 				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
-		 	*retHdr = (LOGGER_MEASUREMENT_HDR*) (char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR);
+		 	*retHdr = (LOGGER_MEASUREMENT_HDR*) ((char *) buffer + sizeof(LOGGER_PACKET_FIRST_HDR));
 			break;
 		default:
 			// case LOGGER_PACKET_UNKNOWN:

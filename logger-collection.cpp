@@ -1680,11 +1680,12 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
  * Put one string
  */
 LOGGER_PACKET_TYPE LoggerKosaCollector::put(
+    uint32_t addr,
     const std::string &value
 )
 {
     size_t sz;
-    return put(nullptr, sz, 0, value.c_str(), value.size());
+    return put(nullptr, sz, addr, value.c_str(), value.size());
 }
 
 std::string LoggerKosaCollector::toString() const

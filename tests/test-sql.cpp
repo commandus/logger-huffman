@@ -31,7 +31,7 @@ static const std::string SQL_DIALECT_NAME[] = {
 
 void test1() {
     LoggerKosaCollector c;
-    LOGGER_PACKET_TYPE t = c.put(hex2binString(packet0));
+    LOGGER_PACKET_TYPE t = c.put(0, hex2binString(packet0));
 
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);

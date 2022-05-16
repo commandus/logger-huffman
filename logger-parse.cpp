@@ -98,7 +98,7 @@ int parsePacket(void *env, uint32_t addr, const std::string &packet)
     if (!env)
         return 0;
     LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
-    LOGGER_PACKET_TYPE t = c->put(packet);
+    LOGGER_PACKET_TYPE t = c->put(addr, packet);
     // kosaCollection->rmExpired();
     return (int) t;
 }

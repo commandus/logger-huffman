@@ -246,7 +246,7 @@ class LoggerKosaCollector {
         /**
         * Put one string
         */
-        LOGGER_PACKET_TYPE put(const std::string &value);
+        LOGGER_PACKET_TYPE put(uint32_t addr, const std::string &value);
         /**
 		 * Put collection of strings
 		 */
