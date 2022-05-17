@@ -1847,12 +1847,13 @@ LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa(uint32_t addr)
 }
 
 /**
- * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw
- * @param retval
+ * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw, temperature raw integer hex value
+ * @param retval out param values
+ * @param substEmptyValue if value is not set, substitute this value, e.g. "null"
  */
 void LoggerKosaPackets::toStrings(
-        std::vector<std::string> &retval,
-        const std::string &substEmptyValue
+    std::vector<std::string> &retval,
+    const std::string &substEmptyValue
 ) const {
     retval.push_back(id.kosaString());
     retval.push_back(id.kosaYearString());
@@ -1873,6 +1874,10 @@ void LoggerKosaPackets::toStrings(
     std::stringstream ssr;
     rawCommaString(ssr, " ");
     retval.push_back(ssr.str());
+
+    std::stringstream ssti;
+    valueCommaString(ssp, ",", substEmptyValue);
+    retval.push_back(ssp.str());
 }
 
 void LoggerKosaPackets::updateKosaAfterCopy()

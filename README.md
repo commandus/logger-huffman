@@ -68,18 +68,38 @@ Source code example:
 
 ```
 #include "logger-parse.h"
-...
-void *env = initLoggerParser();
 
-sqlCreateTable(SQL_POSTGRESQL); // SQL_POSTGRESQL - 0
-parsePacket(env, binaryDataString));
-
-std::vector <std::string> clauses;
-sqlInsertPackets(env, clauses, dialect);
-for (auto it(clauses.begin()); it != clauses.end(); it++) {
-    std::cout << *it << std::endl << std::endl;
+void logCallback(void *env, int level, int modulecode, int errorcode, const std::string &message)
+{
+      // packet parser error code and error description
 }
 
+// initialize packet parser (first parameter specify directory where logger passport resides)
+void *env = initLoggerParser("", logCallback);
+
+// Optional, get SQL "CREATE TABLE .." clauses to create an database tables 
+std::vector <std::string> sqlClauses;
+sqlCreateTable(sqlClauses, SQL_POSTGRESQL);
+
+// Put received packet from the device in the loop
+while (true) {
+      // LoraWAN device address used for packet identification 
+      uint32_t addr = ..;
+      // put received packet to the parser
+      parsePacket(env, addr, binaryDataString);
+}
+
+..
+
+// process collected packets. Do it in another thread. 
+
+std::vector <std::string> sqlInsertClauses;
+sqlInsertPackets(env, sqlInsertClauses, SQL_POSTGRESQL);
+for (auto it(clauses.begin()); it != clauses.end(); it++) {
+    std::cout << "Insert: " << *it << std::endl;
+}
+
+// finish packet parser
 flushLoggerParser(env);
 doneLoggerParser(env);
 ```

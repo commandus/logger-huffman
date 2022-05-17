@@ -290,7 +290,7 @@ void parsePacketStream(
 
 /**
  * Parse packet by declaration
- * @param env packet declaratuions
+ * @param env packet declarations
  * @param outputFormat 0- json(default), 1- csv, 2- tab, 3- sql, 4- Sql, 5- pbtext, 6- dbg, 7- hex, 8- bin
  * @param sqlDialect 0- PostgreSQL, 1- MySQL, 2- Firebird
  * @param packets data
@@ -306,6 +306,7 @@ std::string parsePacketsToSQLClause(
 {
     std::stringstream sout;
     std::vector<std::string> packetValueStrings;
+    // field values
     packets.toStrings(packetValueStrings, "NULL");
     parsePacketStream(&sout, fldNTypesLoggerLora, outputFormat, sqlDialect, packetValueStrings, extraValues);
     return sout.str();
