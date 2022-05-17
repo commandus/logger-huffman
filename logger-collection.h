@@ -93,7 +93,14 @@ class LoggerItem {
 
     bool setMeasurementHeaderFromDiffIfExists();
 
-    int getDataBits() const;
+    int getDataBytes() const;
+
+    /**
+     * Return kosa year from first packet if exists or base record loaded by LoraWAN device address
+     * Second packet header have kosa number but no kosa year. Restore kosa year.
+     * @return 0 if not exists
+     */
+    uint8_t getKosaYearFromFirstPacketOrLoad();
 };
 
 /**
@@ -230,6 +237,12 @@ public:
 
 class LoggerKosaPacketsLoader {
 public:
+    /**
+     * Load last kosa record with "base" values by address
+     * @param retVal set kosa packets if found
+     * @param addr kosa address
+     * @return true- kosa with "base" record found
+     */
     virtual bool load(LoggerKosaPackets &retVal, uint32_t addr) = 0;
 };
 
