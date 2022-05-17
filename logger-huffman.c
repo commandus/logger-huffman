@@ -174,7 +174,7 @@ LOGGER_DATA_TEMPERATURE_RAW *extractSecondHdrData(
 )
 {
     LOGGER_DATA_TEMPERATURE_RAW *r =
-            (LOGGER_DATA_TEMPERATURE_RAW *) (buffer + sizeof(LOGGER_PACKET_SECOND_HDR))
+            (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) buffer + sizeof(LOGGER_PACKET_SECOND_HDR))
             + p;
     if ((char *) r >= (char *) buffer + bufferSize)
         return NULL;
@@ -263,7 +263,11 @@ time_t LOGGER_MEASUREMENT_HDR2time_t(
     time_t r = mktime(&m);
 
     if (!isLocaltime)
+#ifdef _MSC_VER
+        r -= _timezone;
+#else
         r -= __timezone;
+#endif
     return r;
 }
 
@@ -291,7 +295,11 @@ time_t logger2time(
     time_t r = mktime(&m);
 
     if (!isLocaltime)
+#ifdef _MSC_VER
+        r -= _timezone;
+#else
         r -= __timezone;
+#endif
     return r;
 }
 
