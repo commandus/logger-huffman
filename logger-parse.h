@@ -43,13 +43,25 @@ std::string sqlCreateTable1(
     const std::string &separator = " "
 );
 
+/**
+ * Initialize one passport directory or file
+ * @param passportDir passport root directory
+ * @param onLog callbac function to report an errors
+ * @return "passport" descriptor
+ */
 void *initLoggerParser(
-    const std::string &passportDir,     ///< passport files root
+    const std::string &passportDir,     ///< passport files root, can be empty
     LOG_CALLBACK onLog                  ///< log callback
 );
 
+/**
+ * Initialize more than one passport directory(or files)
+ * @param passportDirs list of passport files or directories
+ * @param onLog callbac function to report an errors
+ * @return "passport" descriptor
+ */
 void *initLoggerParser(
-    const std::vector<std::string> &passportDirs,     ///< passport files root
+    const std::vector<std::string> &passportDirs,     ///< passport files roots list or passport files
     LOG_CALLBACK onLog                  ///< log callback
 );
 
@@ -70,7 +82,7 @@ int parsePacket(void *env, uint32_t addr, const std::string &packet);
 
 /**
  * Return INSERT clause(s) in retClauses
- * @param env desciptor
+ * @param env "passport" descriptor
  * @param retClauses vector of INSERT statements
  * @param sqlDialect 0..3
  * @param extraValues  <optional field name>=value
@@ -92,8 +104,8 @@ void rmCompletedOrExpired(
 );
 
 /**
- * Return INSERT clause(s) as one string
- * @param env desciptor
+ * sqlInsertPackets wrapper returns INSERT clause(s) as one string
+ * @param env descriptor
  * @param sqlDialect 0..3
  * @param extraValues  <optional field name>=value
  * @param separator  separator string default space
@@ -107,8 +119,10 @@ std::string sqlInsertPackets1(
 );
 
 /**
+ * Received packet can be saved in the "raw" table for reference
  * Return INSERT raw data (as hex)
  * @param sqlDialect 0..3
+ * @param value data
  * @param extraValues  <optional field name>=value
  * @return empty string if fails
  */
