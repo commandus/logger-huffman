@@ -8,6 +8,9 @@
 #include "util-time-fmt.h"
 #include "logger-collection.h"
 #include "errlist.h"
+
+#define MAX_BUFFER_SIZE 256
+
 #ifdef ENABLE_LOGGER_PASSPORT
 #include "logger-passport/logger-passport.h"
 #endif
@@ -67,6 +70,20 @@ LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(
 	return LOGGER_PACKET_UNKNOWN;
 }
 
+double LoggerItem::correctTemperatureByPassport(
+    uint8_t sensor,
+    double value
+) const
+{
+#ifdef ENABLE_LOGGER_PASSPORT
+    if (collection && collection->collector && collection->collector->passportDescriptor)
+        return calcTemperature(collection->collector->passportDescriptor, id.kosa, id.kosa_year, sensor, value);
+    return value;
+#else
+    return value;
+#endif
+}
+
 std::string LOGGER_MEASUREMENT_HDR_2_string(
 	const LOGGER_MEASUREMENT_HDR &value
 ) {
@@ -82,16 +99,16 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
 	);
 
 	ss << "measurement header:" << std::endl
-       << "mem\t" << (int) value.memblockoccupation << std::endl
-       << "time\t" << t << std::endl
-       << "local\t" << time2string(t, true) << std::endl
-       << "gmt\t" << time2string(t, false) << std::endl
-       << "kosa\t" << (int) value.kosa << std::endl
-       << "year\t" << (int) value.kosa_year + 2000 << std::endl
-       << "vcc\t" << vcc2double(value.vcc) << std::endl
-       << "vbat\t" << vbat2double(value.vbat) << std::endl
-		<< "pcnt\t" << (int) value.pcnt << std::endl
-		<< "used\t" << LOGGER_MEASUREMENT_HDR_USED(value.used) << std::endl;
+        << "mem\t" << (int) value.memblockoccupation << std::endl
+        << "time\t" << t << std::endl
+        << "local\t" << time2string(t, true) << std::endl
+        << "gmt\t" << time2string(t, false) << std::endl
+        << "kosa\t" << (int) value.kosa << std::endl
+        << "year\t" << (int) value.kosa_year + 2000 << std::endl
+        << "vcc\t" << vcc2double(value.vcc) << std::endl
+        << "vbat\t" << vbat2double(value.vbat) << std::endl
+        << "pcnt\t" << (int) value.pcnt << std::endl
+        << "used\t" << LOGGER_MEASUREMENT_HDR_USED(value.used) << std::endl;
 	return ss.str();
 }
 
@@ -112,17 +129,17 @@ std::string LOGGER_MEASUREMENT_HDR_2_json(
 	);
 
 	ss
-            << "{"
-            << "\"memblockoccupation\": " << (int) value.memblockoccupation
-            << std::setfill('0') << std::setw(2)
-            << ", \"time\": " << t
-            << ", \"localtime\": \"" << time2string(t, true)
-            << "\", \"gmt\": \"" << time2string(t, false) << "\""
-            << std::setw(0) << " "
-            << ", \"kosa\": " << (int) value.kosa
-            << ", \"kosa_year\": " << (int) value.kosa_year
-            << ", \"vcc\": " << std::fixed << std::setprecision(2) << vcc2double(value.vcc)
-            << ", \"vbat\": " << vbat2double(value.vbat)
+        << "{"
+        << "\"memblockoccupation\": " << (int) value.memblockoccupation
+        << std::setfill('0') << std::setw(2)
+        << ", \"time\": " << t
+        << ", \"localtime\": \"" << time2string(t, true)
+        << "\", \"gmt\": \"" << time2string(t, false) << "\""
+        << std::setw(0) << " "
+        << ", \"kosa\": " << (int) value.kosa
+        << ", \"kosa_year\": " << (int) value.kosa_year
+        << ", \"vcc\": " << std::fixed << std::setprecision(2) << vcc2double(value.vcc)
+        << ", \"vbat\": " << vbat2double(value.vbat)
 		<< ", \"pcnt\": " << (int) value.pcnt
 		<< ", \"used\": " << LOGGER_MEASUREMENT_HDR_USED(value.used)
 		<< "}";
@@ -307,6 +324,9 @@ std::string LOGGER_MEASUREMENT_HDR_DIFF_2_string(
     return ss.str();
 }
 
+/**
+ * Error description, locale: en
+ */
 static const char *error_list_en[ERR_LIST_COUNT] = 
 {
 	"Segmentation fault",
@@ -930,11 +950,11 @@ bool LoggerItem::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
 }
 
 /**
- * Get sensor value
- * @param retval receive sensor values
+ * Get sensor value (not corrected by passport approximation)
+ * @param t receive sensor values
  * @return true- success
  */
-bool LoggerItem::get(std::map<uint8_t, double> &retval) const
+bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
 {
 	LOGGER_MEASUREMENT_HDR *hdr;
 	LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, packet.c_str(), packet.size());
@@ -958,7 +978,7 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 					LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
 					if (!v)
 						break;
-					retval[v->sensor] = TEMPERATURE_2_BYTES_2_double(v->value);
+                    retval[v->sensor] = TEMPERATURE_2_BYTES_2_double(v->value);
 				}
 			}
             break;
@@ -1021,6 +1041,19 @@ bool LoggerItem::get(std::map<uint8_t, double> &retval) const
 			break;
 	}
 	return true;
+}
+
+/**
+ * Get sensor value (not corrected by passport approximation)
+ * @param t receive sensor values
+ * @return true- success
+ */
+bool LoggerItem::getCorrectedTemperature(std::map<uint8_t, double> &retval) const
+{
+    for (auto it(retval.begin()); it != retval.end(); it++) {
+        it->second = correctTemperatureByPassport(it->first, it->second);
+    }
+    return true;
 }
 
 void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
@@ -1387,7 +1420,8 @@ void LoggerCollection::putRaw(
     }
 	LoggerItem &item = items.front();
     item.addr = addr;
-	item.packet = item.packet + std::string((const char *) buffer, size);
+    if (item.packet.size() < MAX_BUFFER_SIZE)
+	    item.packet = item.packet + std::string((const char *) buffer, size);
 	expectedPackets = items.size();
 }
 
@@ -1439,19 +1473,33 @@ bool LoggerCollection::completed() const
 	return (items.size() >= expectedPackets) && (expectedPackets > 0);
 }
 
-bool LoggerCollection::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
+bool LoggerCollection::get(
+    std::map<uint8_t, TEMPERATURE_2_BYTES> &retval
+) const
 {
     for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
         it->get(retval);
     }
 }
 
-bool LoggerCollection::get(std::map<uint8_t, double> &retval) const
+bool LoggerCollection::getTemperature(
+    std::map<uint8_t, double> &retval
+) const
 {
 	for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
-		it->get(retval);
+        it->getTemperature(retval);
 	}
 	return true;
+}
+
+bool LoggerCollection::getCorrectedTemperature(
+    std::map<uint8_t, double> &retval
+) const
+{
+    for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
+        it->getCorrectedTemperature(retval);
+    }
+    return true;
 }
 
 time_t LoggerKosaPackets::measured() const
@@ -1533,7 +1581,7 @@ std::string LoggerCollection::toTableString(
 		<< (int) id.measure << "\t"
         << LOGGER_MEASUREMENT_HDR_2_table(header);
 
-	if (get(r)) {
+	if (getTemperature(r)) {
 		// by default order by key operator<
 		for (std::map<uint8_t, double>::const_iterator it(r.begin()); it != r.end(); it++) 
 		{
@@ -1674,6 +1722,33 @@ std::string LoggerKosaPackets::toTableString() const
 	return ss.str();
 }
 
+void LoggerKosaPackets::valueCommaString(
+    std::ostream &ostrm,
+    const std::string &separator,
+    const std::string &substEmptyValue
+) const
+{
+    std::map<uint8_t, TEMPERATURE_2_BYTES> r;
+    if (packets.get(r)) {
+        bool isFirst = true;
+        int c = 0;
+        // map is sorted by the first
+        for (std::map<uint8_t, TEMPERATURE_2_BYTES>::const_iterator it(r.begin()); it != r.end(); it++) {
+            if (isFirst) {
+                isFirst = false;
+            } else
+                ostrm << separator;
+            // some sensors can be missed
+            int skipped = it->first - c;
+            for (int i = 0; i < skipped; i++) {
+                ostrm << substEmptyValue << separator;
+            }
+            ostrm << std::hex << std::setw(2) << std::setfill('0') <<  it->second.t.f.hi << it->second.t.f.lo;
+            c++;
+        }
+    }
+}
+
 void LoggerKosaPackets::temperatureCommaString(
     std::ostream &ostrm,
     const std::string &separator,
@@ -1681,7 +1756,7 @@ void LoggerKosaPackets::temperatureCommaString(
 ) const
 {
     std::map<uint8_t, double> r;
-    if (packets.get(r)) {
+    if (packets.getTemperature(r)) {
         bool isFirst = true;
         int c = 0;
         // map is sorted by the first
@@ -1701,14 +1776,14 @@ void LoggerKosaPackets::temperatureCommaString(
     }
 }
 
-void LoggerKosaPackets::temperaturePolyCommaString(
+void LoggerKosaPackets::temperatureCorrectedCommaString(
     std::ostream &ostrm,
     const std::string &separator,
     const std::string &substEmptyValue
 ) const
 {
 #ifdef ENABLE_LOGGER_PASSPORT
-	if (!(collection && collection->passportDescriptor))
+	if (!(collector && collector->passportDescriptor))
 		return temperatureCommaString(ostrm, separator, substEmptyValue);
 
     std::map<uint8_t, double> r;
@@ -1730,7 +1805,7 @@ void LoggerKosaPackets::temperaturePolyCommaString(
 			if (it->first == 0)
 				ostrm << it->second;
 			else
-            	ostrm << calcTemperature(collection->passportDescriptor, id.kosa, id.kosa_year, it->first - 1, it->second);
+            	ostrm << calcTemperature(collector->passportDescriptor, id.kosa, id.kosa_year, it->first - 1, it->second);
             c++;
         }
     }
@@ -1792,7 +1867,7 @@ void LoggerKosaPackets::toStrings(
     retval.push_back(ss.str());
 
 	std::stringstream ssp;
-    temperaturePolyCommaString(ssp, ",", substEmptyValue);
+    temperatureCorrectedCommaString(ssp, ",", substEmptyValue);
     retval.push_back(ssp.str());
 
     std::stringstream ssr;

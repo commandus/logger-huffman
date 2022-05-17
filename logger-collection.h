@@ -60,36 +60,45 @@ class LoggerCollection;
  * Keep measurements
  */
 class LoggerItem {
-	public:
-		LoggerItemId id;
-		std::string packet;
-		time_t parsed;
-        uint32_t addr;  // source address
-		int errCode;
-        // owner
-        LoggerCollection *collection;
-		LOGGER_MEASUREMENT_HDR *getMeasurementHeaderIfExists() const;
-		LoggerItem();
-        LoggerItem(LoggerCollection *collection);
-		LoggerItem(time_t t);
-		LoggerItem(const LoggerItem &value);
-		LoggerItem(uint32_t addr, const void *aBuffer, size_t aSize);
-		virtual ~LoggerItem();
+protected:
+    /**
+     * Return approximated temperature
+     * @param sensor sensor index
+     * @param value temperature, C
+     * @return approximated temperature
+     */
+    double correctTemperatureByPassport(uint8_t sensor, double value) const;
+public:
+    LoggerItemId id;
+    std::string packet;
+    time_t parsed;
+    uint32_t addr;  // source address
+    int errCode;
+    // owner
+    LoggerCollection *collection;
+    LOGGER_MEASUREMENT_HDR *getMeasurementHeaderIfExists() const;
+    LoggerItem();
+    LoggerItem(LoggerCollection *collection);
+    LoggerItem(time_t t);
+    LoggerItem(const LoggerItem &value);
+    LoggerItem(uint32_t addr, const void *aBuffer, size_t aSize);
+    virtual ~LoggerItem();
 
-		LoggerItem& operator=(const LoggerItem& other);
-		bool operator==(const LoggerItem &another) const;
-		bool operator==(const LoggerItemId &id) const;
-		
-		bool operator!=(const LoggerItem &another) const;
-		bool operator!=(const LoggerItemId &id) const;
+    LoggerItem& operator=(const LoggerItem& other);
+    bool operator==(const LoggerItem &another) const;
+    bool operator==(const LoggerItemId &id) const;
 
-		LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, uint32_t addr, const void *aBuffer, size_t aSize);
-        bool get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const;
-		bool get(std::map<uint8_t, double> &t) const;
+    bool operator!=(const LoggerItem &another) const;
+    bool operator!=(const LoggerItemId &id) const;
 
-		std::string toString() const;
-		std::string toJsonString() const;
-		std::string toTableString() const;
+    LOGGER_PACKET_TYPE set(uint8_t &retPackets, size_t &retSize, uint32_t addr, const void *aBuffer, size_t aSize);
+    bool get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const;
+    bool getTemperature(std::map<uint8_t, double> &t) const;
+    bool getCorrectedTemperature(std::map<uint8_t, double> &t) const;
+
+    std::string toString() const;
+    std::string toJsonString() const;
+    std::string toTableString() const;
 
     bool setMeasurementHeaderFromDiffIfExists();
 
@@ -165,7 +174,8 @@ class LoggerCollection {
 
 		bool completed() const;
 		bool get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const;
-        bool get(std::map<uint8_t, double> &retval) const;
+        bool getTemperature(std::map<uint8_t, double> &retval) const;
+        bool getCorrectedTemperature(std::map<uint8_t, double> &t) const;
         /**
          * Get bits size 1 or 2 bits in
          * @return bullptr if not exists
@@ -225,9 +235,35 @@ public:
     std::string toJsonString() const;
     std::string toTableString() const;
 
+    /**
+     * List of values as 2-bytes hex string. (you need calc temperature yourself).
+     * @param ostrm output stream to write values
+     * @param separator list separator e.g. ", "
+     * @param substEmptyValue substitute substEmptyValue string if sensor has no value, e.g. "null"
+     */
+    void valueCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+    /**
+     * List of temperature values without correction.
+     * @param ostrm output stream to write temperature values
+     * @param separator list separator e.g. ", "
+     * @param substEmptyValue substitute substEmptyValue string if sensor has no value, e.g. "null"
+     */
     void temperatureCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
-    void temperaturePolyCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+    /**
+     * List of corrected temperature values. Correction has mad by approximation using kosa passport.
+     * @param ostrm output stream to write temperature values
+     * @param separator list separator e.g. ", "
+     * @param substEmptyValue substitute substEmptyValue string if sensor has no value, e.g. "null"
+     */
+    void temperatureCorrectedCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+
+    /**
+     * Write packets as hex string separated by separator, for instance, comma
+     * @param ostrm output stream
+     * @param separator separator e.g. ", "
+     */
     void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
+
     void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
 
     LoggerKosaPackets *loadBaseKosa(uint32_t addr);
@@ -311,6 +347,11 @@ std::string hex2binString(const std::string &value);
 std::string bin2hexString(const char *binChars, size_t size);
 std::string bin2hexString(const std::string &value);
 
+/**
+ * Return error code description
+ * @param errCode error code to explain
+ * @return error description
+ */
 const char *strerror_logger_huffman(int errCode);
 
 void clear_LOGGER_MEASUREMENT_HDR(LOGGER_MEASUREMENT_HDR &value);
