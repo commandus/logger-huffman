@@ -18,12 +18,15 @@ LOGGER_PACKET_TYPE extractLoggerPacketType(
 {
 	if ((!buffer) || (bufferSize == 0))
 		return LOGGER_PACKET_UNKNOWN;
-	LOGGER_PACKET_TYPE t = (LOGGER_PACKET_TYPE)	*(char *) buffer;
+	LOGGER_PACKET_TYPE t;
+    if ((*(char *) buffer < 0x48) || (*(char *) buffer > 0x4d))
+        t =  LOGGER_PACKET_RAW;
+    else
+        t = (LOGGER_PACKET_TYPE) *(char *) buffer;
+
 	size_t sz = getLoggerPacketTypeSize(t, bufferSize);
 	if (retSize)
 		*retSize = sz;
-	if (sz == 0)
-		t = LOGGER_PACKET_UNKNOWN;
 	return t;
 }
 

@@ -1314,9 +1314,7 @@ LoggerCollection::put1(
     if (retHeaders) {
         switch (t) {
             case LOGGER_PACKET_RAW:
-                {
-                    retHeaders->push_back(*(LOGGER_MEASUREMENT_HDR *) buffer);
-                }
+                retHeaders->push_back(*(LOGGER_MEASUREMENT_HDR *) buffer);
                 break;
             case LOGGER_PACKET_PKT_1:
                 {
@@ -1383,8 +1381,10 @@ void LoggerCollection::putRaw(
 )
 {
 	retSize = size;
-	if (items.empty())
-		return;
+	if (items.empty()) {
+        LoggerItem li;
+        items.push_back(li);
+    }
 	LoggerItem &item = items.front();
     item.addr = addr;
 	item.packet = item.packet + std::string((const char *) buffer, size);
@@ -1397,26 +1397,27 @@ LoggerCollection::put(
         std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders,
         uint32_t addr,
         const void *buffer,
-        size_t asize
+        size_t aSize
 )
 {
-    LOGGER_PACKET_TYPE t = LOGGER_PACKET_UNKNOWN;
+    // chek does it raw
+    LOGGER_PACKET_TYPE packetType = extractLoggerPacketType(nullptr, buffer, aSize);
     size_t sz;
     void *next = (void *) buffer;
-    retSize = asize;
+    retSize = aSize;
 
     while (true) {
-        if (t == LOGGER_PACKET_RAW) {
+        if (packetType == LOGGER_PACKET_RAW) {
             putRaw(sz, addr, next, retSize);
         } else {
-            t = put1(sz, retHeaders, addr, next, retSize);
+            packetType = put1(sz, retHeaders, addr, next, retSize);
         }
         if (sz >= retSize)
             break;
         retSize -= sz;
         next = (char *) next + sz;
     }
-    return t;
+    return packetType;
 }
 
 LOGGER_PACKET_TYPE LoggerCollection::put(

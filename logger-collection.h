@@ -156,7 +156,7 @@ class LoggerCollection {
           * Put char buffer
           */
         LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders, uint32_t addr,
-                               const void *buffer, size_t asize);
+                               const void *buffer, size_t aSize);
 		/**
 		 * Put collection of strings
 		 */
