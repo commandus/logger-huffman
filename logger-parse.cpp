@@ -83,9 +83,9 @@ std::string loggerParserState(
     LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     switch (format) {
         case 4:
-            return c->toJsonString();
+            return c->packetsToJsonString();
         case 5:
-            return c->toString();
+            return c->packetsToString();
         case 6:
             return c->toTableString();
         default:

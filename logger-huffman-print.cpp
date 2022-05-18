@@ -30,12 +30,6 @@
 
 const std::string programName = "logger-huffman-print";
 
-#ifdef _MSC_VER
-#undef ENABLE_TERM_COLOR
-#else
-#define ENABLE_TERM_COLOR	1
-#endif
-
 typedef enum {
     LOGGER_OUTPUT_FORMAT_PG = 0,
     LOGGER_OUTPUT_FORMAT_MYSQL = 1,
@@ -93,7 +87,7 @@ public:
     bool readStdin;                             // read stdin
     MODE processingMode;                        // default packet processing
     int verbosity;                              // verbosity level
-    bool hasValue;
+    bool printCreateClauses;                    // print out create clauses
 };
 
 class DumbLoggerKosaPacketsLoader: public LoggerKosaPacketsLoader {
@@ -118,6 +112,17 @@ public:
     }
 };
 
+void onLoggerParserLog(
+    void *env,
+    int level,
+    int modulecode,
+    int errorcode,
+    const std::string &message
+)
+{
+    // packet parser error code and error description
+    std::cerr << "Error " << errorcode << ": " << message << std::endl;
+}
 
 /**
  * Parse command linelogger-huffman-impl
@@ -138,6 +143,7 @@ int parseCmd(
     struct arg_str *a_output_format = arg_str0("f", "format", formatModeListString.c_str(),"Default json");
 
     struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Logger passports directory or file name");
+    struct arg_lit *a_print_create_clauses = arg_lit0("c", "create", "print 'CREATE ..' clauses");
 
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
     struct arg_lit *a_help = arg_lit0("?", "help", "Show this help");
@@ -145,7 +151,7 @@ int parseCmd(
 
     void *argtable[] = {
         a_value_hex, a_value_stdin, a_value_base_hex, a_output_format, a_passport_dir,
-        a_verbosity, a_help, a_end
+        a_print_create_clauses, a_verbosity, a_help, a_end
     };
 
     // verify the argtable[] entries were allocated successfully
@@ -159,6 +165,7 @@ int parseCmd(
     if ((nerrors == 0) && (a_help->count == 0)) {
         config->outputFormat = LOGGER_OUTPUT_FORMAT_JSON;
         config->processingMode = MODE_PACKET;
+        config->printCreateClauses = a_print_create_clauses->count > 0;
 
         if (a_passport_dir->count) {
             config->passportDir = *a_passport_dir->sval;
@@ -263,7 +270,14 @@ int main(int argc, char **argv)
             return 0;
     }
 
-    void *loggerParserEnv = initLoggerParser(config.passportDir, nullptr);
+    void *loggerParserEnv = initLoggerParser(config.passportDir, onLoggerParserLog);
+
+    if (config.printCreateClauses) {
+        std::cout << sqlCreateTable1(config.outputFormat, nullptr, "\n") << std::endl;
+        doneLoggerParser(loggerParserEnv);
+        exit(0);
+    }
+
     LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(loggerParserEnv);
 
     // set "base" loader
@@ -274,7 +288,7 @@ int main(int argc, char **argv)
         lkl.setCollection(&lkcBase);
         c->setLoggerKosaPacketsLoader(&lkl);
         if (config.verbosity > 2) {
-            std::cerr << "Base packets: " << lkcBase.toString() << std::endl;
+            std::cerr << "Base packets: " << lkcBase.packetsToString() << std::endl;
         }
     }
 
@@ -287,10 +301,16 @@ int main(int argc, char **argv)
 
     switch (config.outputFormat) {
         case LOGGER_OUTPUT_FORMAT_JSON:
-            outputString = c->toJsonString();
+            if (config.verbosity)
+                outputString = c->packetsToJsonString();
+            else
+                outputString = c->toJsonString();
             break;
         case LOGGER_OUTPUT_FORMAT_TEXT:
-            outputString = c->toString();
+            if (config.verbosity)
+                outputString = c->packetsToString();
+            else
+                outputString = c->toString();
             break;
         case LOGGER_OUTPUT_FORMAT_TABLE:
             outputString = c->toTableString();

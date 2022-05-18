@@ -46,7 +46,7 @@ std::string time2string(
 		ptm = gmtime(&val);
 	}
 	char dt[64];
-	strftime(dt, sizeof(dt), dateformat0, ptm);
+	strftime(dt, sizeof(dt), dateformat1, ptm);
 	return std::string(dt);
 }
 

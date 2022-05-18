@@ -492,10 +492,7 @@ std::string LoggerItemId::toString() const
 {
 	std::stringstream ss;
 	ss 
-		<< "kosa\t" << (int) kosa << std::endl								// идентификатор косы (номер, дата)
-		<< "measure\t" << (int) measure << std::endl						// мл. Байт номера замера, lsb use (или addr_use?)
-		<< "packet\t" << (int) packet << std::endl							// packet number
-		<< "year\t" << (int) 2000 + kosa_year << std::endl;					// reserved for first packet
+		<< 'N' << (int) kosa_year << '-' << (int) kosa << " #" << (int) measure;
 	return ss.str();	
 }
 
@@ -1480,6 +1477,7 @@ bool LoggerCollection::get(
     for (std::vector<LoggerItem>::const_iterator it(items.begin()); it != items.end(); it++) {
         it->get(retval);
     }
+    return true;
 }
 
 bool LoggerCollection::getTemperature(
@@ -1692,6 +1690,28 @@ bool LoggerKosaPackets::operator!=(
 
 std::string LoggerKosaPackets::toString() const
 {
+    bool usePassport = false;
+#ifdef ENABLE_LOGGER_PASSPORT
+    if (collector && collector->passportDescriptor) {
+        usePassport = hasPassport(collector->passportDescriptor, id.kosa, id.kosa_year);
+    }
+#endif
+    std::stringstream ss;
+    ss << id.toString() << " " << time2string(measured(), true) << std::endl;
+    ss << "T  ";
+    temperatureCommaString(ss, " ", "N/A");
+    if (usePassport) {
+        ss << std::endl << "Tp ";
+        temperatureCorrectedCommaString(ss, " ", "N/A");
+    }
+    ss << std::endl << "Th ";
+    valueCommaString(ss, " ", "", "", "N/A");
+    ss << std::endl;
+    return ss.str();
+}
+
+std::string LoggerKosaPackets::packetsToString() const
+{
 	std::stringstream ss;
 	ss <<  std::endl
 		<< id.toString() << std::endl
@@ -1703,6 +1723,22 @@ std::string LoggerKosaPackets::toString() const
 }
 
 std::string LoggerKosaPackets::toJsonString() const
+{
+    std::stringstream ss;
+    ss << "{\"id\": " <<  id.toJsonString()
+        << ", \"t\": [";
+    temperatureCommaString(ss, ", ", "null");
+    ss << "], \"tp\": [";
+    temperatureCorrectedCommaString(ss, ", ", "null");
+    ss << "], \"raw\": [";
+    rawCommaString(ss, ", ", "\"", "\"");
+    ss << "], \"th\": [";
+    valueCommaString(ss, ", ", "\"", "\"", "null");
+    ss << "]}";
+    return ss.str();
+}
+
+std::string LoggerKosaPackets::packetsToJsonString() const
 {
 	std::stringstream ss;
 	ss << "{\"id\": " <<  id.toJsonString()
@@ -1723,9 +1759,11 @@ std::string LoggerKosaPackets::toTableString() const
 }
 
 void LoggerKosaPackets::valueCommaString(
-    std::ostream &ostrm,
-    const std::string &separator,
-    const std::string &substEmptyValue
+        std::ostream &ostrm,
+        const std::string &separator,
+        const std::string &oparen,
+        const std::string &cparen,
+        const std::string &substEmptyValue
 ) const
 {
     std::map<uint8_t, TEMPERATURE_2_BYTES> r;
@@ -1734,16 +1772,21 @@ void LoggerKosaPackets::valueCommaString(
         int c = 0;
         // map is sorted by the first
         for (std::map<uint8_t, TEMPERATURE_2_BYTES>::const_iterator it(r.begin()); it != r.end(); it++) {
-            if (isFirst) {
+            if (isFirst)
                 isFirst = false;
-            } else
+            else
                 ostrm << separator;
             // some sensors can be missed
             int skipped = it->first - c;
             for (int i = 0; i < skipped; i++) {
                 ostrm << substEmptyValue << separator;
             }
-            ostrm << std::hex << std::setw(2) << std::setfill('0') <<  it->second.t.f.hi << it->second.t.f.lo;
+            ostrm << oparen
+                << std::setfill('0') << std::setw(2) << std::hex
+                << (int) (uint8_t) it->second.t.f.hi
+                << std::setw(2)
+                << (int) (uint8_t) it->second.t.f.lo
+                << cparen;
             c++;
         }
     }
@@ -1787,7 +1830,7 @@ void LoggerKosaPackets::temperatureCorrectedCommaString(
 		return temperatureCommaString(ostrm, separator, substEmptyValue);
 
     std::map<uint8_t, double> r;
-    if (packets.get(r)) {
+    if (packets.getTemperature(r)) {
         bool isFirst = true;
         int c = 0;
         // map is sorted by the first
@@ -1815,8 +1858,10 @@ void LoggerKosaPackets::temperatureCorrectedCommaString(
 }
 
 void LoggerKosaPackets::rawCommaString(
-        std::ostream &ostrm,
-        const std::string &separator
+    std::ostream &ostrm,
+    const std::string &separator,
+    const std::string &oparen,
+    const std::string &cparen
 ) const
 {
     bool isFirst = true;
@@ -1826,7 +1871,7 @@ void LoggerKosaPackets::rawCommaString(
             isFirst = false;
         } else
             ostrm << separator;
-        ostrm << bin2hexString(it->packet);
+        ostrm << oparen << bin2hexString(it->packet) << cparen;
     }
 }
 
@@ -1847,7 +1892,7 @@ LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa(uint32_t addr)
 }
 
 /**
- * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw, temperature raw integer hex value
+ * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw, temperature raw integer hex value, temperature(not corrected)
  * @param retval out param values
  * @param substEmptyValue if value is not set, substitute this value, e.g. "null"
  */
@@ -1867,17 +1912,18 @@ void LoggerKosaPackets::toStrings(
     temperatureCommaString(ss, ",", substEmptyValue);
     retval.push_back(ss.str());
 
-	std::stringstream ssp;
+    std::stringstream ssp;
     temperatureCorrectedCommaString(ssp, ",", substEmptyValue);
     retval.push_back(ssp.str());
 
     std::stringstream ssr;
-    rawCommaString(ssr, " ");
+    rawCommaString(ssr, " ", "", "");
     retval.push_back(ssr.str());
 
+    // 2 byte int as hex temperatures
     std::stringstream ssti;
-    valueCommaString(ssp, ",", substEmptyValue);
-    retval.push_back(ssp.str());
+    valueCommaString(ssti, ",", "", "", substEmptyValue);
+    retval.push_back(ssti.str());
 }
 
 void LoggerKosaPackets::updateKosaAfterCopy()
@@ -2013,6 +2059,15 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
 
 std::string LoggerKosaCollector::toString() const
 {
+    std::stringstream ss;
+    for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
+        ss << it->toString() << std::endl;
+    }
+    return ss.str();
+}
+
+std::string LoggerKosaCollector::packetsToString() const
+{
 	std::stringstream ss;
 	bool first = true;
 	for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
@@ -2020,12 +2075,28 @@ std::string LoggerKosaCollector::toString() const
 			first = false;
 		else
 			ss << ", ";
-		ss << it->toString();
+		ss << it->packetsToString();
 	}
 	return ss.str();
 }
 
 std::string LoggerKosaCollector::toJsonString() const
+{
+    std::stringstream ss;
+    bool first = true;
+    ss << "[";
+    for (std::vector<LoggerKosaPackets>::const_iterator it(koses.begin()); it != koses.end(); it++) {
+        if (first)
+            first = false;
+        else
+            ss << ", ";
+        ss << it->toJsonString();
+    }
+    ss << "]";
+    return ss.str();
+}
+
+std::string LoggerKosaCollector::packetsToJsonString() const
 {
 	std::stringstream ss;
 	bool first = true;
@@ -2035,7 +2106,7 @@ std::string LoggerKosaCollector::toJsonString() const
 			first = false;
 		else
 			ss << ", ";
-		ss << it->toJsonString();
+		ss << it->packetsToJsonString();
 	}
 	ss << "]";
 	return ss.str();

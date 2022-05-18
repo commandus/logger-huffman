@@ -137,18 +137,81 @@ called) then it removes from the memory.
 
 #### logger-huffman-print
 
-logger-huffman-print utility prints packet data tos stdout.
+logger-huffman-print read binary packets from stdin:
+```
+cat packet-data.bin | ./logger-huffman-print
+```
 
-Pass packet as hex string in command line:
+Also, you can pass packet(s) in the command line as hex string:
 ```
 ./logger-huffman-print <hex-data>
 ```
 
-or pass binary data:
+logger-huffman-print parses packets and outputs sensor temperature to stdout as JSON string.
 
+Each sensor value must have correct with approximation as passport specify.
+
+Option -p <path> provide path to the passport directory.
+
+logger-huffman-print utility print out packet data to stdout using JSON or other formats (-f option):
+
+- json - JSON string
+- text - plain text
+- table - tab delimited data
+
+Output format expands with -v option.
+
+Logger send 3 types of packets:
+
+- 4a/4b base
+- 48/49 diff
+- 4c/4d huffman compressed diff
+
+To restore "diff" packets logger-huffman-print requires "base" packets sent earlier to calc differences.
+
+In this case you need provide "base" packets using one or more -b <hex-base-packet> options. 
+
+logger-huffman-print utility can print out SQL INSERT clause. Option -f specify SQL dialect:
+
+- postgresql
+- mysql
+- firebird
+- sqlite
+
+Option -f values 
+- compress
+- decompress 
+
+intended for debug purposes. 
+
+Option "-f compress" encode data, Option "-f decompress" decode data. Data read from stdin if no hex values is provided 
+in command line.  
+
+Option -c print out SQL statements to create table in the database.
+
+For instance, get SQL statements to create table in SQLite database:
 ```
-cat packet-data.bin | ./logger-huffman-print
+./logger-huffman-print -c -f sqlite
+CREATE TABLE "logger_raw"("id" integer PRIMARY KEY AUTOINCREMENT, "raw" text);
+CREATE TABLE "logger_lora"("id" integer PRIMARY KEY AUTOINCREMENT, "kosa" integer, "year" integer, "no" integer, "measured" integer, "parsed" integer, "vcc" real, "vbat" real, "t" text, "tp" text, "raw" text, "th" text);
 ```
+Option -f <sql-dialect> select target SQL dialect. 
+
+First table "logger_raw" keep any received packet.
+
+Second table "logger_lora" keep successfully parsed packets in one record.
+
+Each record has 
+- "t" sensor temperature (as is, no approximation)
+- "tp" corrected sensor temperature (approximated by the sensor passport)
+- "th" read sensor value as hex string
+- "vcc" bus voltage
+- "vbat" battery voltage
+- "measured" measurement time, unix epoch time (seconds since Jan 1 1970)
+- "parsed" received by network server time, unix epoch time (seconds since Jan 1 1970)
+- "raw" packets as hex strings
+- "kosa" serial number
+- "year" production year since 2000 year
 
 Examples:
 
@@ -161,7 +224,6 @@ Specify logger passport directory:
 ```
 ./logger-huffman-print -f sqlite 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900 -p ../logger-passport/tests/passport
 INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 2, 1645510616, 1650587407, 4.75, 3.30, '0,26.5,26.5,26.5625,26.5625,26.5625', '0,26.5,26.5,26.5625,26.5625,26.5625', '4a00280002031c140038100f1602161c1400003981190002 4b1c02020006cfaa0101a8000201a8000301a9000401a900 4b1c02030501a90000000000000000000000000000000000'); INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 3, 1645510916, 1650587407, 4.75, 3.30, '0,26.5,26.5625,26.625,26.5,26.5625', '0,26.5,26.5625,26.625,26.5,26.5625', '4a00280003031c140038150f1602161c1400003981190003 4b1c03020006cfaa0101a8000201a9000301aa000401a800 4b1c03030501a90000000000000000000000000000000000');
-
 ```
 
 ```
@@ -231,7 +293,7 @@ cd logger-huffman
 make
 ```
 
-Configure and make project using Autotools without logger passords library:
+Configure and make project using Autotools without logger-password library:
 ```
 cd logger-huffman
 ./configure --enable-logger-passport
@@ -351,75 +413,3 @@ T ST    MMPPKKYY================================
 	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
 	                                        used = 512?,record number, 1..65535
 ```
-
-typedef struct packet_title_var_t
-{
-unsigned char      type;    //1    0x Тип 0х1С (X = 0x4С) это 0b 0100 1000 – установлен резервный бит
-unsigned char      param;   //2 Для сжатого пакета, во втором байте,
-unsigned char     status;   //3 статус  замера 0 ( и ошибки подготовки если пакет 30 байт ошибочный)
-unsigned int     compress_bytes;  //4 5 или как инт просто?? - до 10 бит ? 6 на другое
-unsigned int        num;     //6 7  used??? именно передачи! после замены зап.0 снова с 1 !!??
-unsigned char         ident[2];   //8 9  идентификатор косы Идентификатор прибора
-} packet_title_var_t;
-
-	uint8_t typ;						    // 	LOGGER_PACKET_RAW, LOGGER_PACKET_PKT_1, LOGGER_PACKET_DELTA_1, LOGGER_PACKET_HUFF_1
-	union {
-		uint8_t data_bits: 3;
-		uint8_t rfu: 4;
-		uint8_t command_change: 1;
-		uint8_t b;							// статус замера, биты 0-3 битовая длина тела данных замера, бит 7 – получена команда на смену 0 замера.
-	} status;
-	uint16_t size;							// (compressed) общая длина данных, bytes
-	uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
-	uint8_t packets;						// количество пакетов в замере! (лора по 24 байта с шапками пакетов)
-	uint8_t kosa;							// идентификатор косы (номер, дата)
-	uint8_t kosa_year;						// год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
-
-
-{0x4A, 0b01000111,0x00, 0x0000, 0x0000,{22,19}}; //
-ttsszzzz mmppkkyy  
-      0  1 2 3 4  5 6 7 8  9 
-tt  KKuu uussKKYY r1r2VcVb pc
-48622600 02032613 01001900 00 000001
-0 1 2 3  4 5 6 7  8 9 
-     
-00000000 00000000 8 + 10 + 6
-
-ttKKZZPP
-49260202 000000ff  4 + 20
-00000000 00000000
-00000000 00000000
-
-ttKK  PP
-49260203 0000        4 + 2
-
-
-int16_t used;							// 0 record number diff
-int8_t delta_sec;				        // 2 seconds
-int8_t kosa;							// 3 номер косы в году
-int8_t kosa_year;	YY
-int8_t rfu1;							// 5 reserved
-int8_t rfu2;							// 6 reserved
-int8_t vcc; 							// 7 V cc bus voltage, V
-int8_t vbat;							// 8 V battery, V
-int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-
-
-    4
-
-
-  	uint8_t memblockoccupation;				// 0 0- memory block occupied
-	uint8_t seconds;						// 1 0..59
-	uint8_t minutes;						// 2 0..59
-	uint8_t hours;							// 3 0..23
-	uint8_t day;							// 4 1..31
-	uint8_t month;							// 5 1..12
-	uint8_t year;							// 6 0..99 year - 2000 = last 2 digits
-	uint8_t kosa;							// 7 номер косы в году
-	uint8_t kosa_year;						// 8 год косы - 2000 (номер года последние 2 цифры)
-	uint8_t rfu1;							// 9 reserved
-	uint8_t rfu2;							// 10 reserved
-	uint8_t vcc;							// 11 V cc bus voltage, V
-	uint8_t vbat;							// 12 V battery, V
-	uint8_t pcnt;							// 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-	uint16_t used;							// 14 record number, 1..65535

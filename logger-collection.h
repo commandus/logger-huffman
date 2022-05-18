@@ -232,7 +232,17 @@ public:
     time_t measured() const;
 
     std::string toString() const;
+    /**
+     * Return more detailed, packet by packet string
+     * @return text
+     */
+    std::string packetsToString() const;
     std::string toJsonString() const;
+    /**
+     * Return detailed JSON string, packet by packet
+     * @return detailed JSON string, packet by packet
+     */
+    std::string packetsToJsonString() const;
     std::string toTableString() const;
 
     /**
@@ -241,7 +251,8 @@ public:
      * @param separator list separator e.g. ", "
      * @param substEmptyValue substitute substEmptyValue string if sensor has no value, e.g. "null"
      */
-    void valueCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
+    void valueCommaString(std::ostream &ostrm, const std::string &separator, const std::string &oparen,
+                          const std::string &cparen, const std::string &substEmptyValue) const;
     /**
      * List of temperature values without correction.
      * @param ostrm output stream to write temperature values
@@ -262,7 +273,8 @@ public:
      * @param ostrm output stream
      * @param separator separator e.g. ", "
      */
-    void rawCommaString(std::ostream &ostrm, const std::string &separator) const;
+    void rawCommaString(std::ostream &ostrm, const std::string &separator, const std::string &oparen,
+                        const std::string &cparen) const;
 
     void toStrings(std::vector<std::string> &retval, const std::string &substEmptyValue) const;
 
@@ -312,8 +324,18 @@ class LoggerKosaCollector {
 		 */
         LOGGER_PACKET_TYPE put(uint32_t addr, const std::vector<std::string> &values);
 
-		std::string toString() const;
-		std::string toJsonString() const;
+        /**
+         * Text
+         * @return
+         */
+        std::string toString() const;
+        /**
+         * More details
+         * @return text
+         */
+		std::string packetsToString() const;
+        std::string toJsonString() const;
+		std::string packetsToJsonString() const;
 		std::string toTableString() const;
         bool addHeader(const LOGGER_MEASUREMENT_HDR &value);
 
