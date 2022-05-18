@@ -46,7 +46,20 @@ void stopPassportDirectory(
 	void *descriptor
 );
 
-/**onLog
+/**
+ * Return true if plume has passport
+ * @param descriptor passport collection descriptor
+ * @param serialNo plume serial number
+ * @param year plume production year
+ * @return true- has passport
+ */
+bool hasPassport(
+        void *descriptor,
+        int serialNo,
+        int year
+);
+
+/**
  * Calc temperature
  * @param descriptor passport collection descriptor
  * @param serialNo plume serial number
