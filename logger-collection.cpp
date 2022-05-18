@@ -933,16 +933,72 @@ bool LoggerItem::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
             break;
         case LOGGER_PACKET_PKT_1:
             break;
-        case LOGGER_PACKET_PKT_2: {
-            int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
-            for (int p = 0; p < cnt; p++) {
-                LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
-                if (!v)
-                    break;
-                retval[v->sensor] = v->value;
+        case LOGGER_PACKET_PKT_2:
+            {
+                int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+                for (int p = 0; p < cnt; p++) {
+                    LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
+                    if (!v)
+                        break;
+                    retval[v->sensor] = v->value;
+                }
+            }
+            break;
+        case LOGGER_PACKET_DELTA_1:
+        {
+            if (!collection)
+                return false;
+            if (!collection->kosa)
+                return false;
+
+            LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
+            if (!base)
+                return false;
+            std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
+            base->packets.get(baseT);
+
+            int dataBits = getDataBytes();
+            int cnt = (packet.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBits;
+            // packet number => value index
+            for (int c = 0; c < cnt; c++) {
+                int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, c);
+                TEMPERATURE_2_BYTES v;
+                v.t.t00625 = baseT[c].t.t00625 + diff;
+                retval[c] = v;
             }
         }
             break;
+        case LOGGER_PACKET_DELTA_2:
+        {
+            // get packet number from header
+            LOGGER_PACKET_SECOND_HDR *h;
+            int16_t r = extractSecondHdr(&h, packet.c_str(), packet.size());
+            if (r)
+                return false;
+
+            // get temperature base
+            LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
+            if (!base)
+                return base;
+            std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
+            base->packets.get(baseT);
+
+            // get data bits in diff: 1 or 2 bytes
+            int dataBytes = getDataBytes();
+
+            // get count
+            int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
+
+            // get sensor index, 3 or 6 sensor data in first (measurement header) packet plus 10 or 20 in the next packets
+            uint8_t ofs = (6 + (h->packet - 2) * 20) / dataBytes;
+            for (int p = ofs; p < ofs + 20; p++) {
+                int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, p);
+                TEMPERATURE_2_BYTES v;
+                v.t.t00625 = baseT[p].t.t00625 + diff;
+                retval[p] = v;
+            }
+            break;
+        }
     }
 }
 
@@ -1724,8 +1780,15 @@ std::string LoggerKosaPackets::packetsToString() const
 
 std::string LoggerKosaPackets::toJsonString() const
 {
+    bool usePassport = false;
+#ifdef ENABLE_LOGGER_PASSPORT
+    if (collector && collector->passportDescriptor) {
+        usePassport = hasPassport(collector->passportDescriptor, id.kosa, id.kosa_year);
+    }
+#endif
     std::stringstream ss;
     ss << "{\"id\": " <<  id.toJsonString()
+        << ", \"hasPassport\": " << (usePassport ? "true" : "false")
         << ", \"t\": [";
     temperatureCommaString(ss, ", ", "null");
     ss << "], \"tp\": [";
@@ -1753,9 +1816,10 @@ std::string LoggerKosaPackets::packetsToJsonString() const
 
 std::string LoggerKosaPackets::toTableString() const
 {
-	std::stringstream ss;
-	ss << packets.toTableString(id, start, measurementHeader);
-	return ss.str();
+    std::stringstream ss;
+    ss << id.toString() << "\t" << time2string(measured(), true) << "\t";
+    temperatureCorrectedCommaString(ss, "\t", "N/A");
+    return ss.str();
 }
 
 void LoggerKosaPackets::valueCommaString(
