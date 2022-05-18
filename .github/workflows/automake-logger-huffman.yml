@@ -17,9 +17,11 @@ jobs:
       run: ./autogen.sh
     - name: configure
       run: ./configure
+    - name: clean
+      run: make clean
     - name: make
       run: make
-    - name: make check
+    - name: check
       run: make check
-    - name: make distcheck
+    - name: distcheck
       run: make distcheck
