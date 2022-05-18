@@ -999,7 +999,10 @@ bool LoggerItem::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
             }
             break;
         }
+        default:
+            return false;
     }
+    return true;
 }
 
 /**
@@ -1091,7 +1094,7 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
             break;
         }
 		default:
-			break;
+			return false;
 	}
 	return true;
 }
@@ -1594,6 +1597,7 @@ LOGGER_PACKET_FIRST_HDR *LoggerCollection::getFirstHeader()
                 return nullptr;
         }
     }
+    return nullptr;
 }
 
 std::string LoggerCollection::toString() const
