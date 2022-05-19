@@ -12,6 +12,9 @@
 #define MAX_BUFFER_SIZE 256
 
 #ifdef ENABLE_LOGGER_PASSPORT
+// uncomment if you want passport in output
+// #define PRINT_PASSPORT_TEXT  1
+// #define PRINT_PASSPORT_JSON  1
 #include "logger-passport/logger-passport.h"
 #endif
 
@@ -1751,13 +1754,19 @@ bool LoggerKosaPackets::operator!=(
 std::string LoggerKosaPackets::toString() const
 {
     bool usePassport = false;
+    std::string passportText;
 #ifdef ENABLE_LOGGER_PASSPORT
     if (collector && collector->passportDescriptor) {
-        usePassport = hasPassport(collector->passportDescriptor, id.kosa, id.kosa_year);
+        usePassport = hasPassport(collector->passportDescriptor, FORMAT_PASSPORT_TEXT, &passportText, id.kosa, id.kosa_year);
     }
 #endif
     std::stringstream ss;
     ss << id.toString() << " " << time2string(measured(), true) << std::endl;
+#ifdef PRINT_PASSPORT_TEXT
+    if (usePassport) {
+        ss << "Passport: " << passportText << std::endl;
+    }
+#endif
     ss << "T  ";
     temperatureCommaString(ss, " ", "N/A");
     if (usePassport) {
@@ -1785,15 +1794,20 @@ std::string LoggerKosaPackets::packetsToString() const
 std::string LoggerKosaPackets::toJsonString() const
 {
     bool usePassport = false;
+    std::string passportJson;
 #ifdef ENABLE_LOGGER_PASSPORT
     if (collector && collector->passportDescriptor) {
-        usePassport = hasPassport(collector->passportDescriptor, id.kosa, id.kosa_year);
+        usePassport = hasPassport(collector->passportDescriptor, FORMAT_PASSPORT_JSON, &passportJson, id.kosa, id.kosa_year);
     }
 #endif
     std::stringstream ss;
     ss << "{\"id\": " <<  id.toJsonString()
-        << ", \"hasPassport\": " << (usePassport ? "true" : "false")
-        << ", \"t\": [";
+        << ", \"hasPassport\": " << (usePassport ? "true" : "false");
+#ifdef PRINT_PASSPORT_JSON
+    if (usePassport && !passportJson.empty())
+        ss << ", \"passport\": " << passportJson;
+#endif
+    ss << ", \"t\": [";
     temperatureCommaString(ss, ", ", "null");
     ss << "], \"tp\": [";
     temperatureCorrectedCommaString(ss, ", ", "null");
