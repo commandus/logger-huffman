@@ -71,7 +71,7 @@ protected:
 public:
     LoggerItemId id;
     std::string packet;
-    time_t parsed;
+    time_t parsed{};
     uint32_t addr;  // source address
     int errCode;
     // owner
@@ -110,6 +110,14 @@ public:
      * @return 0 if not exists
      */
     uint8_t getKosaYearFromFirstPacketOrLoad();
+
+    /**
+     * return temperature by diff
+     * @param retVal return temperature by diff
+     * @return temperature by diff
+     */
+    bool
+    getByDiff(std::map<uint8_t, TEMPERATURE_2_BYTES> *retVal, std::map<uint8_t, double> *retValT, int packetNo) const;
 };
 
 /**
@@ -360,6 +368,7 @@ std::string LOGGER_MEASUREMENT_HDR_DIFF_2_string(const LOGGER_MEASUREMENT_HDR_DI
 
 std::string LOGGER_PACKET_FIRST_HDR_2_string(const LOGGER_PACKET_FIRST_HDR &value);
 std::string LOGGER_PACKET_FIRST_HDR_2_json(const LOGGER_PACKET_FIRST_HDR &value);
+std::string LOGGER_PACKET_SECOND_HDR_2_string(const LOGGER_PACKET_SECOND_HDR &value);
 std::string LOGGER_PACKET_SECOND_HDR_2_json(const LOGGER_PACKET_SECOND_HDR &value);
 
 /** hexadecimal data represented string to binary */
