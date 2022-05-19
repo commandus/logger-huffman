@@ -243,17 +243,29 @@ std::string LOGGER_PACKET_FIRST_HDR_2_json(
 	return ss.str();
 }
 
-std::string LOGGER_PACKET_SECOND_HDR_2_json(
+std::string LOGGER_PACKET_SECOND_HDR_2_string(
 	const LOGGER_PACKET_SECOND_HDR &value
 )
 {
 	std::stringstream ss;
-	ss << "{\"type\": " << (int) value.typ
-		<<  ", \"kosa\": " << (int) value.kosa
-		<<  ", \"measure\": " << (int) value.measure
-		<<  ", \"packet\": " << (int) value.packet
-		<< "}";
+	ss << "type:\t" << (int) value.typ << " "
+		<<  "kosa:\t" << (int) value.kosa << " "
+		<<  "measure:\t" << (int) value.measure << " "
+		<<  "packet:\t " << (int) value.packet;
 	return ss.str();
+}
+
+std::string LOGGER_PACKET_SECOND_HDR_2_json(
+        const LOGGER_PACKET_SECOND_HDR &value
+)
+{
+    std::stringstream ss;
+    ss << "{\"type\": " << (int) value.typ
+       <<  ", \"kosa\": " << (int) value.kosa
+       <<  ", \"measure\": " << (int) value.measure
+       <<  ", \"packet\": " << (int) value.packet
+       << "}";
+    return ss.str();
 }
 
 std::string LOGGER_DATA_TEMPERATURE_RAW_2_json(
@@ -343,6 +355,8 @@ static const char *error_list_en[ERR_LIST_COUNT] =
 	"Invalid packet or no packet"
 };
 
+static std::string lastUnknownErrorDescription;
+
 const char *strerror_logger_huffman(
 	int errCode
 )
@@ -351,7 +365,8 @@ const char *strerror_logger_huffman(
 	if (idx < 0 || idx >= ERR_LIST_COUNT) {
 		std::stringstream ss;
 		ss << ERR_UNKNOWN_ERROR_CODE << errCode;
-		return ss.str().c_str();
+        lastUnknownErrorDescription = ss.str();
+		return lastUnknownErrorDescription.c_str();
 	}
 	return error_list_en[idx];
 }
@@ -361,7 +376,7 @@ const char *strerror_logger_huffman(
  */
 static void bufferPrintHex(std::ostream &ostream, const void* value, size_t size)
 {
-	if (value == NULL)
+	if (value == nullptr)
 		return;
 	unsigned char *p = (unsigned char*) value;
 	for (size_t i = 0; i < size; i++)
@@ -390,7 +405,7 @@ std::string hex2binString(
 	while (ss >> c[0]) {
 		if (!(ss >> c[1]))
 			break;
-		unsigned char x = (unsigned char) strtol(c, NULL, 16);
+		unsigned char x = (unsigned char) strtol(c, nullptr, 16);
 		r[i] = x;
 		i++;
 	}
@@ -432,7 +447,7 @@ LoggerItemId::LoggerItemId(
 	uint8_t akosa,							// идентификатор косы (номер, дата)
 	uint8_t ameasure,						// мл. Байт номера замера, lsb (или addr_use?)
 	uint8_t apacket,						// packet number
-	uint8_t akosa_year						// reserved for first packe
+	uint8_t akosa_year						// reserved for first packet
 )
 	: kosa(akosa), measure(ameasure), packet(apacket), kosa_year(akosa_year)
 {
@@ -715,8 +730,70 @@ std::string LoggerItem::toString() const
             }
             break;
         case LOGGER_PACKET_DELTA_2:		// 0x49 deltas(next)
+            {
+                LOGGER_PACKET_SECOND_HDR *h2;
+                int r = extractSecondHdr(&h2, packet.c_str(), packet.size());
+                std::stringstream ss;
+                if (r == 0)
+                    ss << "second_header:\t" << LOGGER_PACKET_SECOND_HDR_2_string(*h2) << std::endl;
+
+                int dataBytes = getDataBytes();
+                int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes;
+
+                // get diffs
+                std::vector<int> diffs;
+                diffs.resize(cnt);
+                for (int i = 0; i < cnt; i++) {
+                    diffs[i] = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
+                }
+
+                // put diffs
+                ss << "diff_measurements:\t";
+                for (int i = 0; i < cnt; i++) {
+                    ss << diffs[i] << " ";
+                }
+                ss << std::endl;
+
+                // get header for packet number. Packet number is used to calculate sensor index
+                LOGGER_PACKET_SECOND_HDR *h;
+                r = extractSecondHdr(&h, packet.c_str(), packet.size());
+                if (r)
+                    break;
+
+                if (!collection)
+                    break;
+                // get base temperature
+                std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
+                LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
+                if (!base)
+                    break;
+                base->packets.get(baseT);
+
+                // get sensor index, 3 or 6 sensor data in first (measurement header) packet plus 10 or 20 in the next packets
+                uint8_t ofs = (6 + (h->packet - 2) * 20) / dataBytes;
+
+                // put temperature
+                ss << "measurements:\t";
+                for (int p = ofs; p < ofs + cnt; p++) {
+                    int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, p);
+                    TEMPERATURE_2_BYTES v;
+                    v.t.t00625 = baseT[p].t.t00625 + diff;
+                    ss << std::fixed << std::setprecision(4) << TEMPERATURE_2_BYTES_2_double(v) << " ";
+                }
+                ss << std::endl;
+            }
             break;
-		default:
+        case LOGGER_PACKET_HUFF_1:		// 0x4с huffman encoded deltas(next)
+            {
+                s = "not implemented yet";
+            }
+            break;
+        case LOGGER_PACKET_HUFF_2:		// 0x4с huffman encoded deltas(next)
+            {
+                s = "not implemented yet";
+            }
+            break;
+        default:
 			break;
 	}
 	return s;
@@ -908,6 +985,16 @@ std::string LoggerItem::toJsonString() const
                 ss << "]";
             }
             break;
+        case LOGGER_PACKET_HUFF_1:		// 0x4с huffman encoded deltas(next)
+            {
+                ss << "\"error\": \"not implemented yet\"";
+            }
+            break;
+        case LOGGER_PACKET_HUFF_2:		// 0x4с huffman encoded deltas(next)
+            {
+                ss << "\"error\": \"not implemented yet\"";
+            }
+            break;
 		default:
 			break;
 	}
@@ -948,28 +1035,7 @@ bool LoggerItem::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
             }
             break;
         case LOGGER_PACKET_DELTA_1:
-        {
-            if (!collection)
-                return false;
-            if (!collection->kosa)
-                return false;
-
-            LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
-            if (!base)
-                return false;
-            std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
-            base->packets.get(baseT);
-
-            int dataBits = getDataBytes();
-            int cnt = (packet.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBits;
-            // packet number => value index
-            for (int c = 0; c < cnt; c++) {
-                int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, c);
-                TEMPERATURE_2_BYTES v;
-                v.t.t00625 = baseT[c].t.t00625 + diff;
-                retval[c] = v;
-            }
-        }
+            getByDiff(&retval, nullptr, 0);
             break;
         case LOGGER_PACKET_DELTA_2:
         {
@@ -978,30 +1044,19 @@ bool LoggerItem::get(std::map<uint8_t, TEMPERATURE_2_BYTES> &retval) const
             int16_t r = extractSecondHdr(&h, packet.c_str(), packet.size());
             if (r)
                 return false;
+            getByDiff(&retval, nullptr, h->packet);
+        }
 
-            // get temperature base
-            LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
-            if (!base)
-                return base;
-            std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
-            base->packets.get(baseT);
+        case LOGGER_PACKET_HUFF_1:
+            {
 
-            // get data bits in diff: 1 or 2 bytes
-            int dataBytes = getDataBytes();
-
-            // get count
-            int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
-
-            // get sensor index, 3 or 6 sensor data in first (measurement header) packet plus 10 or 20 in the next packets
-            uint8_t ofs = (6 + (h->packet - 2) * 20) / dataBytes;
-            for (int p = ofs; p < ofs + 20; p++) {
-                int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, p);
-                TEMPERATURE_2_BYTES v;
-                v.t.t00625 = baseT[p].t.t00625 + diff;
-                retval[p] = v;
             }
             break;
+        case LOGGER_PACKET_HUFF_2:
+        {
+
         }
+            break;
         default:
             return false;
     }
@@ -1042,28 +1097,7 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
 			}
             break;
         case LOGGER_PACKET_DELTA_1:
-            {
-                if (!collection)
-                    return false;
-                if (!collection->kosa)
-                    return false;
-
-                LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
-                if (!base)
-                    return false;
-                std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
-                base->packets.get(baseT);
-
-                int dataBits = getDataBytes();
-                int cnt = (packet.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBits;
-                // packet number => value index
-                for (int c = 0; c < cnt; c++) {
-                    int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, c);
-                    TEMPERATURE_2_BYTES v;
-                    v.t.t00625 = baseT[c].t.t00625 + diff;
-                    retval[c] = TEMPERATURE_2_BYTES_2_double(v);
-                }
-            }
+            getByDiff(nullptr, &retval, 0);
             break;
         case LOGGER_PACKET_DELTA_2:
         {
@@ -1072,31 +1106,14 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
             int16_t r = extractSecondHdr(&h, packet.c_str(), packet.size());
             if (r)
                 return false;
-
-            // get temperature base
-            LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
-            if (!base)
-                return base;
-            std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
-            base->packets.get(baseT);
-
-            // get data bits in diff: 1 or 2 bytes
-            int dataBytes = getDataBytes();
-
-            // get count
-            int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
-
-            // get sensor index, 3 or 6 sensor data in first (measurement header) packet plus 10 or 20 in the next packets
-            uint8_t ofs = (6 + (h->packet - 2) * 20) / dataBytes;
-            for (int p = ofs; p < ofs + 20; p++) {
-                int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, p);
-                TEMPERATURE_2_BYTES v;
-                v.t.t00625 = baseT[p].t.t00625 + diff;
-                retval[p] = TEMPERATURE_2_BYTES_2_double(v);
-            }
+            getByDiff(nullptr, &retval, h->packet);
             break;
         }
-		default:
+        case LOGGER_PACKET_HUFF_1:
+            break;
+        case LOGGER_PACKET_HUFF_2:
+            break;
+        default:
 			return false;
 	}
 	return true;
@@ -1153,7 +1170,7 @@ void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
 LOGGER_PACKET_TYPE LoggerItem::set(
     uint8_t &retPackets,
     size_t &retSize,
-    uint32_t addr,
+    uint32_t aAddr,
     const void *aBuffer,
     size_t aSize
 )
@@ -1265,8 +1282,60 @@ uint8_t LoggerItem::getKosaYearFromFirstPacketOrLoad() {
     return 0;
 }
 
+bool LoggerItem::getByDiff(
+    std::map<uint8_t, TEMPERATURE_2_BYTES> *retVal,
+    std::map<uint8_t, double> *retValT,
+    int packetNo
+) const
+{
+    if (!collection)
+        return false;
+    if (!collection->kosa)
+        return false;
+
+    // get temperature base
+    LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
+    if (!base)
+        return false;
+    std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
+    base->packets.get(baseT);
+
+    // get data bits in diff: 1 or 2 bytes
+    int dataBytes = getDataBytes();
+
+    // get count
+    int cnt;
+    // get sensor index, 3 or 6 sensor data in first (measurement header) packet plus 10 or 20 in the next packets
+    uint8_t ofs;
+
+    if (packetNo) {
+        cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
+        ofs = (6 + (packetNo - 2) * 20) / dataBytes;
+    } else {
+        // firat packet
+        cnt = (packet.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
+        ofs = 0;
+    }
+
+    // packet number => value index
+    if (retVal)
+        retVal->clear();
+    if (retValT)
+        retValT->clear();
+    for (int c = ofs; c < ofs + cnt; c++) {
+        int diff = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, c);
+        TEMPERATURE_2_BYTES v;
+        v.t.t00625 = baseT[c].t.t00625 + diff;
+        if (retVal)
+            retVal->insert(std::make_pair(c,  v));
+        if (retValT)
+            retValT->insert(std::make_pair(c,  TEMPERATURE_2_BYTES_2_double(v)));
+    }
+    return true;
+}
+
 LoggerMeasurementHeader::LoggerMeasurementHeader()
-    : header(NULL), start(0), vcc(0), vbat(0)
+    : header(nullptr), start(0), vcc(0), vbat(0)
 {
 
 }
@@ -1683,7 +1752,7 @@ LoggerKosaPackets::LoggerKosaPackets(
 )
 	: collector(nullptr), baseKosa(nullptr)
 {
-	start = time(NULL);
+	start = time(nullptr);
 	id = value.id;
     clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
     packets.items.push_back(value);
@@ -1700,7 +1769,7 @@ LoggerKosaPackets::~LoggerKosaPackets()
 
 bool LoggerKosaPackets::expired() const 
 {
-	return (time(NULL) - start) > MAX_SECONDS_WAIT_KOSA_PACKETS;
+	return (time(nullptr) - start) > MAX_SECONDS_WAIT_KOSA_PACKETS;
 }
 
 bool LoggerKosaPackets::add(
@@ -1713,7 +1782,7 @@ bool LoggerKosaPackets::add(
 	bool newOne = packets.items.empty();
 	if (newOne || value == id) {
 		if (newOne) {
-			start = time(NULL);
+			start = time(nullptr);
 			id = value.id;
 		}
         value.collection = &this->packets;
