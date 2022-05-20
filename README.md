@@ -385,7 +385,7 @@ Single VccReal = Convert.ToSingle(94 - head[11]) * 0.05814F + 2.6F;
 Single VbatReal = (Single)((double)(head[12]* 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08);
 ```
 
-#### Packet 4a scheme
+#### Packet 4a example
 
 ```
 ----------------OOSSmmhhddMMYYkkyyr1r2vcvbPCused
@@ -412,4 +412,54 @@ T ST    MMPPKKYY================================
 	                                    vb = 81h = 129 vbat V battery, V
 	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
 	                                        used = 512?,record number, 1..65535
+```
+
+#### Packet 4c example
+
+4c620a00020126130100467cbff9fe73e67f
+
+```
+FIRST_HDR_8BYTES  MEASURE_HDR_10_BYTES
+0 1 2 3 4 5 6 7   8 9 0 1 2 3 4 5 6 7   8 9 0 1 2 3
+T_STsizeMMPPKKYY  OOSSmmhhddMMYYkkyyr1  r2vcvbPCused
+4c62020004000426  fd80000401ffff000000  010000000000000000000000ff000000000000ff00ff000000ffff0000000000
+== First packet header ==
+T_ = 4c = huffman delta packet 1
+  ST = 62 = status
+    size = 0200h общая длина данных
+        MM measure = 4 мл. Байт номера замера, lsb used (или addr_used?)
+	      PP packets = 0 количество пакетов в замере
+	        KK kosa = 04 идентификатор косы (номер, дата)
+	          YY kosa_year = 26h = 38  год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+                == Measure header ==
+                OOSSmmhhddMMYYkkyyr1
+                fd80000401ffff000000
+                OO = fd memblockoccupation
+	              SS = 80h
+	                mm = 10h = 16 minutes
+	                  hh = 0fh = 15 hours
+	                    dd = 16h = 22
+	                      MM = 2 month 1..12
+	                        YY = 16h = 22 year
+	                          kk = 00 номер косы в году
+	                            yy = 00 kosa_year год косы - 2000 (номер года последние 2 цифры)
+	                              r1 = 0 reserved
+                                    r2 = 0 reserved
+	                                  vc = 39h = 57 V cc bus voltage, V
+	                                    vb = 81h = 129 vbat V battery, V
+	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+	                                        used = 512?,record number, 1..65535
+```
+
+typedef ALIGN struct {
+    int16_t used;							// 0 record number diff
+    int8_t delta_sec;				        // 2 seconds
+    int8_t kosa;							// 3 номер косы в году
+    int8_t kosa_year;						// 4 год косы - 2000 (номер года последние 2 цифры)
+    int8_t rfu1;							// 5 reserved
+    int8_t rfu2;							// 6 reserved
+    int8_t vcc; 							// 7 V cc bus voltage, V
+    int8_t vbat;							// 8 V battery, V
+    int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+} PACKED LOGGER_MEASUREMENT_HDR_DIFF;		// 10 bytes
 ```

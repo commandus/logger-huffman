@@ -96,14 +96,14 @@ typedef ALIGN struct {
 	uint16_t size;							// (compressed) общая длина данных, bytes
 	uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
 	uint8_t packets;						// количество пакетов в замере! (лора по 24 байта с шапками пакетов)
-	uint8_t kosa;							// идентификатор косы (номер, дата)
-	uint8_t kosa_year;						// год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+	uint8_t kosa;							// plume serial number
+	uint8_t kosa_year;						// plume producation year - 2000
 } PACKED LOGGER_PACKET_FIRST_HDR;			// 8 bytes
 
 // следующий пакет typ 4b- plain 49- delta 4d- huffman
 typedef ALIGN struct {
 	uint8_t typ;						    // 49 просто сжатие дельта, 0х4b 4d хафман
-	uint8_t kosa;							// идентификатор косы (номер, дата)
+	uint8_t kosa;							// plume serial number
 	uint8_t measure;						// мл. Байт номера замера, lsb used (или addr_used?)
 	uint8_t packet;							// номер пакета в замере
 } PACKED LOGGER_PACKET_SECOND_HDR;			// 4 bytes
@@ -168,10 +168,11 @@ size_t getLoggerPacketTypeSize(
 );
 
 /**
- * Extract header only
+ * Extract first header
  * @param retHdr return header pointer
  * @param buffer data
  * @param size buffer size
+ * @return 0- success, <0- error code
  */
 int extractFirstHdr(
 	LOGGER_PACKET_FIRST_HDR **retHdr,
@@ -179,6 +180,13 @@ int extractFirstHdr(
 	size_t bufferSize
 );
 
+/**
+ * Extract seconf header
+ * @param retHdr return header pointer
+ * @param buffer data. Huffman packet must decoded first
+ * @param size buffer size
+ * @return 0- success, <0- error code
+ */
 int16_t extractSecondHdr(
 	LOGGER_PACKET_SECOND_HDR **retHdr,
 	const void *buffer,
@@ -248,13 +256,13 @@ void LOGGER_MEASUREMENT_HDR_delta(
 /**
  * Return diff value
  * @param buffer packet
- * @param bits 1 or 2
+ * @param dataSizeBytes 1 or 2 bytes per diff temperature
  * @param index zero based index
  * @return diff value
  */
 int getDiff(
     const void *buffer,
-    int bits,
+    int dataSizeBytes,
     int index
 );
 
