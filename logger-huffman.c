@@ -106,10 +106,11 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 }
 
 /**
- * Extract header only
+ * Extract header only.
  * @param retHdr return header pointer
- * @param buffer data
+ * @param buffer LOGGER_PACKET_HUFF_1 data packet must decoded first
  * @param size buffer size
+ * @return 0- success, <0- error code
  */
 int extractFirstHdr(
 	LOGGER_PACKET_FIRST_HDR **retHdr,
@@ -122,6 +123,7 @@ int extractFirstHdr(
 	switch (t) {
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
         case LOGGER_PACKET_DELTA_1:
+		case LOGGER_PACKET_HUFF_1:		// huffman packet 1 must decoded first!
 			if (bufferSize < sizeof(LOGGER_PACKET_FIRST_HDR)) {
                 *retHdr = NULL;
                 return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
@@ -145,6 +147,7 @@ int16_t extractSecondHdr(
 	switch (t) {
  		case LOGGER_PACKET_PKT_2:		// with packet header (second)
         case LOGGER_PACKET_DELTA_2:
+		case LOGGER_PACKET_HUFF_2:
 			if (bufferSize < sizeof(LOGGER_PACKET_SECOND_HDR)) {
                 *retHdr = NULL;
                 return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
@@ -333,17 +336,17 @@ void LOGGER_MEASUREMENT_HDR_delta(
 /**
  * Return diff value
  * @param buffer packet
- * @param bits 1 or 2
+ * @param dataSizeBytes 1 or 2
  * @param index zero based index
  * @return diff value
  */
 int getDiff(
     const void *buffer,
-    int bits,
+    int dataSizeBytes,
     int index
 )
 {
-    switch (bits) {
+    switch (dataSizeBytes) {
         case 2:
 #if BYTE_ORDER == BIG_ENDIAN
             return htobe16(((int16_t*) buffer)[index]);

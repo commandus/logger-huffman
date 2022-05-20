@@ -52,6 +52,8 @@ class LoggerItemId {
         std::string packetString() const;						// packet number
         std::string kosaYearString() const; 					// reserved for first packet
         void set(const LOGGER_MEASUREMENT_HDR &param);
+
+    void clear();
 };
 
 class LoggerCollection;
@@ -60,6 +62,39 @@ class LoggerCollection;
  * Keep measurements
  */
 class LoggerItem {
+private:
+    /**
+     * Debug print out delta aPacket 1
+     * @param aPacket delta aPacket
+     * @return
+     */
+    std::string delta1ToString(const std::string &aPacket) const;
+    /**
+     * Debug print out delta packet 2
+     * @param packet delta packet
+     * @return
+     */
+    std::string delta2ToString(const std::string &packet) const;
+    /**
+     * Debug print out JSON delta packet 1
+     * @param aPacket
+     * @return JSON string
+     */
+    std::string delta1ToJson(const std::string &aPacket) const;
+    /**
+     * Debug print out JSON delta packet 2
+     * @param aPacket
+     * @return JSON string
+     */
+    std::string delta2ToJson(const std::string &aPacket) const;
+
+    /**
+     * return temperature by diff
+     * @param retVal return temperature by diff
+     * @return temperature by diff
+     */
+    bool getByDiff(std::map<uint8_t, TEMPERATURE_2_BYTES> *retVal, std::map<uint8_t, double> *retValT,
+        const std::string &aPacket, int packetNo) const;
 protected:
     /**
      * Return approximated temperature
@@ -110,14 +145,6 @@ public:
      * @return 0 if not exists
      */
     uint8_t getKosaYearFromFirstPacketOrLoad();
-
-    /**
-     * return temperature by diff
-     * @param retVal return temperature by diff
-     * @return temperature by diff
-     */
-    bool
-    getByDiff(std::map<uint8_t, TEMPERATURE_2_BYTES> *retVal, std::map<uint8_t, double> *retValT, int packetNo) const;
 };
 
 /**
