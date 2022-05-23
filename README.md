@@ -228,8 +228,8 @@ INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vb
 
 ```
 ./logger-huffman-print -f json 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900
-[{"id": {"kosa": 28, "measure": 2, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 2, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}
-}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1407.9375}, {"sensor": 3, "t": -1391.9375}, {"sensor": 4, "t": -1391.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}, {"id": {"kosa": 28, "measure": 3, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 3, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}
+[{"id": {"kosa": 28, "measure": 2, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bytes": 0, "command_change": 0, "measure": 2, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}
+}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1407.9375}, {"sensor": 3, "t": -1391.9375}, {"sensor": 4, "t": -1391.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}, {"id": {"kosa": 28, "measure": 3, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bytes": 0, "command_change": 0, "measure": 3, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}
 }}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 3, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1391.9375}, {"sensor": 3, "t": -1375.9375}, {"sensor": 4, "t": -1407.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 3, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}]
 ```
 
@@ -413,53 +413,42 @@ T ST    MMPPKKYY================================
 	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
 	                                        used = 512?,record number, 1..65535
 ```
-
 #### Packet 4c example
 
-4c620a00020126130100467cbff9fe73e67f
+```
+FIRST_HDR_8BYTES Huffman encoded data
+T_STsizeMMPPKKYY UUss----------------
+4c620a0002012613 0100467cbff9fe73e67f
+                 UU = 01 used (measure number lat byte)
+                   ss = 00 delta sec
+                     --- encoded ---
+```
+
 
 ```
-FIRST_HDR_8BYTES  MEASURE_HDR_10_BYTES
-0 1 2 3 4 5 6 7   8 9 0 1 2 3 4 5 6 7   8 9 0 1 2 3
-T_STsizeMMPPKKYY  OOSSmmhhddMMYYkkyyr1  r2vcvbPCused
-4c62020004000426  fd80000401ffff000000  010000000000000000000000ff000000000000ff00ff000000ffff0000000000
+FIRST_HDR_8BYTES  MEASURE_HDR_10_BYTES                       10                  20
+0 1 2 3 4 5 6 7   8 9 0 1 2 3 4 5 6 7    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
+T_STsizeMMPPKKYY  OOSSmmhhddMMYYkkyyr1  
+4c620a0002012613  01001900000000010000  000000000000000000ff000000000000ff00ff000000ffff0000000000
 == First packet header ==
 T_ = 4c = huffman delta packet 1
   ST = 62 = status
-    size = 0200h общая длина данных
-        MM measure = 4 мл. Байт номера замера, lsb used (или addr_used?)
-	      PP packets = 0 количество пакетов в замере
-	        KK kosa = 04 идентификатор косы (номер, дата)
-	          YY kosa_year = 26h = 38  год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+    size = 0a00h общая длина данных
+        MM measure = 02 мл. Байт номера замера, lsb used (или addr_used?)
+	      PP packets = 01 количество пакетов в замере
+	        KK kosa = 26h идентификатор косы (номер, дата)
+	          YY kosa_year = 13h = 19  год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
                 == Measure header ==
                 OOSSmmhhddMMYYkkyyr1
                 fd80000401ffff000000
-                OO = fd memblockoccupation
-	              SS = 80h
-	                mm = 10h = 16 minutes
-	                  hh = 0fh = 15 hours
-	                    dd = 16h = 22
-	                      MM = 2 month 1..12
-	                        YY = 16h = 22 year
-	                          kk = 00 номер косы в году
+                O1 = fd memblockoccupation
+	              SS = 00h
+	                mm = 19h minutes
+	                  hh = 00h  hours
+	                    dd = 10h
+	                      MM = 0 month 1..12
+	                        YY = 0h = 22 year
+	                          kk = 01 номер косы в году
 	                            yy = 00 kosa_year год косы - 2000 (номер года последние 2 цифры)
 	                              r1 = 0 reserved
-                                    r2 = 0 reserved
-	                                  vc = 39h = 57 V cc bus voltage, V
-	                                    vb = 81h = 129 vbat V battery, V
-	                                      PC = 19h = 25 pcnt pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-	                                        used = 512?,record number, 1..65535
-```
-
-typedef ALIGN struct {
-    int16_t used;							// 0 record number diff
-    int8_t delta_sec;				        // 2 seconds
-    int8_t kosa;							// 3 номер косы в году
-    int8_t kosa_year;						// 4 год косы - 2000 (номер года последние 2 цифры)
-    int8_t rfu1;							// 5 reserved
-    int8_t rfu2;							// 6 reserved
-    int8_t vcc; 							// 7 V cc bus voltage, V
-    int8_t vbat;							// 8 V battery, V
-    int8_t pcnt;							// 9 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-} PACKED LOGGER_MEASUREMENT_HDR_DIFF;		// 10 bytes
 ```

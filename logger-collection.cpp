@@ -108,8 +108,8 @@ std::string LOGGER_MEASUREMENT_HDR_2_string(
         << "gmt\t" << time2string(t, false) << std::endl
         << "kosa\t" << (int) value.kosa << std::endl
         << "year\t" << (int) value.kosa_year + 2000 << std::endl
-        << "vcc\t" << vcc2double(value.vcc) << std::endl
-        << "vbat\t" << vbat2double(value.vbat) << std::endl
+        << "vcc\t" << std::setprecision(3) <<  vcc2double(value.vcc) << std::endl
+        << "vbat\t" << std::setprecision(3) << vbat2double(value.vbat) << std::endl
         << "pcnt\t" << (int) value.pcnt << std::endl
         << "used\t" << LOGGER_MEASUREMENT_HDR_USED(value.used) << std::endl;
 	return ss.str();
@@ -198,8 +198,8 @@ std::string LOGGER_MEASUREMENT_HDR_2_table(
  * Prints out:
  *  type 74 always
  * 	size (compressed) общая длина данных, bytes
- *  status.data_bits 
- *  status.data_bits 
+ *  status.data_bytes
+ *  status.data_bytes
  *  status.command_change
  *	measure мл. Байт номера замера, lsb used (или addr_used?)
  *	packets  количество пакетов в замере! (лора по 24 байта с шапками пакетов)
@@ -212,12 +212,13 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
 {
 	std::stringstream ss;
 	ss
-		<< "header:" << std::endl
-		<< "type\t" << (int) value.typ << std::endl
-		<< "size\t" << (int) value.size << std::endl
-		<< "status\t" << (int) value.status.b << std::endl
-		<< "data_bits\t" <<  (int) value.status.data_bits << std::endl
-		<< "cmd ch\t" << (int) value.status.command_change << std::endl
+        << "header:" << std::endl
+        << "type\t" << (int) value.typ << std::endl
+        << "size\t" << (int) value.size << std::endl
+        << "status\t" << (int) value.status.b << std::endl
+        << "data_bytes\t" << (int) value.status.data_bytes << std::endl
+        << "command_change\t" << (int) value.status.command_change << std::endl
+        << "rfu\t" << (int) value.status.rfu << std::endl
 		<< "measure\t" << (int) value.measure << std::endl
 		<< "packets\t" << (int) value.packets << std::endl
 		<< "kosa\t" << (int) value.kosa  << std::endl
@@ -233,8 +234,9 @@ std::string LOGGER_PACKET_FIRST_HDR_2_json(
 	ss << "{\"type\": " << (int) value.typ
 		<< ", \"size\": " << (int) value.size
 		<<  ", \"status\": " << (int) value.status.b
-		<<  ", \"data_bits\": " << (int) value.status.data_bits
+		<<  ", \"data_bytes\": " << (int) value.status.data_bytes
 		<<  ", \"command_change\": " << (int) value.status.command_change
+        <<  ", \"rfu\": " << (int) value.status.rfu
 		<<  ", \"measure\": " << (int) value.measure
 		<<  ", \"packets\": " << (int) value.packets
 		<<  ", \"kosa\": " << (int) value.kosa
@@ -301,7 +303,7 @@ std::string LOGGER_DATA_TEMPERATURE_RAW_2_text(
 }
 
 std::string LOGGER_MEASUREMENT_HDR_DIFF_2_json(
-        const LOGGER_MEASUREMENT_HDR_DIFF *value
+    const LOGGER_MEASUREMENT_HDR_DIFF *value
 )
 {
     std::stringstream ss;
@@ -812,14 +814,16 @@ std::string LoggerItem::toJsonString() const
             break;
         case LOGGER_PACKET_HUFF_1:		// 0x4с huffman encoded deltas(next)
             {
-                std::string p = decompressLoggerString(packet);
-                ss << delta1ToJson(p);
+                std::string s = packet.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
+                    + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+                ss << delta1ToJson(s);
             }
             break;
         case LOGGER_PACKET_HUFF_2:		// 0x4с huffman encoded deltas(next)
             {
-                std::string p = decompressLoggerString(packet);
-                ss << delta2ToJson(p);
+                std::string s = packet.substr(0, sizeof(LOGGER_PACKET_SECOND_HDR))
+                    + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
+                ss << delta2ToJson(s);
             }
             break;
 		default:
@@ -879,20 +883,22 @@ bool LoggerItem::get(
             break;
         case LOGGER_PACKET_HUFF_1:
             {
-                std::string p = decompressLoggerString(packet);
-                std::cerr << "===" << bin2hexString(p) << "===" << std::endl;
-                getByDiff(&retval, nullptr, p, 0);
+                std::string s = packet.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
+                    + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+                std::cerr << "===" << bin2hexString(s) << "===" << std::endl;
+                getByDiff(&retval, nullptr, s, 0);
             }
             break;
         case LOGGER_PACKET_HUFF_2:
-        {
-            std::string p = decompressLoggerString(packet);
-            LOGGER_PACKET_SECOND_HDR *h;
-            int16_t r = extractSecondHdr(&h, p.c_str(), p.size());
-            if (r)
-                return false;
-            getByDiff(&retval, nullptr, p, h->packet);
-        }
+            {
+                std::string s = packet.substr(0, sizeof(LOGGER_PACKET_SECOND_HDR))
+                    + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
+                LOGGER_PACKET_SECOND_HDR *h;
+                int16_t r = extractSecondHdr(&h, s.c_str(), s.size());
+                if (r)
+                    return false;
+                getByDiff(&retval, nullptr, s, h->packet);
+            }
             break;
         default:
             return false;
@@ -948,19 +954,21 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
         }
         case LOGGER_PACKET_HUFF_1:
             {
-                std::string p = decompressLoggerString(packet);
-                getByDiff(nullptr, &retval, packet, 0);
+                std::string s = packet.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
+                    + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+                getByDiff(nullptr, &retval, s, 0);
             }
             break;
         case LOGGER_PACKET_HUFF_2:
-        {
-            std::string p = decompressLoggerString(packet);
-            LOGGER_PACKET_SECOND_HDR *h;
-            int16_t r = extractSecondHdr(&h, p.c_str(), p.size());
-            if (r)
-                return false;
-            getByDiff(nullptr, &retval, packet, h->packet);
-        }
+            {
+                std::string s = packet.substr(0, sizeof(LOGGER_PACKET_SECOND_HDR))
+                    + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
+                LOGGER_PACKET_SECOND_HDR *h;
+                int16_t r = extractSecondHdr(&h, s.c_str(), s.size());
+                if (r)
+                    return false;
+                getByDiff(nullptr, &retval, packet, h->packet);
+            }
             break;
         default:
 			return false;
@@ -1003,16 +1011,21 @@ void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
     retval->vcc = baseHeader.vcc;							                // 11 V cc bus voltage, V
     retval->vbat = baseHeader.vbat;							                // 12 V battery, V
     retval->pcnt = baseHeader.pcnt;							                // 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-    retval->used = baseHeader.used + value->used;			                // 14 record number, 1..65535
+    retval->used = baseHeader.used;             			                // 14 record number, 1..65535
 
     if (value) {
         retval->seconds += value->delta_sec;           						// 1 0..59
-        retval->rfu1 += value->rfu1;							                // 9 reserved
-        retval->rfu2 += value->rfu2;							                // 10 reserved
+        retval->rfu1 += value->rfu1;							            // 9 reserved
+        retval->rfu2 += value->rfu2;							            // 10 reserved
+std::cerr
+<< "+++++ retval->vcc " << (int) retval->vcc
+        << " + value->vcc " << (int) value->vcc
+        << " =  " << (int) retval->vcc + value->vcc
+<< "+++++" << std::endl;
         retval->vcc += value->vcc;							                // 11 V cc bus voltage, V
-        retval->vbat += value->vbat;							                // 12 V battery, V
-        retval->pcnt += value->pcnt;							                // 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
-        retval->used += value->used;			                // 14 record number, 1..65535
+        retval->vbat += value->vbat;							            // 12 V battery, V
+        retval->pcnt += value->pcnt;						                // 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
+        retval->used += value->used;			                            // 14 record number, 1..65535
     }
 }
 
@@ -1080,23 +1093,23 @@ LOGGER_PACKET_TYPE LoggerItem::set(
         case LOGGER_PACKET_HUFF_1:
             {
                 LOGGER_PACKET_FIRST_HDR *h1;
-                std::string p = decompressLoggerString(packet);
-                if (extractFirstHdr(&h1, p.c_str(), p.size())) {
+                if (extractFirstHdr(&h1, packet.c_str(), aSize)) {
                     id.clear();
                     break;  // some errors
                 }
                 id.set(h1->kosa, h1->measure, 1, h1->kosa_year);    // -1: first packet (with no data)
+                // std::string p = decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
                 retPackets = h1->packets;
             }
             break;
         case LOGGER_PACKET_HUFF_2:
             {
-                std::string p = decompressLoggerString(packet);
                 LOGGER_PACKET_SECOND_HDR *h2;
-                if (extractSecondHdr(&h2, p.c_str(), p.size())) {
+                if (extractSecondHdr(&h2, packet.c_str(), aSize)) {
                     id.clear();
                     break;  // some errors
                 }
+                // std::string p = decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
                 uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad();
                 id.set(h2->kosa, h2->measure, h2->packet, kosaYear);
                 id.packet = h2->packet;
@@ -1134,7 +1147,7 @@ int LoggerItem::getDataBytes() const {
     if (collection) {
         LOGGER_PACKET_FIRST_HDR *h1 = collection->getFirstHeader();
         if (h1) {
-            dataBits = h1->status.data_bits;
+            dataBits = h1->status.data_bytes;
         }
     }
     return dataBits;
@@ -1461,12 +1474,12 @@ void LoggerCollection::push(
 	items.push_back(value);
 }
 
-LOGGER_PACKET_TYPE
-LoggerCollection::put1(
-        size_t &retSize,
-        std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders,
-        uint32_t addr,
-        const void *buffer, size_t size)
+LOGGER_PACKET_TYPE LoggerCollection::put1(
+    size_t &retSize,
+    std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders,
+    uint32_t addr,
+    const void *buffer, size_t size
+)
 {
 	LoggerItem item(this);
     item.addr = addr;
@@ -1487,28 +1500,35 @@ LoggerCollection::put1(
                 }
                 break;
             case LOGGER_PACKET_DELTA_1:
+            case LOGGER_PACKET_HUFF_1:
                 {
                     LOGGER_PACKET_FIRST_HDR *h1;
                     int r = extractFirstHdr(&h1, item.packet.c_str(), item.packet.size());
                     if (r)
                         break;
-                    item.id.set(h1->kosa, h1->measure, 1, h1->kosa_year);	// -1: first packet (with no data)
+                    item.id.set(h1->kosa, h1->measure, 1, h1->kosa_year);    // -1: first packet (with no data)
 
                     if (collector) {
                         if (collector->loggerKosaPacketsLoader) {
                             LoggerKosaPackets lkpBase;
                             if (collector->loggerKosaPacketsLoader->load(lkpBase, item.addr)) {
-                                LOGGER_MEASUREMENT_HDR_DIFF *mhd = extractDiffHdr(item.packet.c_str(), item.packet.size());
-                                if (mhd) {
-                                    LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(&lkpBase.measurementHeader, mhd, lkpBase.measurementHeader);
-                                    retHeaders->push_back(lkpBase.measurementHeader);
-                                }
+                                LOGGER_MEASUREMENT_HDR_DIFF *mhd;
+                                if (t == LOGGER_PACKET_HUFF_1) {
+                                    std::string s = item.packet.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
+                                        + decompressLoggerString(item.packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+                                    mhd = extractDiffHdr(s.c_str(), s.size());
+                                } else
+                                    mhd = extractDiffHdr(item.packet.c_str(), item.packet.size());
+                                LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(&lkpBase.measurementHeader, mhd,
+                                    lkpBase.measurementHeader);
+                                retHeaders->push_back(lkpBase.measurementHeader);
                             }
                         }
                     }
                 }
                 break;
             case LOGGER_PACKET_DELTA_2:
+            case LOGGER_PACKET_HUFF_2:
                 {
                     LOGGER_PACKET_SECOND_HDR *h2;
                     extractSecondHdr(&h2, buffer, size);
