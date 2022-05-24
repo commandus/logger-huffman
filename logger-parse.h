@@ -132,4 +132,15 @@ std::string sqlInsertRaw(
     const std::map<std::string, std::string> *extraValues = NULL
 );
 
+/**
+ * Return SQL SELECT statement returning packets as hex strings separated by space
+ * @param sqlDialect SQL dialect number
+ * @param addr LoRaWAN device address 4 bytes long integer
+ * @return SQL SELECT statement returning packets as hex strings separated by space9
+ */
+std::string sqlBaseMeasurements(
+    int sqlDialect,
+    uint32_t addr
+);
+
 #endif

@@ -157,6 +157,12 @@ In example below DumbLoggerKosaPacketsLoader class is set to load packets from e
     c->setLoggerKosaPacketsLoader(&lkl);
 ```
 
+##### Get base SQL SELECT statement
+
+```c++
+std::string sql = sqlBaseMeasurements(SQL_POSTGRESQL, DEV_ADDR_UINT);
+```
+
 ### Command line tools
 
 - logger-huffman-print get packets in hex and print out temperature values

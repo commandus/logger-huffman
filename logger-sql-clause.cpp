@@ -215,12 +215,12 @@ std::string createTableSQLClauseLoggerRaw(
  * @return empty string if fails
  */
 void parsePacketStream(
-        std::ostream *output,
-        const std::vector <std::vector <std::pair<const std::string&, std::string> >> flds,
-        int outputFormat,
-        int sqlDialect,
-        const std::vector<std::string> &valueStrings,
-        const std::map<std::string, std::string> *extraFields
+    std::ostream *output,
+    const std::vector <std::vector <std::pair<const std::string&, std::string> >> flds,
+    int outputFormat,
+    int sqlDialect,
+    const std::vector<std::string> &valueStrings,
+    const std::map<std::string, std::string> *extraFields
 ) {
     std::string quote;
     std::string quote2;
@@ -352,7 +352,6 @@ void sqlInsertRawStrm(
     }
 
     // values
-
     ostrm << ") VALUES (";
     ostrm << quote2 << bin2hexString(value) << quote2;
 
@@ -363,4 +362,38 @@ void sqlInsertRawStrm(
         }
     }
     ostrm << ");";
+}
+
+/**
+ * Produce SQL SELECT statement get base measurement for device.
+ * Used in delta packet processing.
+ * @param outStrteam output stream
+ * @param sqlDialect SQL dialect
+ * @param addr LoRaWAN device address
+ */
+void printSQLBaseMeasurements(
+    std::ostream &outStrteam,
+    int sqlDialect,
+    uint32_t addr
+)
+{
+    std::string quote;
+    std::string quote2;
+    if (sqlDialect == SQL_MYSQL) {
+        quote = "`";    // MySQL exceptions for spaces and reserved words
+        quote2 = "'";
+    } else {
+        quote = "\"";
+        quote2 = "'";
+    }
+
+    outStrteam << "SELECT " << quote << fldName[SQL_FIELD_RAW] << quote << " FROM " << quote << tableNameLoggerLora << quote
+        << " WHERE " << quote << "loraaddr" << quote << " = " << quote2 << std::hex << addr << quote2
+        << " AND (" << quote << fldName[SQL_FIELD_RAW] << quote << " LIKE "  << quote2 << "4a%" << quote2
+        << " OR " << quote << fldName[SQL_FIELD_RAW] << quote << " LIKE "  << quote2 << "00%" << quote2
+        << " ) ORDER BY id DESC ";
+    if (sqlDialect == SQL_FIREBIRD)
+        outStrteam << "FETCH FIRST 1 ROW ONLY;";
+    else
+        outStrteam << "LIMIT 1;";
 }

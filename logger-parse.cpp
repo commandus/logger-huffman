@@ -248,3 +248,19 @@ void *getLoggerKosaCollection(void *env)
 {
     return (void *) ((LoggerParserEnv *) env)->lkc;
 }
+
+/**
+ * Return SQL SELECT statement returning packets as hex strings separated by space
+ * @param sqlDialect SQL dialect number
+ * @param addr LoRaWAN device address 4 bytes long integer
+ * @return SQL SELECT statement returning packets as hex strings separated by space9
+ */
+std::string sqlBaseMeasurements(
+    int sqlDialect,
+    uint32_t addr
+)
+{
+    std::stringstream ss;
+    printSQLBaseMeasurements(ss, sqlDialect, addr);
+    return ss.str();
+}
