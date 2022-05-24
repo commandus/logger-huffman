@@ -1,9 +1,12 @@
 #include <string>
 #include <cassert>
 #include <iostream>
+#include <sys/time.h>
 
 #include "logger-parse.h"
 #include "logger-sql-clause.h"
+#include "util-time-fmt.h"
+#include "dumb-logger-loader.h"
 #include "errlist.h"
 
 const uint32_t DEV_ADDR_INT = 42;
@@ -15,10 +18,19 @@ const std::string packet0 = "002614121f0c14261300003d3d71000100cf06aa01e6ff00"
                             "14dcff0015dcff0016ebff0017e6ff0018dfff0019dfff00"
                             "1adaff001be6ff00";
 
+const std::string packetHuff = "4c620a00020126130100467cbff9fe73e67f";
+const std::string packetsBase = "4a0080000207261300011512010115261300003e3d710002"
+                                "4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00"
+                                "4b26020305e3ff0006e0ff0007e2ff0008ddff0009e2ff00"
+                                "4b2602040adeff000bdaff000cdfff000debff000ee8ff00"
+                                "4b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff00"
+                                "4b26020614dcff0015dcff0016eaff0017e5ff0018dfff00"
+                                "4b26020719dfff001adaff001be6ff00";
+
 const std::string packetIncomplete = "4a00280002031c140038100f160216000000003981190002";
 
 static void printErrorAndExit(
-        int errCode
+    int errCode
 )
 {
     std::cerr << ERR_MESSAGE << errCode << ": " << strerror_logger_huffman(errCode) << std::endl;
@@ -95,8 +107,49 @@ void testIncompletePacket() {
     doneLoggerParser(env);
 }
 
+#define DEVICE_ADDR_INT 42
+void testDeltaPacket() {
+    struct timeval t0, t1, df;
+    size_t count = 0;
+    gettimeofday(&t0, NULL);
+
+    void *env = initLoggerParser("../logger-passport/tests/passport", nullptr);
+    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(env);
+
+    // Delta packet require "base" packets to be loaded
+    LoggerKosaCollector lkcBase;
+    lkcBase.put(DEVICE_ADDR_INT, hex2binString(packetsBase));
+
+    // set "base" loader
+    DumbLoggerKosaPacketsLoader lkl;
+    lkl.setCollection(&lkcBase);
+    c->setLoggerKosaPacketsLoader(&lkl);
+
+
+    // set SQL dialect output
+    int dialect = SQL_POSTGRESQL;
+    std::string pH = hex2binString(packetHuff);
+    for (int i = 0; i < 1000; i++) {
+        parsePacket(env, DEVICE_ADDR_INT, pH);
+        std::string outputString = sqlInsertPackets1(env, dialect); // toJsonString();
+        // std::cerr << outputString << std::endl;
+        rmCompletedOrExpired(env);
+        count++;
+    }
+    doneLoggerParser(env);
+
+    gettimeofday(&t1, NULL);
+    timevalSubtract(&df, &t1, &t0);
+
+    std::cout
+        << "Count: " << std::dec << count
+        << ", elapsed time: " << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
+}
+
 int main(int argc, char **argv)
 {
-    testLoggerParse();
-    testIncompletePacket();
+    // testLoggerParse();
+    // testIncompletePacket();
+    testDeltaPacket();
 }
+
