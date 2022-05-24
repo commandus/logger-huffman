@@ -41,7 +41,7 @@ std::string parsePacketsToSQLClause(
 /**
  * Return CREATE table SQL clause logger_lora
  * @param outputFormat 3- sql, 4- Sql
- * @param sqlDialect 0- PostgreSQL, 1- MySQL, 1- Firebird
+ * @param sqlDialect 0- PostgreSQL, 1- MySQL, 2- Firebird
  * @param extraValues  <optional field name>=<SQL type name>
  * @return empty string if fails
  */
@@ -54,7 +54,7 @@ std::string createTableSQLClauseLoggerLora(
 /**
  * Return CREATE table SQL clause logger_raw
  * @param outputFormat 3- sql, 4- Sql
- * @param sqlDialect 0- PostgreSQL, 1- MySQL, 1- Firebird
+ * @param sqlDialect 0- PostgreSQL, 1- MySQL, 2 - Firebird
  * @param extraValues  <optional field name>=<SQL type name>
  * @return empty string if fails
  */
@@ -75,6 +75,19 @@ void sqlInsertRawStrm(
     int sqlDialect,
     const std::string &value,
     const std::map<std::string, std::string> *extraValues = NULL
+);
+
+/**
+ * Produce SQL SELECT statement get base measurement for device.
+ * Used in delta packet processing.
+ * @param outStrteam output stream
+ * @param sqlDialect SQL dialect
+ * @param addr LoRaWAN device address
+ */
+void printSQLBaseMeasurements(
+    std::ostream &outStrteam,
+    int sqlDialect,
+    uint32_t addr
 );
 
 #endif

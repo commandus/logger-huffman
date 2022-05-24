@@ -107,7 +107,6 @@ void testIncompletePacket() {
     doneLoggerParser(env);
 }
 
-#define DEVICE_ADDR_INT 42
 void testDeltaPacket() {
     struct timeval t0, t1, df;
     size_t count = 0;
@@ -118,7 +117,7 @@ void testDeltaPacket() {
 
     // Delta packet require "base" packets to be loaded
     LoggerKosaCollector lkcBase;
-    lkcBase.put(DEVICE_ADDR_INT, hex2binString(packetsBase));
+    lkcBase.put(DEV_ADDR_INT, hex2binString(packetsBase));
 
     // set "base" loader
     DumbLoggerKosaPacketsLoader lkl;
@@ -130,7 +129,7 @@ void testDeltaPacket() {
     int dialect = SQL_POSTGRESQL;
     std::string pH = hex2binString(packetHuff);
     for (int i = 0; i < 1000; i++) {
-        parsePacket(env, DEVICE_ADDR_INT, pH);
+        parsePacket(env, DEV_ADDR_INT, pH);
         std::string outputString = sqlInsertPackets1(env, dialect); // toJsonString();
         // std::cerr << outputString << std::endl;
         rmCompletedOrExpired(env);
@@ -146,10 +145,18 @@ void testDeltaPacket() {
         << ", elapsed time: " << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
 }
 
+void testBaseSQLStatement() {
+    std::cout << sqlBaseMeasurements(SQL_POSTGRESQL, DEV_ADDR_INT) << std::endl;
+    std::cout << sqlBaseMeasurements(SQL_MYSQL, DEV_ADDR_INT) << std::endl;
+    std::cout << sqlBaseMeasurements(SQL_FIREBIRD, DEV_ADDR_INT) << std::endl;
+    std::cout << sqlBaseMeasurements(SQL_SQLITE, DEV_ADDR_INT) << std::endl;
+}
+
 int main(int argc, char **argv)
 {
     // testLoggerParse();
     // testIncompletePacket();
-    testDeltaPacket();
+    // testDeltaPacket();
+    testBaseSQLStatement();
 }
 
