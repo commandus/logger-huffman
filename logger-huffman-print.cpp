@@ -23,10 +23,9 @@
 #include "logger-huffman.h"
 #include "logger-collection.h"
 #include "logger-parse.h"
-/*
-#include "utilcompress.h"
-*/
+#include "logger-collection.h"
 #include "errlist.h"
+#include "dumb-logger-loader.h"
 
 const std::string programName = "logger-huffman-print";
 
@@ -88,28 +87,6 @@ public:
     MODE processingMode;                        // default packet processing
     int verbosity;                              // verbosity level
     bool printCreateClauses;                    // print out create clauses
-};
-
-class DumbLoggerKosaPacketsLoader: public LoggerKosaPacketsLoader {
-public:
-    LoggerKosaCollector *collection;
-    DumbLoggerKosaPacketsLoader()
-        : collection(nullptr)
-    {
-
-    }
-
-    bool load(LoggerKosaPackets &retVal, uint32_t addr) override {
-        if (collection && (!collection->koses.empty())) {
-            retVal = collection->koses[0];
-            return true;
-        } else
-            return false;
-    }
-
-    void setCollection(LoggerKosaCollector *aCollection) {
-        collection = aCollection;
-    }
 };
 
 void onLoggerParserLog(

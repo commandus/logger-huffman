@@ -75,3 +75,28 @@ time_t string2time(
 	}
 	return r;
 }
+
+int timevalSubtract (
+    struct timeval *retVal,
+    struct timeval *start,
+    struct timeval *finish)
+{
+    /* Perform the carry for the later subtraction by updating finish. */
+    if (start->tv_usec < finish->tv_usec) {
+        int nsec = (finish->tv_usec - start->tv_usec) / 1000000 + 1;
+        finish->tv_usec -= 1000000 * nsec;
+        finish->tv_sec += nsec;
+    }
+    if (start->tv_usec - finish->tv_usec > 1000000) {
+        int nsec = (start->tv_usec - finish->tv_usec) / 1000000;
+        finish->tv_usec += 1000000 * nsec;
+        finish->tv_sec -= nsec;
+    }
+
+    /* Compute the time remaining to wait. tv_usec is certainly positive. */
+    retVal->tv_sec = start->tv_sec - finish->tv_sec;
+    retVal->tv_usec = start->tv_usec - finish->tv_usec;
+
+    /* Return 1 if retVal is negative. */
+    return start->tv_sec < finish->tv_sec;
+}

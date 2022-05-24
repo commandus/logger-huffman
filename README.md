@@ -40,7 +40,7 @@ Optional headers:
 - util-compress.h
 - util-time-fmt.h
 
-Source code example:
+C++ source code example:
 
 ```
 #include "logger-sql-clause.h"
@@ -62,11 +62,13 @@ r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
 
 #### Second way
 
+This way is suitable for C source code.
+
 Header file: logger-parse.h
 
 Source code example:
 
-```
+```c++
 #include "logger-parse.h"
 
 void logCallback(void *env, int level, int modulecode, int errorcode, const std::string &message)
@@ -99,6 +101,9 @@ for (auto it(clauses.begin()); it != clauses.end(); it++) {
     std::cout << "Insert: " << *it << std::endl;
 }
 
+// Remove processed or expired packets
+rmCompletedOrExpired(env);
+
 // finish packet parser
 flushLoggerParser(env);
 doneLoggerParser(env);
@@ -130,6 +135,26 @@ called) then it removes from the memory.
 - sqlInsertPackets() find completed packets
 - flushLoggerParser()
 - doneLoggerParser()
+
+##### Set packet loader class
+
+In example below DumbLoggerKosaPacketsLoader class is set to load packets from external storage like database.
+```c
+#include "dumb-logger-loader.h"
+...
+    void *env = initLoggerParser("../logger-passport/tests/passport", nullptr);
+    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(env);
+
+    // set "base" loader
+    LoggerKosaCollector lkcBase;
+    lkcBase.put(42, hex2binString(packetsBase));
+
+    DumbLoggerKosaPacketsLoader lkl;
+    lkl.setCollection(&lkcBase);
+    c->setLoggerKosaPacketsLoader(&lkl);
+```
+
+DumbLoggerKosaPacketsLoader 
 
 ### Command line tools
 
@@ -169,7 +194,19 @@ Logger send 3 types of packets:
 
 To restore "diff" packets logger-huffman-print requires "base" packets sent earlier to calc differences.
 
-In this case you need provide "base" packets using one or more -b <hex-base-packet> options. 
+In this case you need provide "base" packets using one or more -b <hex-base-packet> options:
+
+```
+./logger-huffman-print -f json 4c620a00020126130100467cbff9fe73e67f -b 4a0080000207261300011512010115261300003e3d710002 -b 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 -b 4b26020305e3ff0006e0ff0007e2ff0008ddff0009e2ff00 -b 4b2602040adeff000bdaff000cdfff000debff000ee8ff00 -b 4b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff00 -b 4b26020614dcff0015dcff0016eaff0017e5ff0018dfff00 -b 4b26020719dfff001adaff001be6ff00  -p ../logger-passport/tests/passport
+```
+
+You can concatenate all -b option in one -b option
+
+```
+ ./logger-huffman-print -f json 4c620a00020126130100467cbff9fe73e67f -b 4a0080000207261300011512010115261300003e3d7100024b26020200cf06aa01e6ff0002deff0003eaff0004dcff004b26020305e3ff0006e0ff0007e2ff0008ddff0009e2ff004b2602040adeff000bdaff000cdfff000debff000ee8ff004b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff004b26020614dcff0015dcff0016eaff0017e5ff0018dfff004b26020719dfff001adaff001be6ff00  -p ../logger-passport/tests/passport
+```
+
+Remove any spaces in -b option value. 
 
 logger-huffman-print utility can print out SQL INSERT clause. Option -f specify SQL dialect:
 

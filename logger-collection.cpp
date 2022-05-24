@@ -18,6 +18,7 @@
 #include "logger-passport/logger-passport.h"
 #endif
 
+const std::string JS_NULL = "null";
 /**
  * Conditional defines:
  *  PRINT_DEBUG - print out temperature raw lo, hi bytes in hex, rfu1 value
@@ -885,7 +886,6 @@ bool LoggerItem::get(
             {
                 std::string s = packet.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
                     + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
-                std::cerr << "===" << bin2hexString(s) << "===" << std::endl;
                 getByDiff(&retval, nullptr, s, 0);
             }
             break;
@@ -1017,11 +1017,6 @@ void LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(
         retval->seconds += value->delta_sec;           						// 1 0..59
         retval->rfu1 += value->rfu1;							            // 9 reserved
         retval->rfu2 += value->rfu2;							            // 10 reserved
-std::cerr
-<< "+++++ retval->vcc " << (int) retval->vcc
-        << " + value->vcc " << (int) value->vcc
-        << " =  " << (int) retval->vcc + value->vcc
-<< "+++++" << std::endl;
         retval->vcc += value->vcc;							                // 11 V cc bus voltage, V
         retval->vbat += value->vbat;							            // 12 V battery, V
         retval->pcnt += value->pcnt;						                // 13 pages count, Pcnt = ((ds1820_devices << 2) | pages_to_recods)
@@ -1201,7 +1196,7 @@ bool LoggerItem::getByDiff(
         cnt = (aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
         ofs = (6 + (packetNo - 2) * 20) / dataBytes;
     } else {
-        // firat aPacket
+        // first aPacket
         cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
         ofs = 0;
     }
@@ -1210,6 +1205,8 @@ bool LoggerItem::getByDiff(
     for (int c = ofs; c < ofs + cnt; c++) {
         int diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, c);
         TEMPERATURE_2_BYTES v;
+        if (c >= baseT.size())
+            break;
         v.t.t00625 = baseT[c].t.t00625 + diff;
         if (retVal)
             (*retVal)[c] = v;
@@ -1897,13 +1894,13 @@ std::string LoggerKosaPackets::toJsonString() const
         ss << ", \"passport\": " << passportJson;
 #endif
     ss << ", \"t\": [";
-    temperatureCommaString(ss, ", ", "null");
+    temperatureCommaString(ss, ", ", JS_NULL);
     ss << "], \"tp\": [";
-    temperatureCorrectedCommaString(ss, ", ", "null");
+    temperatureCorrectedCommaString(ss, ", ", JS_NULL);
     ss << "], \"raw\": [";
     rawCommaString(ss, ", ", "\"", "\"");
     ss << "], \"th\": [";
-    valueCommaString(ss, ", ", "\"", "\"", "null");
+    valueCommaString(ss, ", ", "\"", "\"", JS_NULL);
     ss << "]}";
     return ss.str();
 }
@@ -1984,7 +1981,7 @@ void LoggerKosaPackets::temperatureCommaString(
             for (int i = 0; i < skipped; i++) {
                 ostrm << substEmptyValue << separator;
             }
-            ostrm << it->second;
+            ostrm << std::fixed << std::setprecision(4) << it->second;
             c++;
         }
     }
@@ -2017,9 +2014,9 @@ void LoggerKosaPackets::temperatureCorrectedCommaString(
             }
 			// first one is bus controller, skip it
 			if (it->first == 0)
-				ostrm << it->second;
+				ostrm << std::fixed << std::setprecision(4) << it->second;
 			else
-            	ostrm << calcTemperature(collector->passportDescriptor, id.kosa, id.kosa_year, it->first - 1, it->second);
+            	ostrm << std::fixed << std::setprecision(4) << calcTemperature(collector->passportDescriptor, id.kosa, id.kosa_year, it->first - 1, it->second);
             c++;
         }
     }
