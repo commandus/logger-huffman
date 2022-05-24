@@ -240,11 +240,12 @@ int main(int argc, char **argv)
                 // read from command line
                 for (int i = 0; i < config.values.size(); i++) {
                     std::string s = config.values[i];
-                    std::cerr << "==" << bin2hexString(s) << std::endl;
                     decodeHuffman(std::cout, s.c_str(), s.size());
                 }
             }
             return 0;
+        default:    // MODE_PACKET
+            break;
     }
 
     void *loggerParserEnv = initLoggerParser(config.passportDir, onLoggerParserLog);
