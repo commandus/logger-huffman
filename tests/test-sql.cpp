@@ -157,7 +157,7 @@ void testParseSQLBaseMeasurement() {
     std::vector<std::string> s;
     for (int i = 0; i < 1000; i++) {
         s.clear();
-        parseSQLBaseMeasurement(s, " 12  3456 78 ab  de ");
+        //parseSQLBaseMeasurement(s, " 12  3456 78 ab  de ");
     }
     for (int i = 0; i < s.size(); i++) {
         std::cout << std::hex << std::setfill('0') << std::setw(2) << bin2hexString(s[i]) << " ";
