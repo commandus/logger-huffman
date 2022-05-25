@@ -255,12 +255,60 @@ void *getLoggerKosaCollection(void *env)
  * @param addr LoRaWAN device address 4 bytes long integer
  * @return SQL SELECT statement returning packets as hex strings separated by space9
  */
-std::string sqlBaseMeasurements(
+std::string buildSQLBaseMeasurementSelect(
     int sqlDialect,
     uint32_t addr
 )
 {
     std::stringstream ss;
-    printSQLBaseMeasurements(ss, sqlDialect, addr);
+    buildSQLSelectBaseMeasurement(ss, sqlDialect, addr);
     return ss.str();
+}
+
+static std::string readHex(size_t &pos, const std::string &s)
+{
+    std::stringstream r;
+    char c[3] = { 0, 0, 0 };
+    size_t sz = s.size();
+    bool hasData = false;
+    while (true) {
+        if (pos + 1 >= sz)  // 2 digits
+            break;
+        c[0] = s.at(pos);
+        c[1] = s.at(pos + 1);
+        pos++;
+        if (c[0] <= 32) {
+            if (hasData)
+                break;
+            else
+                continue;
+        }
+        pos++;
+        if (c[1] <= 32) {
+            if (hasData)
+                break;
+            else
+                continue;
+        }
+        unsigned char x = (unsigned char) strtol(c, NULL, 16);
+        r << x;
+        hasData = true;
+    }
+    return r.str();
+}
+
+bool parseSQLBaseMeasurement(
+    std::vector <std::string> &retClauses,
+    const std::string &value
+)
+{
+    size_t p = 0;
+    size_t sz = value.size();
+    while (true) {
+        std::string s = readHex(p, value);
+        if (!s.empty())
+            retClauses.push_back(s);
+        if (p + 1 >= sz)
+            break;
+    }
 }

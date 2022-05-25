@@ -133,14 +133,29 @@ std::string sqlInsertRaw(
 );
 
 /**
- * Return SQL SELECT statement returning packets as hex strings separated by space
+ * Return SQL SELECT statement returning packets as hex strings separated by space.
+ * Execute generated SQL query an get first field string value from the first row.
+ * This value pass to the parseSQLBaseMeasurement().
+ * Get parsed values and construct plume measurements.
  * @param sqlDialect SQL dialect number
  * @param addr LoRaWAN device address 4 bytes long integer
  * @return SQL SELECT statement returning packets as hex strings separated by space9
  */
-std::string sqlBaseMeasurements(
+std::string buildSQLBaseMeasurementSelect(
     int sqlDialect,
     uint32_t addr
+);
+
+/**
+ * Read hex strings, return binary strings.
+ * Before parseSQLBaseMeasurement() call buildSQLBaseMeasurementSelect() and get hex strings.
+ * @param retClauses return binary packet(s)
+ * @param value
+ * @return SQL SELECT statement returning packets as hex strings separated by space9
+ */
+bool parseSQLBaseMeasurement(
+    std::vector <std::string> &retClauses,
+    const std::string &value
 );
 
 #endif

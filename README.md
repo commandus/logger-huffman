@@ -167,9 +167,9 @@ If packet stored in SQL database, you can retrieve "base" packets with SQL state
 SELECT "raw" FROM "logger_lora" WHERE "loraadr" = '2a' AND ("raw" LIKE '4a%' OR "raw" LIKE '00%' ) ORDER BY id DESC LIMIT 1;
 ```
 
-sqlBaseMeasurements() return this SQL clause using specified SQL dialect 
+buildSQLBaseMeasurementSelect() return this SQL clause using specified SQL dialect 
 ```c++
-std::string sql = sqlBaseMeasurements(SQL_POSTGRESQL, DEV_ADDR_UINT);
+std::string sql = buildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_UINT);
 ```
 DEV_ADDR_UINT is LoRaWAN device address integer.
 

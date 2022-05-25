@@ -2,6 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include <sys/time.h>
+#include <iomanip>
 
 #include "logger-parse.h"
 #include "logger-sql-clause.h"
@@ -146,10 +147,18 @@ void testDeltaPacket() {
 }
 
 void testBaseSQLStatement() {
-    std::cout << sqlBaseMeasurements(SQL_POSTGRESQL, DEV_ADDR_INT) << std::endl;
-    std::cout << sqlBaseMeasurements(SQL_MYSQL, DEV_ADDR_INT) << std::endl;
-    std::cout << sqlBaseMeasurements(SQL_FIREBIRD, DEV_ADDR_INT) << std::endl;
-    std::cout << sqlBaseMeasurements(SQL_SQLITE, DEV_ADDR_INT) << std::endl;
+    std::cout << buildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_INT) << std::endl;
+    std::cout << buildSQLBaseMeasurementSelect(SQL_MYSQL, DEV_ADDR_INT) << std::endl;
+    std::cout << buildSQLBaseMeasurementSelect(SQL_FIREBIRD, DEV_ADDR_INT) << std::endl;
+    std::cout << buildSQLBaseMeasurementSelect(SQL_SQLITE, DEV_ADDR_INT) << std::endl;
+}
+
+void testParseSQLBaseMeasurement() {
+    std::vector<std::string> s;
+    parseSQLBaseMeasurement(s, " 12  3456 78 ab  de ");
+    for (int i = 0; i < s.size(); i++) {
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << bin2hexString(s[i]) << " ";
+    }
 }
 
 int main(int argc, char **argv)
@@ -157,6 +166,6 @@ int main(int argc, char **argv)
     // testLoggerParse();
     // testIncompletePacket();
     // testDeltaPacket();
-    testBaseSQLStatement();
+    // testBaseSQLStatement();
+    testParseSQLBaseMeasurement();
 }
-

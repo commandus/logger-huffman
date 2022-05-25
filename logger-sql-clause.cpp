@@ -371,7 +371,7 @@ void sqlInsertRawStrm(
  * @param sqlDialect SQL dialect
  * @param addr LoRaWAN device address
  */
-void printSQLBaseMeasurements(
+void buildSQLSelectBaseMeasurement(
     std::ostream &outStrteam,
     int sqlDialect,
     uint32_t addr
