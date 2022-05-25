@@ -265,7 +265,10 @@ std::string buildSQLBaseMeasurementSelect(
     return ss.str();
 }
 
-static std::string readHex(size_t &pos, const std::string &s)
+static std::string readHex(
+    size_t &pos,
+    const std::string &s
+)
 {
     std::stringstream r;
     char c[3] = { 0, 0, 0 };
