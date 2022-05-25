@@ -173,6 +173,15 @@ std::string sql = buildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_UINT);
 ```
 DEV_ADDR_UINT is LoRaWAN device address integer.
 
+##### Prepare hex string read from database to be loaded
+
+Call parseSQLBaseMeasurement() e.g.
+```c++
+#include "logger-parse.h"
+std::vector<std::string> binPackets;
+parseSQLBaseMeasurement(binPackets, "4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 ...");
+```
+
 ### Command line tools
 
 - logger-huffman-print get packets in hex and print out temperature values
