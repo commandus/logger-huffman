@@ -22,6 +22,7 @@ set(LIB_LOGGER_HUFFMAN_SRC
 	util-time-fmt.cpp
 	logger-huffman.c
 	strptime.cpp
+	logger-builder.cpp
 	dumb-logger-loader.cpp
 )
 set(SRC_LOGGER_HUFFMAN_PRINT

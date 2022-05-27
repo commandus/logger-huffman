@@ -7,6 +7,7 @@
 #include "logger-huffman.h"
 #include "util-time-fmt.h"
 #include "logger-collection.h"
+#include "logger-builder.h"
 
 #define CNT 25
 
@@ -114,10 +115,78 @@ void testPerformance(int count, int size)
             << ", elapsed time: " << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
 }
 
+void testComposeBase(double t0, double inc, int cnt)
+{
+    std::vector<std::string> packets;
+    LoggerMeasurements m;
+    m.kosa = 1;
+    m.kosa_year = 22;
+    m.measure = 42;
+    m.time = time(nullptr);
+    m.vcc = 4.5;
+    m.vbat = 1.5;
+
+    for (int i = 0; i < cnt; i++)
+    {
+        m.temperature.push_back(t0);
+        t0 += inc;
+    }
+    LoggerBuilder::build(packets, m);
+    for (int i = 0; i < packets.size(); i++) {
+        std::cerr << bin2hexString(packets[i])  << " ";
+    }
+}
+
+void testComposeDelta()
+{
+    std::vector<std::string> packets;
+    LoggerMeasurements m;
+    m.kosa = 1;
+    m.kosa_year = 22;
+    m.measure = 42;
+    time(&m.time);
+    m.vcc = 4.5;
+    m.vbat = 1.5;
+    m.temperature.push_back(1.0);
+    m.temperature.push_back(2.0);
+    m.temperature.push_back(3.0);
+    m.temperature.push_back(4.0);
+    m.temperature.push_back(5.0);
+
+    std::vector<double> baseTemperature;
+    baseTemperature.push_back(1.0);
+    baseTemperature.push_back(2.0);
+    baseTemperature.push_back(3.0);
+    baseTemperature.push_back(4.0);
+    baseTemperature.push_back(5.0);
+
+    LoggerBuilder::build(packets, m, baseTemperature);
+    for (int i = 0; i < packets.size(); i++) {
+        std::cerr << bin2hexString(packets[i]) << " ";
+    }
+}
+
+void test2() {
+    double value = -2.5;
+    int16_t v = (int16_t) value * 16;
+    double frac = value - (long) value;
+    if (frac < 0)
+        v |= ( ~ ( (int) (-frac * 16) ) + 1) & 0x0f;
+    else
+        v |= ((int) (frac * 16)) & 0x0f;
+    TEMPERATURE_2_BYTES t;
+    t.t.t00625 = HTON2(v);
+    std::cout << std::hex << v << " "
+        << " " << frac
+        << " " << (( ~ ( (int) (-frac * 16) ) + 1) & 0x0f)
+        << " " << std::fixed << TEMPERATURE_2_BYTES_2_double(t) << " ";
+
+}
+
 int main(int argc, char **argv)
 {
     // expected 010204010410041f (last byte may be different)
-    testCompressDecompress(hex2binString("01020304010203040102"));
+    // testCompressDecompress(hex2binString("01020304010203040102"));
     /*
     testDecompress2();
     testCompressDecompressBuffer(hex2binString("123456"));
@@ -128,11 +197,15 @@ int main(int argc, char **argv)
     testDecompress(hex2binString("4B1C03020006CFAA0101A8000201A9000301AA000401A800"));
     testDecompress(hex2binString("4B1C03030501A900"));
     */
-    testPerformance(1024, 1024);
+    // testPerformance(1024, 1024);
+    testComposeBase(-3.0, 0.25, 40);
+    std::cerr << std::endl;
+    // testComposeDelta();
     /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
     testCompressDecompress(hex2binString("01020304"));
     testCompressDecompress("The quick brown fox jumps over the lazy dog");
     */
+    // test2();
 }
