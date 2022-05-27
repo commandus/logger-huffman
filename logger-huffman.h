@@ -215,6 +215,11 @@ double TEMPERATURE_2_BYTES_2_double(
 	TEMPERATURE_2_BYTES value
 );
 
+void double_2_TEMPERATURE_2_BYTES(
+    TEMPERATURE_2_BYTES *retVal,
+    double value
+);
+
 // convert used field
 uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value);
 
@@ -224,6 +229,14 @@ double vcc2double(
 
 double vbat2double(
 	uint8_t value
+);
+
+uint8_t double2vcc(
+    double value
+);
+
+uint8_t  double2vbat(
+    double value
 );
 
 time_t LOGGER_MEASUREMENT_HDR2time_t(

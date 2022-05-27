@@ -5,6 +5,12 @@ received from temperature logger.
 
 The payload is decompressed and decoded according to the logger version 4 specification.
 
+The logger passes the measurement time, the serial number of the plume (unique within a year),
+the year it was manufactured (since 2000), and the temperature in degrees Celsius temperature in an array.
+The array size is 1..28.
+
+The thermometer bus voltages and the battery voltage are also transmitted.
+
 This library is a part of [lorawan-network-server](https://github.com/commandus/lorawan-network-server).
 
 Clone [logger-huffman](https://github.com/commandus/logger-huffman) repository:
@@ -180,6 +186,17 @@ Call parseSQLBaseMeasurement() e.g.
 #include "logger-parse.h"
 std::vector<std::string> binPackets;
 parseSQLBaseMeasurement(binPackets, "4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 ...");
+```
+
+#### Compose packets
+
+The LoggerBuilder class creates one or more binary packages (see build() methods).
+
+The maximum length of one binary packet is 24 bytes to be sent in the LoRaWAN network.
+
+```c++
+#include "logger-builder.h"
+..
 ```
 
 ### Command line tools

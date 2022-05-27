@@ -215,6 +215,21 @@ double TEMPERATURE_2_BYTES_2_double(
 	return r;
 }
 
+void double_2_TEMPERATURE_2_BYTES(
+    TEMPERATURE_2_BYTES *retVal,
+    double value
+)
+{
+    if (!retVal)
+        return;
+    int16_t v = (int16_t) value * 16;
+    double frac = value - (long) value;
+    if ((value < 0) && (int) (frac * 16))
+        v -= 16;
+    v |= ((int) (frac * 16)) & 0x0f;
+    retVal->t.t00625 = HTON2(v);
+}
+
 /**
  * @brief Return bus voltage in V as (94 - value) * 0.05814 + 2.6
  * @param value read value from the device
@@ -235,6 +250,20 @@ double vbat2double(
         uint8_t value
 ) {
 	return (value * 4) * 1100.0 / 1023.0 * 6.1 / 1000.0 - 0.08;
+}
+
+uint8_t double2vcc(
+	double value
+)
+{
+	return 94 - (value - 2.6)/ 0.05814;
+}
+
+uint8_t  double2vbat(
+	double value
+)
+{
+	return (value + 0.08) / 4 * 1023.0 / 1100.0 * 1000.0 / 6.1;
 }
 
 uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value) {

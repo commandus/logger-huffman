@@ -166,9 +166,10 @@ void testParseSQLBaseMeasurement() {
 
 int main(int argc, char **argv)
 {
-    // testLoggerParse();
-    // testIncompletePacket();
-    // testDeltaPacket();
-    // testBaseSQLStatement();
-    testParseSQLBaseMeasurement();
+    testLoggerParse();
+    testIncompletePacket();
+    testDeltaPacket();
+    testBaseSQLStatement();
+    // testParseSQLBaseMeasurement();
+    exit(0);
 }

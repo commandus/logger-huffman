@@ -6,7 +6,6 @@
 #include <map>
 
 #include "logger-huffman.h"
-#include "logger-huffman.h"
 
 // следующий пакет typ 4b- plain 49- delta 4d- huffman
 class LoggerItemId {
