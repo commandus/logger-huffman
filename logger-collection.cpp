@@ -1203,7 +1203,11 @@ bool LoggerItem::getByDiff(
 
     // packet number => value index
     for (int c = ofs; c < ofs + cnt; c++) {
-        int diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, c);
+        int diff;
+        if (packetNo)
+            diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), dataBytes, c);
+        else
+            diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, c);
         TEMPERATURE_2_BYTES v;
         if (c >= baseT.size())
             break;
@@ -1235,7 +1239,7 @@ std::string LoggerItem::delta1ToString(
 }
 
 std::string LoggerItem::delta2ToString(
-        const std::string &packet
+    const std::string &packet
 ) const
 {
     LOGGER_PACKET_SECOND_HDR *h2;
@@ -1251,7 +1255,7 @@ std::string LoggerItem::delta2ToString(
     std::vector<int> diffs;
     diffs.resize(cnt);
     for (int i = 0; i < cnt; i++) {
-        diffs[i] = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
+        diffs[i] = getDiff(packet.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), dataBytes, i);
     }
 
     // put diffs
@@ -1327,7 +1331,7 @@ std::string LoggerItem::delta2ToJson(
     std::vector<int> diffs;
     diffs.resize(cnt);
     for (int i = 0; i < cnt; i++) {
-        diffs[i] = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
+        diffs[i] = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), dataBytes, i);
     }
 
     // put diffs

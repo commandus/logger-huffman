@@ -112,17 +112,47 @@ static size_t setDeltaMeasurementsData(
     size_t sz = diffInt.size();
     int c = 0;
     for (; c < 20 / bytesPerSample; c++) {
+
         if (ofs >= sz)
             break;  // range out
         if (bytesPerSample == 1) {
-            int8_t *t = (int8_t *) buffer + ofs;
+            int8_t *t = (int8_t *) buffer + c;
             *t = diffInt[ofs];
+
         } else {
-            int16_t *t = (int16_t *) buffer + ofs;
+            int16_t *t = (int16_t *) buffer + c;
             *t = diffInt[ofs];
         }
         ofs++;
-        sz++;
+    }
+    return c * bytesPerSample;
+}
+
+/**
+ * Set temperature values to the delta packet
+ * @param buffer pointer to target packet buffer
+ * @param diffInt deltas
+ * @param packetIndex 1- headers, 2..- data
+ * @param bytesPerSample 1 or 2 bytes dor deltas
+ * @return count of copied bytes
+ */
+static size_t setDeltaMeasurementsDataFirstPacket(
+    const char *buffer,
+    const std::vector<int16_t> &diffInt,
+    int bytesPerSample
+) {
+    size_t sz = diffInt.size();
+    int c = 0;
+    for (; c < 6 / bytesPerSample; c++) {
+        if (c >= sz)
+            break;  // range out
+        if (bytesPerSample == 1) {
+            int8_t *t = (int8_t *) buffer + c;
+            *t = diffInt[c];
+        } else {
+            int16_t *t = (int16_t *) buffer + c;
+            *t = diffInt[c];
+        }
     }
     return c * bytesPerSample;
 }
@@ -227,9 +257,10 @@ static int calcDeltas(
         double_2_TEMPERATURE_2_BYTES(&t2, *itBase);
         int16_t d;
 #if BYTE_ORDER == BIG_ENDIAN
-        d = (t1.t.lo << 8 | t1.t.hi) - (t2.t.lo << 8 | t2.t.hi);
+        d = (t1.t.f.lo << 8 | t1.t.f.hi) - (t2.t.f.lo << 8 | t2.t.f.hi);
 #else
-        d = t1.t.t00625 - t2.t.t00625;
+        // d = (t1.t.f.lo << 8 | t1.t.f.hi) - (t2.t.f.lo << 8 | t2.t.f.hi);
+        d = t2.t.t00625 - t1.t.t00625;
 #endif
         if (abs(d) > maxDiff)
             maxDiff = abs(d);
@@ -273,6 +304,10 @@ void LoggerBuilder::build(
     setMeasureDeltaHeader(firstPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes
 
     // add up to 3 or 6 measurements to the first packet
+    setDeltaMeasurementsDataFirstPacket(firstPacket.c_str()
+        + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
+        diffInt, bytesPerSample);
+
     if (firstPacketShorter24Bytes)
         firstPacket.resize(24 - (6 - (measurementsInFirstPacket * bytesPerSample)));
     retVal.push_back(firstPacket);
