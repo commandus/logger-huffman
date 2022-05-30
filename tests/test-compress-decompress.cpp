@@ -115,7 +115,11 @@ void testPerformance(int count, int size)
             << ", elapsed time: " << df.tv_sec << "." << df.tv_usec % 1000000 << std::endl;
 }
 
-void testComposeBase(double t0, double inc, int cnt)
+void testComposeBase(
+    double t0,
+    double inc,
+    int cnt
+)
 {
     std::vector<std::string> packets;
     LoggerMeasurements m;
@@ -137,9 +141,21 @@ void testComposeBase(double t0, double inc, int cnt)
     }
 }
 
-void testComposeDelta()
+void testComposeDelta(
+    double t0,
+    double inc,
+    double diff,
+    int cnt
+)
 {
-    std::vector<std::string> packets;
+    LoggerMeasurements mBase;
+    mBase.kosa = 1;
+    mBase.kosa_year = 22;
+    mBase.measure = 42;
+    time(&mBase.time);
+    mBase.vcc = 4.5;
+    mBase.vbat = 1.5;
+
     LoggerMeasurements m;
     m.kosa = 1;
     m.kosa_year = 22;
@@ -147,40 +163,28 @@ void testComposeDelta()
     time(&m.time);
     m.vcc = 4.5;
     m.vbat = 1.5;
-    m.temperature.push_back(1.0);
-    m.temperature.push_back(2.0);
-    m.temperature.push_back(3.0);
-    m.temperature.push_back(4.0);
-    m.temperature.push_back(5.0);
 
-    std::vector<double> baseTemperature;
-    baseTemperature.push_back(1.0);
-    baseTemperature.push_back(2.0);
-    baseTemperature.push_back(3.0);
-    baseTemperature.push_back(4.0);
-    baseTemperature.push_back(5.0);
+    for (int i = 0; i < cnt; i++)
+    {
+        m.temperature.push_back(t0);
+        mBase.temperature.push_back(t0 + diff);
+        t0 += inc;
+    }
 
-    LoggerBuilder::build(packets, m, baseTemperature);
+    std::vector<std::string> basePackets;
+    LoggerBuilder::build(basePackets, mBase);
+
+    std::cerr << "./logger-huffman-print ";
+    for (int i = 0; i < basePackets.size(); i++) {
+        std::cerr << " -b " << bin2hexString(basePackets[i]);
+    }
+    std::cerr << " ";
+    std::vector<std::string> packets;
+    LoggerBuilder::build(packets, m, mBase.temperature);
     for (int i = 0; i < packets.size(); i++) {
         std::cerr << bin2hexString(packets[i]) << " ";
     }
-}
-
-void test2() {
-    double value = -2.5;
-    int16_t v = (int16_t) value * 16;
-    double frac = value - (long) value;
-    if (frac < 0)
-        v |= ( ~ ( (int) (-frac * 16) ) + 1) & 0x0f;
-    else
-        v |= ((int) (frac * 16)) & 0x0f;
-    TEMPERATURE_2_BYTES t;
-    t.t.t00625 = HTON2(v);
-    std::cout << std::hex << v << " "
-        << " " << frac
-        << " " << (( ~ ( (int) (-frac * 16) ) + 1) & 0x0f)
-        << " " << std::fixed << TEMPERATURE_2_BYTES_2_double(t) << " ";
-
+    std::cerr << " -vvv" << std::endl;
 }
 
 int main(int argc, char **argv)
@@ -198,14 +202,13 @@ int main(int argc, char **argv)
     testDecompress(hex2binString("4B1C03030501A900"));
     */
     // testPerformance(1024, 1024);
-    testComposeBase(-3.0, 0.25, 40);
+    // testComposeBase(-3.0, 0.25, 40);
     std::cerr << std::endl;
-    // testComposeDelta();
+    testComposeDelta(-3.0, 0.25, 0.1, 40);
     /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
     testCompressDecompress(hex2binString("01020304"));
     testCompressDecompress("The quick brown fox jumps over the lazy dog");
     */
-    // test2();
 }
