@@ -1211,7 +1211,7 @@ bool LoggerItem::getByDiff(
         TEMPERATURE_2_BYTES v;
         if (c >= baseT.size())
             break;
-        v.t.t00625 = baseT[c].t.t00625 + diff;
+        v.t.t00625 = HTON2(HTON2(baseT[c].t.t00625) + diff);
         if (retVal)
             (*retVal)[c] = v;
         if (retValT)
@@ -1955,9 +1955,9 @@ void LoggerKosaPackets::valueCommaString(
             }
             ostrm << oparen
                 << std::setfill('0') << std::setw(2) << std::hex
-                << (int) (uint8_t) it->second.t.f.hi
-                << std::setw(2)
                 << (int) (uint8_t) it->second.t.f.lo
+                << std::setw(2)
+                << (int) (uint8_t) it->second.t.f.hi
                 << cparen;
             c++;
         }

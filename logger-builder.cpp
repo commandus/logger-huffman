@@ -255,13 +255,7 @@ static int calcDeltas(
         TEMPERATURE_2_BYTES t2;
         double_2_TEMPERATURE_2_BYTES(&t1, *it);
         double_2_TEMPERATURE_2_BYTES(&t2, *itBase);
-        int16_t d;
-#if BYTE_ORDER == BIG_ENDIAN
-        d = (t1.t.f.lo << 8 | t1.t.f.hi) - (t2.t.f.lo << 8 | t2.t.f.hi);
-#else
-        // d = (t1.t.f.lo << 8 | t1.t.f.hi) - (t2.t.f.lo << 8 | t2.t.f.hi);
-        d = t2.t.t00625 - t1.t.t00625;
-#endif
+        int16_t d = NTOH2(t1.t.t00625) - NTOH2(t2.t.t00625);
         if (abs(d) > maxDiff)
             maxDiff = abs(d);
         if (retDiff)

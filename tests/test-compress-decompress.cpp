@@ -204,7 +204,20 @@ int main(int argc, char **argv)
     // testPerformance(1024, 1024);
     // testComposeBase(-3.0, 0.25, 40);
     std::cerr << std::endl;
-    testComposeDelta(-3.0, 0.25, 0.1, 40);
+    /*
+    testComposeDelta(-3.0, 0.25, -0.0625, 40);
+    testComposeDelta(-3.0, 0.25, -0.125, 40);
+    testComposeDelta(-3.0, 0.25, -0.1875, 40);
+    testComposeDelta(-3.0, 0.25, -1.0, 40);
+    testComposeDelta(-3.0, 0.25, -2.0, 40);
+    testComposeDelta(-3.0, 0.25, 0.0625, 40);
+    testComposeDelta(-3.0, 0.25, 0.125, 40);
+    testComposeDelta(-3.0, 0.25, 0.1875, 40);
+    testComposeDelta(-3.0, 0.25, 1.0, 40);
+     */
+    testComposeDelta(-3.0, 0.25, 2.0, 40);
+    testComposeDelta(-3.0, 0.25, 3.0, 40);
+    testComposeDelta(-3.0, 0.25, 4.0, 40);
     /*
     testCompressDecompress(hex2binString("0a0b0c0d0a0b0c0d0a0b"));
     testCompressDecompress(hex2binString("01020304010203040102"));
