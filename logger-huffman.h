@@ -111,12 +111,19 @@ typedef ALIGN struct {
 typedef ALIGN struct {
 	uint8_t lo;						    	// Temperature * 0.625, lo byte
 	int8_t hi;								// Temperature * 0.625, hi byte
+} PACKED LO_HI_2_BYTES;		        		// 2 bytes
+
+typedef ALIGN struct {
+    int8_t h;
+    int8_t l: 4;
+    int8_t f: 4;
 } PACKED TEMPERATURE_12_BITS;				// 2 bytes
 
 typedef ALIGN struct {
 	union {
 		int16_t t00625;						// temperature
-		TEMPERATURE_12_BITS f;
+		LO_HI_2_BYTES f;
+        TEMPERATURE_12_BITS t12;
 	} t;
 } PACKED TEMPERATURE_2_BYTES;				// 2 bytes
 
@@ -129,7 +136,7 @@ typedef ALIGN struct {
 typedef ALIGN struct {
 	union {
 		int16_t t;							// temperature, C. 12 bits
-		TEMPERATURE_12_BITS f;
+		LO_HI_2_BYTES f;
 	} value;
 } PACKED LOGGER_DATA_TEMPERATURE;			// 2 bytes
 

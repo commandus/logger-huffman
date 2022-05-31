@@ -4,6 +4,13 @@
 #include "logger-huffman.h"
 #include "errlist.h"
 
+
+#if BYTE_ORDER == BIG_ENDIAN
+#define SWAP_DELTA2_BYTES   1
+#else
+#undef SWAP_DELTA2_BYTES
+#endif
+
 /**
  * Return LOGGER_PACKET_UNKNOWN if buffer is NULL or size = 0
  * @param retSize return packet size if not NULL
@@ -377,7 +384,7 @@ int getDiff(
 {
     switch (dataSizeBytes) {
         case 2:
-#if BYTE_ORDER == BIG_ENDIAN
+#ifdef SWAP_DELTA2_BYTES
             return htobe16(((int16_t*) buffer)[index]);
 #else
             return ((int16_t*) buffer)[index];
