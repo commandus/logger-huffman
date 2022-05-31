@@ -1202,12 +1202,13 @@ bool LoggerItem::getByDiff(
     }
 
     // packet number => value index
+    int i = 0;
     for (int c = ofs; c < ofs + cnt; c++) {
         int diff;
         if (packetNo)
-            diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), dataBytes, c);
+            diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), dataBytes, i);
         else
-            diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, c);
+            diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
         TEMPERATURE_2_BYTES v;
         if (c >= baseT.size())
             break;
@@ -1216,6 +1217,7 @@ bool LoggerItem::getByDiff(
             (*retVal)[c] = v;
         if (retValT)
             (*retValT)[c] = TEMPERATURE_2_BYTES_2_double(v);
+        i++;
     }
     return true;
 }

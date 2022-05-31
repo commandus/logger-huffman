@@ -1,7 +1,13 @@
-#include <iostream>
 #include "logger-builder.h"
 
 #include "logger-huffman.h"
+
+
+#if BYTE_ORDER == BIG_ENDIAN
+#define SWAP_DELTA2_BYTES   1
+#else
+#undef SWAP_DELTA2_BYTES
+#endif
 
 static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
     const void *buffer,
@@ -121,7 +127,11 @@ static size_t setDeltaMeasurementsData(
 
         } else {
             int16_t *t = (int16_t *) buffer + c;
+#ifdef SWAP_DELTA2_BYTES
+            *t = htobe16(diffInt[ofs]);
+#else
             *t = diffInt[ofs];
+#endif
         }
         ofs++;
     }
@@ -151,7 +161,11 @@ static size_t setDeltaMeasurementsDataFirstPacket(
             *t = diffInt[c];
         } else {
             int16_t *t = (int16_t *) buffer + c;
+#ifdef SWAP_DELTA2_BYTES
+            *t = htobe16(diffInt[c]);
+#else
             *t = diffInt[c];
+#endif
         }
     }
     return c * bytesPerSample;
