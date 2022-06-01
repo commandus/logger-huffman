@@ -360,6 +360,5 @@ void LoggerBuilder::buildHuffman(
     std::string firstPacketCompressed =
             firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
                 + compressLoggerString(firstPacketUncompressed.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
-    std::cerr << "%%% " << bin2hexString(firstPacketCompressed) << " %%%" << std::endl;
     retVal.push_back(firstPacketCompressed);
 }

@@ -65,10 +65,10 @@ size_t getLoggerPacketTypeSize(
             r = sizeof(LOGGER_PACKET_SECOND_HDR) + 20 * sizeof(uint8_t);	// 4 + 20 * 1 = 24
 			break;
  		case LOGGER_PACKET_HUFF_1:		// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
-		 	r = 24; // max
+		 	r = bufferSize; // ?!!
 			break;
 		case LOGGER_PACKET_HUFF_2:		// дельты замеров от 0 сжаты каноническим Хафманом по таблице +-4.
-			r = 24; // max
+			r = bufferSize; // ?!!
 			break;
 		default:
 			// case LOGGER_PACKET_UNKNOWN:
