@@ -314,4 +314,5 @@ bool parseSQLBaseMeasurement(
         if (p + 1 >= sz)
             break;
     }
+    return true;
 }
