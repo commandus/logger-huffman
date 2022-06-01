@@ -956,8 +956,6 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
             {
                 std::string s = packet.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
                     + decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
-std::cerr << "=== " << bin2hexString(packet) << " ===" << std::endl;
-std::cerr << "*** " << bin2hexString(s) << " ***" << std::endl;
                 getByDiff(nullptr, &retval, s, 0);
             }
             break;
