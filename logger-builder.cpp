@@ -1,7 +1,7 @@
+#include <iostream>
 #include "logger-builder.h"
-
 #include "logger-huffman.h"
-
+#include "logger-collection.h"
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define SWAP_DELTA2_BYTES   1
@@ -118,7 +118,6 @@ static size_t setDeltaMeasurementsData(
     size_t sz = diffInt.size();
     int c = 0;
     for (; c < 20 / bytesPerSample; c++) {
-
         if (ofs >= sz)
             break;  // range out
         if (bytesPerSample == 1) {
@@ -144,21 +143,24 @@ static size_t setDeltaMeasurementsData(
  * @param diffInt deltas
  * @param packetIndex 1- headers, 2..- data
  * @param bytesPerSample 1 or 2 bytes dor deltas
+ * @param maxSizeBytes 6 for delta,
  * @return count of copied bytes
  */
 static size_t setDeltaMeasurementsDataFirstPacket(
     const char *buffer,
     const std::vector<int16_t> &diffInt,
-    int bytesPerSample
+    int bytesPerSample,
+    int maxSizeBytes
 ) {
     size_t sz = diffInt.size();
     int c = 0;
-    for (; c < 6 / bytesPerSample; c++) {
+    for (; c < maxSizeBytes / bytesPerSample; c++) {
         if (c >= sz)
             break;  // range out
         if (bytesPerSample == 1) {
             int8_t *t = (int8_t *) buffer + c;
             *t = diffInt[c];
+
         } else {
             int16_t *t = (int16_t *) buffer + c;
 #ifdef SWAP_DELTA2_BYTES
@@ -305,7 +307,7 @@ void LoggerBuilder::build(
     if (measurementsInSecondPackets > secondPackets * 20 / bytesPerSample)
         secondPackets++;
 
-    // first packet firstHeader(8) MeasurementHeader(16)
+    // first packet firstHeader(8) MeasurementHeaderDiff(10)
     std::string firstPacket;
     firstPacket.resize(24);
     setFirstHeader(firstPacket.c_str(), value, 0x48, bytesPerSample);   // 8 bytes
@@ -314,7 +316,7 @@ void LoggerBuilder::build(
     // add up to 3 or 6 measurements to the first packet
     setDeltaMeasurementsDataFirstPacket(firstPacket.c_str()
         + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-        diffInt, bytesPerSample);
+        diffInt, bytesPerSample, 6);
 
     if (firstPacketShorter24Bytes)
         firstPacket.resize(24 - (6 - (measurementsInFirstPacket * bytesPerSample)));
@@ -339,8 +341,25 @@ void LoggerBuilder::buildHuffman(
     const std::vector<double> &baseTemperature
 )
 {
-    std::string firstPacket;
-    firstPacket.resize(24);
-    setFirstHeader(firstPacket.c_str(), value, 0x4c, 0);
+    std::vector<int16_t> diffInt;
+    int bytesPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
 
+    int cnt = diffInt.size();   // diffInt may be less than value.temperature
+
+    // first packet firstHeader(8) MeasurementHeaderDiff(10)
+    std::string firstPacketUncompressed;
+    uint uncompressedDataDeltaSize = value.temperature.size() * bytesPerSample;
+    firstPacketUncompressed.resize(8 + 10 + uncompressedDataDeltaSize);
+    setFirstHeader(firstPacketUncompressed.c_str(), value, 0x4c, bytesPerSample);   // 8 bytes
+    setMeasureDeltaHeader(firstPacketUncompressed.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes
+
+    // add ALL measurements to the first packet
+    setDeltaMeasurementsDataFirstPacket(firstPacketUncompressed.c_str()
+                                        + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
+                                        diffInt, bytesPerSample, uncompressedDataDeltaSize);
+    std::string firstPacketCompressed =
+            firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
+                + compressLoggerString(firstPacketUncompressed.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+    std::cerr << "%%% " << bin2hexString(firstPacketCompressed) << " %%%" << std::endl;
+    retVal.push_back(firstPacketCompressed);
 }

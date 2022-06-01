@@ -95,8 +95,11 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 	LOGGER_PACKET_TYPE t = extractLoggerPacketType(&sz, buffer, bufferSize);
 	switch (t) {
 		case LOGGER_PACKET_RAW:			// raw w/o packet headers. замер, разбитый по пакетам в 24 байта (в hex 48 байт). Используется для передачи 0 замера
-			if (bufferSize < sizeof(LOGGER_MEASUREMENT_HDR))
-				return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+			if (bufferSize < sizeof(LOGGER_MEASUREMENT_HDR)) {
+                if (retHdr)
+                    *retHdr = NULL;
+                return ERR_LOGGER_HUFFMAN_INVALID_PACKET;
+            }
 			*retHdr = (LOGGER_MEASUREMENT_HDR*) buffer;
 			break;
  		case LOGGER_PACKET_PKT_1:		// with packet header (first). К данным замера добавляются шапки пакетов, для первого 8 байт, для следующих 4 байта/.Используется для передачи 0 замера
@@ -106,7 +109,8 @@ LOGGER_PACKET_TYPE extractMeasurementHeader(
 			break;
 		default:
 			// case LOGGER_PACKET_UNKNOWN:
-			*retHdr = NULL;
+            if (retHdr)
+                *retHdr = NULL;
 			break;
 	}
 	return t;

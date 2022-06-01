@@ -187,6 +187,52 @@ void testComposeDelta(
     std::cerr << " -vvv" << std::endl;
 }
 
+void testComposeHuffman(
+    double t0,
+    double inc,
+    double diff,
+    int cnt
+)
+{
+    LoggerMeasurements mBase;
+    mBase.kosa = 1;
+    mBase.kosa_year = 22;
+    mBase.measure = 42;
+    time(&mBase.time);
+    mBase.vcc = 4.5;
+    mBase.vbat = 1.5;
+
+    LoggerMeasurements m;
+    m.kosa = 1;
+    m.kosa_year = 22;
+    m.measure = 42;
+    time(&m.time);
+    m.vcc = 4.5;
+    m.vbat = 1.5;
+
+    for (int i = 0; i < cnt; i++)
+    {
+        m.temperature.push_back(t0);
+        mBase.temperature.push_back(t0 + diff);
+        t0 += inc;
+    }
+
+    std::vector<std::string> basePackets;
+    LoggerBuilder::build(basePackets, mBase);
+
+    std::cerr << "./logger-huffman-print ";
+    for (int i = 0; i < basePackets.size(); i++) {
+        std::cerr << " -b " << bin2hexString(basePackets[i]);
+    }
+    std::cerr << " ";
+    std::vector<std::string> packets;
+    LoggerBuilder::buildHuffman(packets, m, mBase.temperature);
+    for (int i = 0; i < packets.size(); i++) {
+        std::cerr << bin2hexString(packets[i]) << " ";
+    }
+    std::cerr << " -vvv" << std::endl;
+}
+
 int main(int argc, char **argv)
 {
     // expected 010204010410041f (last byte may be different)
@@ -216,7 +262,8 @@ int main(int argc, char **argv)
     testComposeDelta(-3.0, 0.25, 1.0, 40);
      */
     //testComposeDelta(-50.0, 1.0, 0.1875, 80);
-    testComposeDelta(-50.0, 1.0, 300.0, 80);
+    // testComposeDelta(-50.0, 1.0, 300.0, 80);
+    testComposeHuffman(-10.0, 0.5, 1.0, 28);
    /*
     testComposeDelta(-3.0, 0.25, 2.0, 80);
     testComposeDelta(-3.0, 0.25, 3.0, 40);
