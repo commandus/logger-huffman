@@ -348,7 +348,7 @@ void LoggerBuilder::buildHuffman(
 
     // first packet firstHeader(8) MeasurementHeaderDiff(10)
     std::string firstPacketUncompressed;
-    uint uncompressedDataDeltaSize = value.temperature.size() * bytesPerSample;
+    size_t uncompressedDataDeltaSize = value.temperature.size() * bytesPerSample;
     firstPacketUncompressed.resize(8 + 10 + uncompressedDataDeltaSize);
     setFirstHeader(firstPacketUncompressed.c_str(), value, 0x4c, bytesPerSample);   // 8 bytes
     setMeasureDeltaHeader(firstPacketUncompressed.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes
