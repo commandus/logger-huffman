@@ -118,6 +118,23 @@ flushLoggerParser(env);
 doneLoggerParser(env);
 ```
 
+#### LoggerKosaLoader implementation
+
+You need override load() method of LoggerKosaPacketsLoader abstract class to
+implement load last "full" packets to calculate delta packet temperature.
+
+```c++
+#include "logger-kosa-loader.h"
+
+class MyLoggerKosaPacketsLoader: public LoggerKosaPacketsLoader {
+public:
+    bool load(LoggerKosaPackets &retVal, uint32_t addr) override;
+};
+
+```
+
+See "Set packet loader class"
+
 ##### Calls
 
 First you need create a descriptor by initLoggerParser() call. It allocates
