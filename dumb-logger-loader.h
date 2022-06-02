@@ -1,3 +1,6 @@
+#ifndef DUMB_LOGGER_LOADER_H
+#define DUMB_LOGGER_LOADER_H     1
+
 #include "logger-collection.h"
 
 /**
@@ -12,3 +15,5 @@ public:
 
     void setCollection(LoggerKosaCollector *aCollection);
 };
+
+#endif
