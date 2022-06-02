@@ -16,7 +16,8 @@ class LoggerParserEnv {
 
 void *initLoggerParser(
     const std::string &passportDir,     ///< passport files root
-    LOG_CALLBACK onLog                  ///< log callback
+    LOG_CALLBACK onLog,                 ///< log callback
+    void *loggerKosaPacketsLoader
 )
 {
     LoggerParserEnv *r = new LoggerParserEnv();
@@ -27,12 +28,18 @@ void *initLoggerParser(
 #endif    
     r->lkc = new LoggerKosaCollector();
     r->lkc->setPassports(r->passportDescriptor);
+
+    if (loggerKosaPacketsLoader) {
+        // set "base" loader
+        r->lkc->setLoggerKosaPacketsLoader(static_cast<LoggerKosaPacketsLoader *>(loggerKosaPacketsLoader));
+    }
     return r;
 }
 
 void *initLoggerParser(
     const std::vector<std::string> &passportDirs,       ///< passport files root
-    LOG_CALLBACK onLog                                  ///< log callback
+    LOG_CALLBACK onLog,                                 ///< log callback
+    void *loggerKosaPacketsLoader
 )
 {
     LoggerParserEnv *r = new LoggerParserEnv();
@@ -43,6 +50,11 @@ void *initLoggerParser(
 #endif    
     r->lkc = new LoggerKosaCollector();
     r->lkc->setPassports(r->passportDescriptor);
+
+    if (loggerKosaPacketsLoader) {
+        // set "base" loader
+        r->lkc->setLoggerKosaPacketsLoader(static_cast<LoggerKosaPacketsLoader *>(loggerKosaPacketsLoader));
+    }
     return r;
 }
 

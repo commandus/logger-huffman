@@ -165,10 +165,19 @@ called) then it removes from the memory.
 ##### Set packet loader class
 
 In example below DumbLoggerKosaPacketsLoader class is set to load packets from external storage like database.
-```c
+```c++
 #include "dumb-logger-loader.h"
 ...
-    void *env = initLoggerParser("../logger-passport/tests/passport", nullptr);
+    DumbLoggerKosaPacketsLoader lkl;
+
+    void *env = initLoggerParser("../logger-passport/tests/passport", nullptr, &lkl);
+    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(env);
+```
+or 
+```c++
+#include "dumb-logger-loader.h"
+...
+    void *env = initLoggerParser("../logger-passport/tests/passport");
     LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(env);
 
     // set "base" loader

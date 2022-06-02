@@ -7,11 +7,11 @@
 #include <functional>
 
 typedef std::function<void(
-		void *env,
-		int level,
-		int modulecode,
-		int errorcode,
-		const std::string &message)>
+    void *env,
+    int level,
+    int modulecode,
+    int errorcode,
+    const std::string &message)>
 LOG_CALLBACK;
 
 class LoggerKosaCollector;
@@ -26,8 +26,7 @@ class LoggerKosaCollector;
 int sqlCreateTable(
     std::vector <std::string> &retClauses,
     int sqlDialect,
-    const std::map<std::string, std::string> *extraValues = NULL
-    
+    const std::map<std::string, std::string> *extraValues = nullptr
 );
 
 /**
@@ -39,30 +38,34 @@ int sqlCreateTable(
  */
 std::string sqlCreateTable1(
     int sqlDialect,
-    const std::map<std::string, std::string> *extraValues = NULL,
+    const std::map<std::string, std::string> *extraValues = nullptr,
     const std::string &separator = " "
 );
 
 /**
  * Initialize one passport directory or file
  * @param passportDir passport root directory
- * @param onLog callbac function to report an errors
+ * @param onLog callback function to report an errors
+ * @param loggerKosaPacketsLoader packet loader LoggerKosaPacketsLoader class object pointer
  * @return "passport" descriptor
  */
 void *initLoggerParser(
     const std::string &passportDir,     ///< passport files root, can be empty
-    LOG_CALLBACK onLog                  ///< log callback
+    LOG_CALLBACK onLog = nullptr,                 ///< log callback
+    void *loggerKosaPacketsLoader = nullptr
 );
 
 /**
  * Initialize more than one passport directory(or files)
  * @param passportDirs list of passport files or directories
  * @param onLog callbac function to report an errors
+ * @param loggerKosaPacketsLoader packet loader LoggerKosaPacketsLoader class object pointer
  * @return "passport" descriptor
  */
 void *initLoggerParser(
     const std::vector<std::string> &passportDirs,     ///< passport files roots list or passport files
-    LOG_CALLBACK onLog                  ///< log callback
+    LOG_CALLBACK onLog = nullptr,                               ///< log callback
+    void *loggerKosaPacketsLoader = nullptr
 );
 
 void flushLoggerParser(void *env);
