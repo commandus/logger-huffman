@@ -7,6 +7,7 @@
 
 #include "util-time-fmt.h"
 #include "logger-collection.h"
+#include "util-compress.h"
 #include "errlist.h"
 
 #define MAX_BUFFER_SIZE 256

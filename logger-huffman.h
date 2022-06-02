@@ -10,7 +10,6 @@ extern "C" {
 #include <time.h>
 
 #include "platform.h"
-#include "util-compress.h"
 
 #define MAX_SENSOR_COUNT			28
 #define MAX_HDR_DATA_SIZE			24	// bytes

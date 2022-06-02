@@ -24,6 +24,7 @@
 #include "logger-collection.h"
 #include "logger-parse.h"
 #include "logger-collection.h"
+#include "util-compress.h"
 #include "errlist.h"
 #include "dumb-logger-loader.h"
 

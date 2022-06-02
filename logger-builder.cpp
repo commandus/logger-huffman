@@ -2,6 +2,7 @@
 #include "logger-builder.h"
 #include "logger-huffman.h"
 #include "logger-collection.h"
+#include "util-compress.h"
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define SWAP_DELTA2_BYTES   1
