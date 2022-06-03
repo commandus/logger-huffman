@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "platform.h"
 #include "util-time-fmt.h"
 #include "logger-collection.h"
 #include "util-compress.h"

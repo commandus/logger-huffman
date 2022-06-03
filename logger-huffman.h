@@ -9,7 +9,14 @@ extern "C" {
 #include <inttypes.h>
 #include <time.h>
 
-#include "platform.h"
+#ifdef _MSC_VER
+#define ALIGN	__declspec(align(1))
+#define PACKED
+#else
+#include <endian.h>
+#define ALIGN
+#define PACKED	__attribute__((aligned(1), packed))
+#endif
 
 #define MAX_SENSOR_COUNT			28
 #define MAX_HDR_DATA_SIZE			24	// bytes
