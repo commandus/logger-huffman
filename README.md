@@ -54,8 +54,10 @@ C++ source code example:
 ```c++
 #include "logger-sql-clause.h"
 ...
-// create table clause 
-std::string r = createTableSQLClause(OUTPUT_FORMAT_SQL, dialect);
+// create table value clause 
+std::string r = createTableSQLClauseLoggerLora(OUTPUT_FORMAT_SQL, dialect);
+// create table raw packet clause 
+std::string r = createTableSQLClauseLoggerRaw(OUTPUT_FORMAT_SQL, dialect);
 ...
 // load packet
 LoggerKosaCollector c;
@@ -65,7 +67,7 @@ std::vector<std::string> s;
 
 ...
 // insert into clause
-r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
+r = loggerParsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
 
 ```
 
@@ -90,14 +92,14 @@ void *env = initLoggerParser("", logCallback);
 
 // Optional, get SQL "CREATE TABLE .." clauses to create an database tables 
 std::vector <std::string> sqlClauses;
-sqlCreateTable(sqlClauses, SQL_POSTGRESQL);
+loggerSQLCreateTable(sqlClauses, SQL_POSTGRESQL);
 
 // Put received packet from the device in the loop
 while (true) {
       // LoraWAN device address used for packet identification 
       uint32_t addr = ..;
       // put received packet to the parser
-      parsePacket(env, addr, binaryDataString);
+      loggerParsePacket(env, addr, binaryDataString);
 }
 
 ..
@@ -105,13 +107,13 @@ while (true) {
 // process collected packets. Do it in another thread. 
 
 std::vector <std::string> sqlInsertClauses;
-sqlInsertPackets(env, sqlInsertClauses, SQL_POSTGRESQL);
+loggerSQLInsertPackets(env, sqlInsertClauses, SQL_POSTGRESQL);
 for (auto it(clauses.begin()); it != clauses.end(); it++) {
     std::cout << "Insert: " << *it << std::endl;
 }
 
 // Remove processed or expired packets
-rmCompletedOrExpired(env);
+loggerRemoveCompletedOrExpired(env);
 
 // finish packet parser
 flushLoggerParser(env);
@@ -140,7 +142,7 @@ See "Set packet loader class"
 First you need create a descriptor by initLoggerParser() call. It allocates
 memory to store received packets;
 
-Call parsePacket() save packet in the memory.
+Call loggerParsePacket() save packet in the memory.
 
 Lora device send 5-10 packets in about 100-300 seconds.
 
@@ -150,15 +152,15 @@ received, it can be stored in the database and removed from the memory.
 When some packets are missed especially first ones, it is impossible to
 assembly them in the database record.
 
-In this case, memory must be free implicitly by sqlInsertPackets() or parsePacket() calls
+In this case, memory must be free implicitly by loggerSQLInsertPackets() or loggerParsePacket() calls
 or explicitly by flushLoggerParser() call. These calls check received time and if it
-is later than 5 minutes, packets trying to store in the database(if sqlInsertPackets()
+is later than 5 minutes, packets trying to store in the database(if loggerSQLInsertPackets()
 called) then it removes from the memory.
 
 - initLoggerParser() return an descriptor
-- sqlCreateTable() return "CREATE TABLE .." SQL statement string
-- parsePacket() trying to parse received packet. Packets stored in memory.  
-- sqlInsertPackets() find completed packets
+- loggerSQLCreateTable() return "CREATE TABLE .." SQL statement string
+- loggerParsePacket() trying to parse received packet. Packets stored in memory.  
+- loggerSQLInsertPackets() find completed packets
 - flushLoggerParser()
 - doneLoggerParser()
 
@@ -194,24 +196,24 @@ or
 Delta packet requires "base" packet(s).
 
 If packet stored in SQL database, you can retrieve "base" packets with SQL statement like this:
-```sql
 
+```sql
 SELECT "raw" FROM "logger_lora" WHERE "loraadr" = '2a' AND ("raw" LIKE '4a%' OR "raw" LIKE '00%' ) ORDER BY id DESC LIMIT 1;
 ```
 
-buildSQLBaseMeasurementSelect() return this SQL clause using specified SQL dialect 
+loggerBuildSQLBaseMeasurementSelect() return this SQL clause using specified SQL dialect 
 ```c++
-std::string sql = buildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_UINT);
+std::string sql = loggerBuildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_UINT);
 ```
 DEV_ADDR_UINT is LoRaWAN device address integer.
 
 ##### Prepare hex string read from database to be loaded
 
-Call parseSQLBaseMeasurement() e.g.
+Call loggerParseSQLBaseMeasurement() e.g.
 ```c++
 #include "logger-parse.h"
 std::vector<std::string> binPackets;
-parseSQLBaseMeasurement(binPackets, "4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 ...");
+loggerParseSQLBaseMeasurement(binPackets, "4a0080000207261300011512010115261300003e3d710002 4b26020200cf06aa01e6ff0002deff0003eaff0004dcff00 ...");
 ```
 
 #### Compose packets
@@ -425,7 +427,7 @@ cd logger-huffman
 make
 ```
 
-Option --enable-logger-passord depends on liblogger-passport.a, add library to the ../logger-passord directory.
+Option --enable-logger-password depends on liblogger-passport.a, add library to the ../logger-passord directory.
 
 If you prefer use clang instead of gcc:
 

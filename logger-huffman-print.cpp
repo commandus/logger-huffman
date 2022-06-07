@@ -252,7 +252,7 @@ int main(int argc, char **argv)
     void *loggerParserEnv = initLoggerParser(config.passportDir, onLoggerParserLog);
 
     if (config.printCreateClauses) {
-        std::cout << sqlCreateTable1(config.outputFormat, nullptr, "\n") << std::endl;
+        std::cout << loggerSQLCreateTable1(config.outputFormat, nullptr, "\n") << std::endl;
         doneLoggerParser(loggerParserEnv);
         exit(0);
     }
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
             outputString = c->toTableString();
             break;
         default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
-            outputString = sqlInsertPackets1(loggerParserEnv, config.outputFormat);
+            outputString = loggerSQLInsertPackets1(loggerParserEnv, config.outputFormat);
     }
     std::cout << outputString << std::endl;
     doneLoggerParser(loggerParserEnv);
