@@ -77,7 +77,7 @@ static char *int2bin(int num, int pad)
 int main(int argc, char **argv)
 {
 	for (int i = 0; i < CNT; i++) {
-		uint16_t vv = htobe16(values[i]);
+		uint16_t vv = values[i];    // htobe16(values[i]);
 		TEMPERATURE_2_BYTES v = *(TEMPERATURE_2_BYTES*) & vv;
 		double t = TEMPERATURE_2_BYTES_2_double(v);
 		printf("%4x %s %8.4f must %8.4f\n", values[i], int2bin(values[i], 16), t, expected[i]);

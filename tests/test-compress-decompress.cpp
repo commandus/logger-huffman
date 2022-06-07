@@ -3,8 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <sys/time.h>
+#include <util-compress.h>
 
-#include "logger-huffman.h"
 #include "util-time-fmt.h"
 #include "logger-collection.h"
 #include "logger-builder.h"
