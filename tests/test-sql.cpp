@@ -56,10 +56,10 @@ void test1() {
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++)
     {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
-        r = sqlCreateTable1(dialect);
+        r = loggerSQLCreateTable1(dialect);
         std::cout << r << std::endl;
 
-        r = parsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
+        r = loggerParsePacketsToSQLClause(OUTPUT_FORMAT_SQL, dialect, *c.koses.begin());
         std::cout << r << std::endl << std::endl;
     }
     std::cout << r << std::endl;
@@ -72,13 +72,13 @@ void testLoggerParse() {
     for (int dialect = SQL_POSTGRESQL; dialect <= SQL_SQLITE; dialect++) {
         std::cout << "Database: " << SQL_DIALECT_NAME[dialect] << std::endl;
 
-        r = sqlCreateTable1(dialect);
+        r = loggerSQLCreateTable1(dialect);
         std::cout << r << std::endl;
 
-        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packet0));
-        std::cout << sqlInsertPackets1(env, dialect) << std::endl;
+        r = loggerParsePacket(env, DEV_ADDR_INT, hex2binString(packet0));
+        std::cout << loggerSQLInsertPackets1(env, dialect) << std::endl;
 
-        std::cout << sqlInsertRaw(dialect, "111") << std::endl;
+        std::cout << loggerSQLInsertRaw(dialect, "111") << std::endl;
     }
 
     flushLoggerParser(env);
@@ -90,17 +90,17 @@ void testIncompletePacket() {
     int dialect = SQL_POSTGRESQL;
     int r;
     for (int i = 0; i < 2; i++) {
-        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
+        r = loggerParsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r1: " << r << std::endl;
-        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
+        r = loggerParsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r2: " << r << std::endl;
-        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
+        r = loggerParsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r3: " << r << std::endl;
-        r = parsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
+        r = loggerParsePacket(env, DEV_ADDR_INT, hex2binString(packetIncomplete));
         std::cout << "r4: " << r << std::endl;
 
 
-        std::cout << i << "  " << sqlInsertPackets1(env, dialect) << std::endl;
+        std::cout << i << "  " << loggerSQLInsertPackets1(env, dialect) << std::endl;
         std::cout << "pg " << loggerParserState(env, 0) << std::endl;
         std::cout << "js " << loggerParserState(env, 4) << std::endl;
         std::cout << std::endl;
@@ -130,10 +130,10 @@ void testDeltaPacket() {
     int dialect = SQL_POSTGRESQL;
     std::string pH = hex2binString(packetHuff);
     for (int i = 0; i < 1000; i++) {
-        parsePacket(env, DEV_ADDR_INT, pH);
-        std::string outputString = sqlInsertPackets1(env, dialect); // toJsonString();
+        loggerParsePacket(env, DEV_ADDR_INT, pH);
+        std::string outputString = loggerSQLInsertPackets1(env, dialect); // toJsonString();
         // std::cerr << outputString << std::endl;
-        rmCompletedOrExpired(env);
+        loggerRemoveCompletedOrExpired(env);
         count++;
     }
     doneLoggerParser(env);
@@ -147,17 +147,17 @@ void testDeltaPacket() {
 }
 
 void testBaseSQLStatement() {
-    std::cout << buildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_INT) << std::endl;
-    std::cout << buildSQLBaseMeasurementSelect(SQL_MYSQL, DEV_ADDR_INT) << std::endl;
-    std::cout << buildSQLBaseMeasurementSelect(SQL_FIREBIRD, DEV_ADDR_INT) << std::endl;
-    std::cout << buildSQLBaseMeasurementSelect(SQL_SQLITE, DEV_ADDR_INT) << std::endl;
+    std::cout << loggerBuildSQLBaseMeasurementSelect(SQL_POSTGRESQL, DEV_ADDR_INT) << std::endl;
+    std::cout << loggerBuildSQLBaseMeasurementSelect(SQL_MYSQL, DEV_ADDR_INT) << std::endl;
+    std::cout << loggerBuildSQLBaseMeasurementSelect(SQL_FIREBIRD, DEV_ADDR_INT) << std::endl;
+    std::cout << loggerBuildSQLBaseMeasurementSelect(SQL_SQLITE, DEV_ADDR_INT) << std::endl;
 }
 
 void testParseSQLBaseMeasurement() {
     std::vector<std::string> s;
     for (int i = 0; i < 1; i++) {
         s.clear();
-        parseSQLBaseMeasurement(s, " 12  3456 78 ab  de ");
+        loggerParseSQLBaseMeasurement(s, " 12  3456 78 ab  de ");
     }
     for (int i = 0; i < s.size(); i++) {
         std::cout << std::hex << std::setfill('0') << std::setw(2) << bin2hexString(s[i]) << " ";

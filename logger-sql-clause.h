@@ -31,7 +31,7 @@ enum SQL_DIALECT : int {
  * @param extraValues  <optional field name>=value
  * @return empty string if fails
  */
-std::string parsePacketsToSQLClause(
+std::string loggerParsePacketsToSQLClause(
     int outputFormat,
     int sqlDialect,
     const LoggerKosaPackets &packets,
@@ -70,7 +70,7 @@ std::string createTableSQLClauseLoggerRaw(
  * @param sqlDialect 0..3
  * @param extraValues  <optional field name>=value
  */
-void sqlInsertRawStrm(
+void loggerSQLInsertRawStrm(
     std::ostream &ostrm,
     int sqlDialect,
     const std::string &value,
@@ -84,7 +84,7 @@ void sqlInsertRawStrm(
  * @param sqlDialect SQL dialect
  * @param addr LoRaWAN device address
  */
-void buildSQLSelectBaseMeasurement(
+void loggerBuildSQLSelectBaseMeasurement(
     std::ostream &outStrteam,
     int sqlDialect,
     uint32_t addr
