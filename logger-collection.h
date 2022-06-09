@@ -136,14 +136,14 @@ public:
 
     bool setMeasurementHeaderFromDiffIfExists();
 
-    int getDataBytes() const;
+    int getDataBits() const;
 
     /**
      * Return kosa year from first packet if exists or base record loaded by LoraWAN device address
      * Second packet header have kosa number but no kosa year. Restore kosa year.
      * @return 0 if not exists
      */
-    uint8_t getKosaYearFromFirstPacketOrLoad();
+    uint8_t getKosaYearFromFirstPacketOrLoad(uint8_t kosa);
 };
 
 /**
@@ -199,7 +199,7 @@ class LoggerCollection {
           * Put char buffer
           */
         LOGGER_PACKET_TYPE put(size_t &retSize, std::vector<LOGGER_MEASUREMENT_HDR> *retHeaders, uint32_t addr,
-                               const void *buffer, size_t aSize);
+            const void *buffer, size_t aSize);
 		/**
 		 * Put collection of strings
 		 */
@@ -211,10 +211,15 @@ class LoggerCollection {
         bool getTemperature(std::map<uint8_t, double> &retval) const;
         bool getCorrectedTemperature(std::map<uint8_t, double> &t) const;
         /**
-         * Get bits size 1 or 2 bits in
-         * @return bullptr if not exists
+         * Return first packet header
+         * @return nullptr if not exists
          */
         LOGGER_PACKET_FIRST_HDR *getFirstHeader();
+        /**
+         * Return first packet header in collector koses
+         * @return nullptr if not exists
+         */
+        LOGGER_PACKET_FIRST_HDR *getCollectedFirstHeader(uint8_t kosa);
 
 		std::string toString() const;
 		std::string toJsonString() const;

@@ -114,7 +114,7 @@ void testDeltaPacket() {
     gettimeofday(&t0, NULL);
 
     void *env = initLoggerParser("../logger-passport/tests/passport", nullptr);
-    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(env);
+    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollector(env);
 
     // Delta packet require "base" packets to be loaded
     LoggerKosaCollector lkcBase;
