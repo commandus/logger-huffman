@@ -111,7 +111,15 @@ int loggerParsePacket(void *env, uint32_t addr, const std::string &packet)
         return 0;
     LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
     LOGGER_PACKET_TYPE t = c->put(addr, packet);
-    // kosaCollection->rmExpired();
+    return (int) t;
+}
+
+int loggerParsePackets(void *env, uint32_t addr, const std::vector<std::string> &packets)
+{
+    if (!env)
+        return 0;
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
+    LOGGER_PACKET_TYPE t = c->put(addr, packets);
     return (int) t;
 }
 
@@ -256,7 +264,7 @@ void *getPassportDescriptor(void *env)
     return ((LoggerParserEnv *) env)->passportDescriptor;
 }
 
-void *getLoggerKosaCollection(void *env)
+void *getLoggerKosaCollector(void *env)
 {
     return (void *) ((LoggerParserEnv *) env)->lkc;
 }

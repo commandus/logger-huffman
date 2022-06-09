@@ -13,14 +13,14 @@ static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
     const void *buffer,
     const LoggerMeasurements &measurements,
     uint8_t typ,
-    uint8_t bytesPerSample
+    uint8_t bitsPerSample
 )
 {
     LOGGER_PACKET_FIRST_HDR* h1 = (LOGGER_PACKET_FIRST_HDR*) buffer;
     h1->typ = typ;
     h1->status.rfu = 0;
     h1->status.command_change = 0;
-    h1->status.data_bytes = bytesPerSample;
+    h1->status.data_bits = bitsPerSample;
     // calc size in packets
     switch (typ) {
         case 0x4a:
@@ -33,12 +33,12 @@ static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
             {
                 int cnt = measurements.temperature.size();
                 // 6 or 3 measurements in first packet
-                int measurementsInFirstPacket = 6 / bytesPerSample;
+                int measurementsInFirstPacket = 6 / bitsPerSample;
                 if (measurementsInFirstPacket > cnt)
                     measurementsInFirstPacket = cnt;
                 int measurementsInSecondPackets = cnt - measurementsInFirstPacket;
-                int secondPackets = measurementsInSecondPackets * bytesPerSample / 20;
-                if (measurementsInSecondPackets > secondPackets * 20 / bytesPerSample)
+                int secondPackets = measurementsInSecondPackets * bitsPerSample / 20;
+                if (measurementsInSecondPackets > secondPackets * 20 / bitsPerSample)
                     secondPackets++;
                 h1->packets = secondPackets + 1;    // + first header packet
             }
@@ -198,6 +198,41 @@ static LOGGER_MEASUREMENT_HDR *setMeasureHeader(
     return m;
 }
 
+static int calcRequiredBits(uint16_t value)
+{
+    if (value == 0)
+        return 0;
+    if (value < 2)
+        return 1;
+    if (value < 4)
+        return 2;
+    if (value < 8)
+        return 3;
+    if (value < 16)
+        return 4;
+    if (value < 32)
+        return 5;
+    if (value < 64)
+        return 6;
+    if (value < 128)
+        return 7;
+    if (value < 256)
+        return 8;
+    if (value < 512)
+        return 9;
+    if (value < 1024)
+        return 10;
+    if (value < 2048)
+        return 11;
+    if (value < 4096)
+        return 12;
+    if (value < 8192)
+        return 13;
+    if (value < 16384)
+        return 14;
+    return 15;
+}
+
 static LOGGER_MEASUREMENT_HDR_DIFF *setMeasureDeltaHeader(
     const char *buffer,
     const LoggerMeasurements &measurements
@@ -254,7 +289,7 @@ void LoggerBuilder::build(
  * @param retDiff if not NULL, return differences
  * @param temperature current values
  * @param baseTemperature values to compare
- * @return return 1 or 2- bytes required to keep max difference
+ * @return return bits required to keep max difference e.g. 1, 2 up to 15
  */
 static int calcDeltas(
     std::vector<int16_t> *retDiff,
@@ -279,9 +314,7 @@ static int calcDeltas(
         // next
         itBase++;
     }
-    if (maxDiff < 0x80)
-        return 1;
-    return 2;
+    return calcRequiredBits(maxDiff);
 }
 
 void LoggerBuilder::build(
@@ -291,11 +324,11 @@ void LoggerBuilder::build(
 )
 {
     std::vector<int16_t> diffInt;
-    int bytesPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
+    int bitsPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
 
     int cnt = diffInt.size();   // diffInt may be less than value.temperature
     // 6 or 3 measurements in first packet
-    int measurementsInFirstPacket = 6 / bytesPerSample;
+    int measurementsInFirstPacket = 6 / bitsPerSample;
     bool firstPacketShorter24Bytes = false;
     if (measurementsInFirstPacket > cnt) {
         measurementsInFirstPacket = cnt;
@@ -303,23 +336,23 @@ void LoggerBuilder::build(
     }
 
     int measurementsInSecondPackets = cnt - measurementsInFirstPacket;
-    int secondPackets = measurementsInSecondPackets * bytesPerSample / 20;
-    if (measurementsInSecondPackets > secondPackets * 20 / bytesPerSample)
+    int secondPackets = measurementsInSecondPackets * bitsPerSample / 20;
+    if (measurementsInSecondPackets > secondPackets * 20 / bitsPerSample)
         secondPackets++;
 
     // first packet firstHeader(8) MeasurementHeaderDiff(10)
     std::string firstPacket;
     firstPacket.resize(24);
-    setFirstHeader(firstPacket.c_str(), value, 0x48, bytesPerSample);   // 8 bytes
+    setFirstHeader(firstPacket.c_str(), value, 0x48, bitsPerSample);   // 8 bytes
     setMeasureDeltaHeader(firstPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes
 
     // add up to 3 or 6 measurements to the first packet
     setDeltaMeasurementsDataFirstPacket(firstPacket.c_str()
         + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-        diffInt, bytesPerSample, 6);
+        diffInt, bitsPerSample, 6);
 
     if (firstPacketShorter24Bytes)
-        firstPacket.resize(24 - (6 - (measurementsInFirstPacket * bytesPerSample)));
+        firstPacket.resize(24 - (6 - (measurementsInFirstPacket * bitsPerSample)));
     retVal.push_back(firstPacket);
 
     // second packet secondHeader(4) temperature(1..10 or 1..20)
@@ -328,7 +361,7 @@ void LoggerBuilder::build(
         secondPacket.resize(24);
         setSecondHeader(secondPacket.c_str(), value, 0x49, i + 2);   // 4 bytes
         size_t sz = setDeltaMeasurementsData(secondPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR),
-            diffInt, i, bytesPerSample);
+                                             diffInt, i, bitsPerSample);
         if (sz < 24 - sizeof(LOGGER_PACKET_SECOND_HDR)) // last packet length is variable 8..24 bytes long, resize it
             secondPacket.resize(sz + sizeof(LOGGER_PACKET_SECOND_HDR));
         retVal.push_back(secondPacket);
@@ -342,21 +375,21 @@ void LoggerBuilder::buildHuffman(
 )
 {
     std::vector<int16_t> diffInt;
-    int bytesPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
+    int bitsPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
 
     int cnt = diffInt.size();   // diffInt may be less than value.temperature
 
     // first packet firstHeader(8) MeasurementHeaderDiff(10)
     std::string firstPacketUncompressed;
-    size_t uncompressedDataDeltaSize = value.temperature.size() * bytesPerSample;
+    size_t uncompressedDataDeltaSize = value.temperature.size() * bitsPerSample;
     firstPacketUncompressed.resize(8 + 10 + uncompressedDataDeltaSize);
-    setFirstHeader(firstPacketUncompressed.c_str(), value, 0x4c, bytesPerSample);   // 8 bytes
+    setFirstHeader(firstPacketUncompressed.c_str(), value, 0x4c, bitsPerSample);   // 8 bytes
     setMeasureDeltaHeader(firstPacketUncompressed.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes
 
     // add ALL measurements to the first packet
     setDeltaMeasurementsDataFirstPacket(firstPacketUncompressed.c_str()
                                         + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-                                        diffInt, bytesPerSample, uncompressedDataDeltaSize);
+                                        diffInt, bitsPerSample, uncompressedDataDeltaSize);
     std::string firstPacketCompressed =
             firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
                 + compressLoggerString(firstPacketUncompressed.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));

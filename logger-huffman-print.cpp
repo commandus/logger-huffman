@@ -249,7 +249,18 @@ int main(int argc, char **argv)
             break;
     }
 
-    void *loggerParserEnv = initLoggerParser(config.passportDir, onLoggerParserLog);
+    DumbLoggerKosaPacketsLoader lkl;
+    // set "base" loader
+    LoggerKosaCollector lkcBase;
+    if (!config.baseValues.empty()) {
+        lkcBase.put(DEVICE_ADDR_INT, config.baseValues);
+        lkl.setCollection(&lkcBase);
+        if (config.verbosity > 2) {
+            std::cerr << "Base packets: " << lkcBase.packetsToString() << std::endl;
+        }
+    }
+
+    void *loggerParserEnv = initLoggerParser(config.passportDir, onLoggerParserLog, &lkl);
 
     if (config.printCreateClauses) {
         std::cout << loggerSQLCreateTable1(config.outputFormat, nullptr, "\n") << std::endl;
@@ -257,21 +268,14 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollection(loggerParserEnv);
 
-    // set "base" loader
-    LoggerKosaCollector lkcBase;
-    DumbLoggerKosaPacketsLoader lkl;
-    if (!config.baseValues.empty()) {
-        lkcBase.put(DEVICE_ADDR_INT, config.baseValues);
-        lkl.setCollection(&lkcBase);
-        c->setLoggerKosaPacketsLoader(&lkl);
-        if (config.verbosity > 2) {
-            std::cerr << "Base packets: " << lkcBase.packetsToString() << std::endl;
-        }
+    LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollector(loggerParserEnv);
+    // LOGGER_PACKET_TYPE t = c->put(DEVICE_ADDR_INT, config.values);
+    // LOGGER_PACKET_TYPE t = (LOGGER_PACKET_TYPE) loggerParsePackets(loggerParserEnv, DEVICE_ADDR_INT, config.values);
+    LOGGER_PACKET_TYPE t;
+    for (auto it(config.values.begin()); it != config.values.end(); it++) {
+        t = (LOGGER_PACKET_TYPE) loggerParsePacket(loggerParserEnv, DEVICE_ADDR_INT, *it);
     }
-
-    LOGGER_PACKET_TYPE t = c->put(DEVICE_ADDR_INT, config.values);
 
     if (t == LOGGER_PACKET_UNKNOWN)
         printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);

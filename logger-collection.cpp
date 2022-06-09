@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
-#include <iostream>
 
 #include "platform.h"
 #include "util-time-fmt.h"
@@ -12,6 +11,7 @@
 #include "errlist.h"
 
 #define MAX_BUFFER_SIZE 256
+#define NO_MATCH_YEAR   255
 
 #ifdef ENABLE_LOGGER_PASSPORT
 // uncomment if you want passport in output
@@ -201,8 +201,8 @@ std::string LOGGER_MEASUREMENT_HDR_2_table(
  * Prints out:
  *  type 74 always
  * 	size (compressed) общая длина данных, bytes
- *  status.data_bytes
- *  status.data_bytes
+ *  status.data_bits
+ *  status.data_bits
  *  status.command_change
  *	measure мл. Байт номера замера, lsb used (или addr_used?)
  *	packets  количество пакетов в замере! (лора по 24 байта с шапками пакетов)
@@ -215,11 +215,11 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
 {
 	std::stringstream ss;
 	ss
-        << "header:" << std::endl
-        << "type\t" << (int) value.typ << std::endl
-        << "size\t" << (int) value.size << std::endl
-        << "status\t" << (int) value.status.b << std::endl
-        << "data_bytes\t" << (int) value.status.data_bytes << std::endl
+            << "header:" << std::endl
+            << "type\t" << (int) value.typ << std::endl
+            << "size\t" << (int) value.size << std::endl
+            << "status\t" << (int) value.status.b << std::endl
+            << "data_bits\t" << (int) value.status.data_bits << std::endl
         << "command_change\t" << (int) value.status.command_change << std::endl
         << "rfu\t" << (int) value.status.rfu << std::endl
 		<< "measure\t" << (int) value.measure << std::endl
@@ -237,7 +237,7 @@ std::string LOGGER_PACKET_FIRST_HDR_2_json(
 	ss << "{\"type\": " << (int) value.typ
 		<< ", \"size\": " << (int) value.size
 		<<  ", \"status\": " << (int) value.status.b
-		<<  ", \"data_bytes\": " << (int) value.status.data_bytes
+		<<  ", \"data_bits\": " << (int) value.status.data_bits
 		<<  ", \"command_change\": " << (int) value.status.command_change
         <<  ", \"rfu\": " << (int) value.status.rfu
 		<<  ", \"measure\": " << (int) value.measure
@@ -389,6 +389,15 @@ static void bufferPrintHex(std::ostream &ostream, const void* value, size_t size
 		ostream << std::setfill('0') << std::setw(2) << std::hex << (int) *p;
 		p++;
 	}
+}
+
+static int bytesRequiredForBits(
+    int bits
+)
+{
+    if (bits > 8)
+        return 2;
+    return 1;
 }
 
 /**
@@ -1064,7 +1073,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 				LOGGER_PACKET_SECOND_HDR *h2;
 				if (extractSecondHdr(&h2, packet.c_str(), aSize))
                     break; // some errors
-                uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad();
+                uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad(h2->kosa);
 				id.set(h2->kosa, h2->measure, h2->packet, kosaYear);
 			}
 			break;
@@ -1082,7 +1091,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
                 LOGGER_PACKET_SECOND_HDR *h2;
                 if (extractSecondHdr(&h2, packet.c_str(), aSize))
                     break;  // some errors
-                uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad();
+                uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad(h2->kosa);
                 id.set(h2->kosa, h2->measure, h2->packet, kosaYear);
                 id.packet = h2->packet;
             }
@@ -1107,7 +1116,7 @@ LOGGER_PACKET_TYPE LoggerItem::set(
                     break;  // some errors
                 }
                 // std::string p = decompressLoggerString(packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
-                uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad();
+                uint8_t kosaYear = getKosaYearFromFirstPacketOrLoad(h2->kosa);
                 id.set(h2->kosa, h2->measure, h2->packet, kosaYear);
                 id.packet = h2->packet;
             }
@@ -1139,23 +1148,24 @@ bool LoggerItem::setMeasurementHeaderFromDiffIfExists() {
  * Return data bits for diff packets
  * @return
  */
-int LoggerItem::getDataBytes() const {
+int LoggerItem::getDataBits() const {
     int dataBits = 1;
     if (collection) {
         LOGGER_PACKET_FIRST_HDR *h1 = collection->getFirstHeader();
         if (h1) {
-            dataBits = h1->status.data_bytes;
+            dataBits = h1->status.data_bits;
         }
     }
     return dataBits;
 }
 
-uint8_t LoggerItem::getKosaYearFromFirstPacketOrLoad() {
+uint8_t LoggerItem::getKosaYearFromFirstPacketOrLoad(uint8_t kosa) {
     if (collection) {
         LOGGER_PACKET_FIRST_HDR *firstHeader = collection->getFirstHeader();
-        if (firstHeader) {
+        if (!firstHeader)
+            firstHeader = collection->getCollectedFirstHeader(kosa);    // try to find in already collected
+        if (firstHeader)
             return firstHeader->kosa_year;
-        }
     }
     // try load from base loader by address
     if (collection && collection->collector && collection->collector->loggerKosaPacketsLoader) {
@@ -1187,7 +1197,8 @@ bool LoggerItem::getByDiff(
     base->packets.get(baseT);
 
     // get data bits in diff: 1 or 2 bytes
-    int dataBytes = getDataBytes();
+    int dataBits = getDataBits();
+    int dataBytes = bytesRequiredForBits(dataBits);
 
     // get count
     int cnt;
@@ -1252,7 +1263,8 @@ std::string LoggerItem::delta2ToString(
     if (r == 0)
         ss << "second_header:\t" << LOGGER_PACKET_SECOND_HDR_2_string(*h2) << std::endl;
 
-    int dataBytes = getDataBytes();
+    int dataBits = getDataBits();
+    int dataBytes = bytesRequiredForBits(dataBits);
     int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes;
 
     // get diffs
@@ -1294,14 +1306,16 @@ std::string LoggerItem::delta1ToJson(
                << LOGGER_MEASUREMENT_HDR_2_json(collection->kosa->measurementHeader) << ", ";
         }
 
-        int dataBits = getDataBytes();
-        int cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBits;
+        int dataBits = getDataBits();
+        int dataBytes = bytesRequiredForBits(dataBits);
+
+        int cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
 
         // get diffs
         std::vector<int> diffs;
         diffs.resize(cnt);
         for (int i = 0; i < cnt; i++) {
-            diffs[i] = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBits, i);
+            diffs[i] = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
         }
 
         // put diffs
@@ -1328,7 +1342,8 @@ std::string LoggerItem::delta2ToJson(
     if (r == 0)
         ss << "\"second_header\": " << LOGGER_PACKET_SECOND_HDR_2_json(*h2);
 
-    int dataBytes = getDataBytes();
+    int dataBits = getDataBits();
+    int dataBytes = bytesRequiredForBits(dataBits);
     int cnt = (aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes;
 
     // get diffs
@@ -1459,11 +1474,10 @@ LoggerCollection::LoggerCollection(
 }
 
 LoggerCollection::LoggerCollection(
-        LoggerKosaCollector *aCollector
+    LoggerKosaCollector *aCollector
 )
     : errCode(0), expectedPackets(0), kosa(nullptr), collector(aCollector)
 {
-
 }
 
 LoggerCollection::~LoggerCollection()
@@ -1512,7 +1526,6 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
                     if (r)
                         break;
                     item.id.set(h1->kosa, h1->measure, 1, h1->kosa_year);    // -1: first packet (with no data)
-
                     if (collector) {
                         if (collector->loggerKosaPacketsLoader) {
                             LoggerKosaPackets lkpBase;
@@ -1697,6 +1710,24 @@ LOGGER_PACKET_FIRST_HDR *LoggerCollection::getFirstHeader()
     return nullptr;
 }
 
+/**
+ * Find out first packet header in packet collection in collector
+ * Get bits size 1 or 2 bits in
+ * @return nullptr if not exists
+ */
+LOGGER_PACKET_FIRST_HDR *LoggerCollection::getCollectedFirstHeader(
+    uint8_t kosa
+)
+{
+    if (!collector)
+        return nullptr;
+    LoggerItemId id = { kosa, 0, 0, NO_MATCH_YEAR };
+    std::vector<LoggerKosaPackets>::iterator it(std::find(collector->koses.begin(), collector->koses.end(), id));
+    if (it == collector->koses.end())
+        return nullptr;
+    return it->packets.getFirstHeader();
+}
+
 std::string LoggerCollection::toString() const
 {
 	std::stringstream ss;
@@ -1821,7 +1852,11 @@ bool LoggerKosaPackets::operator==(
 	const LoggerItemId &another
 ) const
 {
-	return (id.kosa == another.kosa) && (id.kosa_year == another.kosa_year);
+	return (id.kosa == another.kosa) 
+        && (
+            (another.kosa_year == NO_MATCH_YEAR)
+            || (id.kosa_year == another.kosa_year)
+        );
 }
 
 bool LoggerKosaPackets::operator!=(
@@ -2114,7 +2149,6 @@ void LoggerKosaPackets::updateKosaAfterCopy()
 LoggerKosaCollector::LoggerKosaCollector()
     : passportDescriptor(nullptr), loggerKosaPacketsLoader(nullptr)
 {
-
 }
 
 LoggerKosaCollector::~LoggerKosaCollector()
@@ -2230,7 +2264,22 @@ LOGGER_PACKET_TYPE LoggerKosaCollector::put(
 )
 {
     size_t sz;
-    return put(nullptr, sz, addr, value.c_str(), value.size());
+    // return put(nullptr, sz, addr, value.c_str(), value.size());
+
+    // temporary raw collection
+    LoggerCollection c(this);
+    std::vector<LOGGER_MEASUREMENT_HDR> mhs;
+    LOGGER_PACKET_TYPE r = c.put(sz, &mhs, addr, value.c_str(), value.size());
+
+    // copy items from raw collection group by logger
+    add(c);
+
+    // copy header(s)
+    for (std::vector<LOGGER_MEASUREMENT_HDR>::const_iterator it(mhs.begin()); it != mhs.end(); it++) {
+        addHeader(*it);
+    }
+    return r;
+
 }
 
 std::string LoggerKosaCollector::toString() const
