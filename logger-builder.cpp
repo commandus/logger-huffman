@@ -1,6 +1,7 @@
 #include "logger-builder.h"
 #include "logger-huffman.h"
 #include "util-compress.h"
+#include "logger-collection.h"
 #include "platform.h"
 
 #if BYTE_ORDER == BIG_ENDIAN
@@ -33,12 +34,13 @@ static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
             {
                 int cnt = measurements.temperature.size();
                 // 6 or 3 measurements in first packet
-                int measurementsInFirstPacket = 6 / bitsPerSample;
+                int dataBytes = bytesRequiredForBits(bitsPerSample);
+                int measurementsInFirstPacket = 6 / dataBytes;
                 if (measurementsInFirstPacket > cnt)
                     measurementsInFirstPacket = cnt;
                 int measurementsInSecondPackets = cnt - measurementsInFirstPacket;
-                int secondPackets = measurementsInSecondPackets * bitsPerSample / 20;
-                if (measurementsInSecondPackets > secondPackets * 20 / bitsPerSample)
+                int secondPackets = measurementsInSecondPackets * dataBytes / 20;
+                if (measurementsInSecondPackets > secondPackets * 20 / dataBytes)
                     secondPackets++;
                 h1->packets = secondPackets + 1;    // + first header packet
             }
@@ -325,10 +327,11 @@ void LoggerBuilder::build(
 {
     std::vector<int16_t> diffInt;
     int bitsPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
+    int dataBytes = bytesRequiredForBits(bitsPerSample);
 
     int cnt = diffInt.size();   // diffInt may be less than value.temperature
     // 6 or 3 measurements in first packet
-    int measurementsInFirstPacket = 6 / bitsPerSample;
+    int measurementsInFirstPacket = 6 / dataBytes;
     bool firstPacketShorter24Bytes = false;
     if (measurementsInFirstPacket > cnt) {
         measurementsInFirstPacket = cnt;
@@ -336,8 +339,8 @@ void LoggerBuilder::build(
     }
 
     int measurementsInSecondPackets = cnt - measurementsInFirstPacket;
-    int secondPackets = measurementsInSecondPackets * bitsPerSample / 20;
-    if (measurementsInSecondPackets > secondPackets * 20 / bitsPerSample)
+    int secondPackets = measurementsInSecondPackets * dataBytes / 20;
+    if (measurementsInSecondPackets > secondPackets * 20 / dataBytes)
         secondPackets++;
 
     // first packet firstHeader(8) MeasurementHeaderDiff(10)
@@ -349,7 +352,7 @@ void LoggerBuilder::build(
     // add up to 3 or 6 measurements to the first packet
     setDeltaMeasurementsDataFirstPacket(firstPacket.c_str()
         + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-        diffInt, bitsPerSample, 6);
+        diffInt, dataBytes, 6);
 
     if (firstPacketShorter24Bytes)
         firstPacket.resize(24 - (6 - (measurementsInFirstPacket * bitsPerSample)));
@@ -376,6 +379,7 @@ void LoggerBuilder::buildHuffman(
 {
     std::vector<int16_t> diffInt;
     int bitsPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
+    int dataBytes = bytesRequiredForBits(bitsPerSample);
 
     int cnt = diffInt.size();   // diffInt may be less than value.temperature
 
@@ -388,10 +392,9 @@ void LoggerBuilder::buildHuffman(
 
     // add ALL measurements to the first packet
     setDeltaMeasurementsDataFirstPacket(firstPacketUncompressed.c_str()
-                                        + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-                                        diffInt, bitsPerSample, uncompressedDataDeltaSize);
-    std::string firstPacketCompressed =
-            firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
-                + compressLoggerString(firstPacketUncompressed.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+        + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
+        diffInt, dataBytes, uncompressedDataDeltaSize);
+    std::string firstPacketCompressed = firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
+        + compressLoggerString(firstPacketUncompressed.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
     retVal.push_back(firstPacketCompressed);
 }

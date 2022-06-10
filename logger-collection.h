@@ -7,6 +7,10 @@
 
 #include "logger-huffman.h"
 
+int bytesRequiredForBits(
+    int bits
+);
+
 // следующий пакет typ 4b- plain 49- delta 4d- huffman
 class LoggerItemId {
 	public:

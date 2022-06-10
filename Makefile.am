@@ -83,7 +83,12 @@ test_sql_SOURCES = \
 	tests/test-sql.cpp
 test_sql_LDADD = $(L_LOGGER_HUFFMAN)
 
+test_huffman_SOURCES = \
+	tests/test-huffman.cpp \
+    third_party/argtable3/argtable3.c
+test_huffman_LDADD = $(L_LOGGER_HUFFMAN)
+
 check_PROGRAMS = \
-	test-compress-decompress test-temperature test-sql
+	test-compress-decompress test-temperature test-sql test-huffman
 
 TESTS = $(check_PROGRAMS)

@@ -391,7 +391,7 @@ static void bufferPrintHex(std::ostream &ostream, const void* value, size_t size
 	}
 }
 
-static int bytesRequiredForBits(
+int bytesRequiredForBits(
     int bits
 )
 {
