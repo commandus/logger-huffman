@@ -19,9 +19,9 @@ static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
 {
     LOGGER_PACKET_FIRST_HDR* h1 = (LOGGER_PACKET_FIRST_HDR*) buffer;
     h1->typ = typ;
+    h1->status.data_bits = bitsPerSample;
     h1->status.rfu = 0;
     h1->status.command_change = 0;
-    h1->status.data_bits = bitsPerSample;
     // calc size in packets
     switch (typ) {
         case 0x4a:
@@ -364,7 +364,7 @@ void LoggerBuilder::build(
         secondPacket.resize(24);
         setSecondHeader(secondPacket.c_str(), value, 0x49, i + 2);   // 4 bytes
         size_t sz = setDeltaMeasurementsData(secondPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR),
-                                             diffInt, i, bitsPerSample);
+            diffInt, i, dataBytes);
         if (sz < 24 - sizeof(LOGGER_PACKET_SECOND_HDR)) // last packet length is variable 8..24 bytes long, resize it
             secondPacket.resize(sz + sizeof(LOGGER_PACKET_SECOND_HDR));
         retVal.push_back(secondPacket);
@@ -385,7 +385,7 @@ void LoggerBuilder::buildHuffman(
 
     // first packet firstHeader(8) MeasurementHeaderDiff(10)
     std::string firstPacketUncompressed;
-    size_t uncompressedDataDeltaSize = value.temperature.size() * bitsPerSample;
+    size_t uncompressedDataDeltaSize = value.temperature.size() * dataBytes;
     firstPacketUncompressed.resize(8 + 10 + uncompressedDataDeltaSize);
     setFirstHeader(firstPacketUncompressed.c_str(), value, 0x4c, bitsPerSample);   // 8 bytes
     setMeasureDeltaHeader(firstPacketUncompressed.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes

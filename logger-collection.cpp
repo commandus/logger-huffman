@@ -218,7 +218,7 @@ std::string LOGGER_PACKET_FIRST_HDR_2_string(
             << "header:" << std::endl
             << "type\t" << (int) value.typ << std::endl
             << "size\t" << (int) value.size << std::endl
-            << "status\t" << (int) value.status.b << std::endl
+            << "status\t" << (int) *(uint8_t *)&value.status << std::endl
             << "data_bits\t" << (int) value.status.data_bits << std::endl
         << "command_change\t" << (int) value.status.command_change << std::endl
         << "rfu\t" << (int) value.status.rfu << std::endl
@@ -236,7 +236,7 @@ std::string LOGGER_PACKET_FIRST_HDR_2_json(
 	std::stringstream ss;
 	ss << "{\"type\": " << (int) value.typ
 		<< ", \"size\": " << (int) value.size
-		<<  ", \"status\": " << (int) value.status.b
+		<<  ", \"status\": " << (int) *(uint8_t *)&value.status
 		<<  ", \"data_bits\": " << (int) value.status.data_bits
 		<<  ", \"command_change\": " << (int) value.status.command_change
         <<  ", \"rfu\": " << (int) value.status.rfu
@@ -1306,7 +1306,11 @@ std::string LoggerItem::delta1ToJson(
                << LOGGER_MEASUREMENT_HDR_2_json(collection->kosa->measurementHeader) << ", ";
         }
 
-        int dataBits = getDataBits();
+        int dataBits;
+        if (h1)
+            dataBits = h1->status.data_bits;
+        else
+            dataBits = getDataBits();
         int dataBytes = bytesRequiredForBits(dataBits);
 
         int cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
@@ -1696,6 +1700,7 @@ LOGGER_PACKET_FIRST_HDR *LoggerCollection::getFirstHeader()
         switch (t) {
             case LOGGER_PACKET_PKT_1:
             case LOGGER_PACKET_DELTA_1:
+            case LOGGER_PACKET_HUFF_1:
                 {
                     LOGGER_PACKET_FIRST_HDR *h1;
                     int r = extractFirstHdr(&h1, it->packet.c_str(), it->packet.size());
@@ -1792,6 +1797,7 @@ LoggerKosaPackets::LoggerKosaPackets(
 	: collector(aCollector), start(0), baseKosa(nullptr)
 {
     packets.kosa = this;
+    clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
 }
 
 LoggerKosaPackets::LoggerKosaPackets(
@@ -1808,11 +1814,11 @@ LoggerKosaPackets::LoggerKosaPackets(
 )
 	: collector(nullptr), baseKosa(nullptr)
 {
-	start = time(nullptr);
+    start = time(nullptr);
 	id = value.id;
-    clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
     packets.items.push_back(value);
     packets.kosa = this;
+    clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
 }
 
 LoggerKosaPackets::~LoggerKosaPackets()
@@ -2375,4 +2381,5 @@ void clear_LOGGER_MEASUREMENT_HDR(
 )
 {
     std::fill((char *) &value, ((char *) &value) + sizeof(LOGGER_MEASUREMENT_HDR), 0);
+    // memset(&value, 0, sizeof(LOGGER_MEASUREMENT_HDR));
 }
