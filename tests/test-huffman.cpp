@@ -22,16 +22,16 @@ std::string composeHuffman_38_19_24(
     mBase.kosa_year = 19;
     mBase.measure = 42;
     time(&mBase.time);
-    mBase.vcc = 1.5;
-    mBase.vbat = 3.5;
+    mBase.vcc = 4.5;
+    mBase.vbat = 1.5;
 
     LoggerMeasurements m;
     m.kosa = 38;
     m.kosa_year = 19;
     m.measure = 42;
     time(&m.time);
-    m.vcc = 1.5;
-    m.vbat = 3.5;
+    m.vcc = 4.5;
+    m.vbat = 1.5;
 
     int cnt = 24;
 
@@ -47,7 +47,7 @@ std::string composeHuffman_38_19_24(
     std::stringstream ss;
 
     for (int i = 0; i < packets.size(); i++) {
-        ss << bin2hexString(packets[i]) << " ";
+        ss << bin2hexString(packets[i]) << std::endl;
     }
 
     return ss.str();

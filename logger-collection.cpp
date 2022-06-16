@@ -1604,7 +1604,7 @@ LoggerCollection::put(
         size_t aSize
 )
 {
-    // chek does it raw
+    // check does it raw packet
     LOGGER_PACKET_TYPE packetType = extractLoggerPacketType(nullptr, buffer, aSize);
     size_t sz;
     void *next = (void *) buffer;

@@ -571,9 +571,11 @@ size_t decompressLogger(
 {
     if (srcSize > 0)
         outStrm.put(((const char *) srcBuffer)[0]);
-    if (srcSize > 1)
+    if (srcSize > 1) {
         outStrm.put(((const char *) srcBuffer)[1]);
-    return decodeHuffman(outStrm, ((const char *) srcBuffer) + 2, srcSize  - 2);
+        return decodeHuffman(outStrm, ((const char *) srcBuffer) + 2, srcSize - 2);
+    } else
+        return 0;
 }
 
 /**

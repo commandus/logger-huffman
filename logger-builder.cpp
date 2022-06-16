@@ -108,18 +108,22 @@ static size_t setMeasurementsData(
  * @param diffInt deltas
  * @param packetIndex 1- headers, 2..- data
  * @param bytesPerSample 1 or 2 bytes dor deltas
+ * @param firstPacketSize bytes written in first packet
+ * @param maxSecondPacketSize max bytes to write in second packet
  * @return count of copied bytes
  */
 static size_t setDeltaMeasurementsData(
     const char *buffer,
     const std::vector<int16_t> &diffInt,
     int packetIndex,
-    int bytesPerSample
+    int bytesPerSample,
+    const int firstPacketSize = 6,
+    const int maxSecondPacketSize = 20
 ) {
-    int ofs = (6 + packetIndex * 20) / bytesPerSample;
+    int ofs = (firstPacketSize + packetIndex * maxSecondPacketSize) / bytesPerSample;
     size_t sz = diffInt.size();
     int c = 0;
-    for (; c < 20 / bytesPerSample; c++) {
+    for (; c < maxSecondPacketSize / bytesPerSample; c++) {
         if (ofs >= sz)
             break;  // range out
         if (bytesPerSample == 1) {
@@ -371,30 +375,90 @@ void LoggerBuilder::build(
     }
 }
 
-void LoggerBuilder::buildHuffman(
+size_t LoggerBuilder::buildHuffmanChunk(
     std::vector<std::string> &retVal,
     const LoggerMeasurements &value,
-    const std::vector<double> &baseTemperature
+    const std::vector<double> &baseTemperature,
+    size_t firstPacketMeasurementCount,
+    size_t otherPacketMeasurementCount
 )
 {
     std::vector<int16_t> diffInt;
     int bitsPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
     int dataBytes = bytesRequiredForBits(bitsPerSample);
 
-    int cnt = diffInt.size();   // diffInt may be less than value.temperature
-
     // first packet firstHeader(8) MeasurementHeaderDiff(10)
     std::string firstPacketUncompressed;
-    size_t uncompressedDataDeltaSize = value.temperature.size() * dataBytes;
-    firstPacketUncompressed.resize(8 + 10 + uncompressedDataDeltaSize);
+    size_t firstUncompressedDataDeltaSize = firstPacketMeasurementCount * dataBytes;
+    firstPacketUncompressed.resize(8 + 10 + firstUncompressedDataDeltaSize);
     setFirstHeader(firstPacketUncompressed.c_str(), value, 0x4c, bitsPerSample);   // 8 bytes
     setMeasureDeltaHeader(firstPacketUncompressed.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR), value); // 10 bytes
 
-    // add ALL measurements to the first packet
     setDeltaMeasurementsDataFirstPacket(firstPacketUncompressed.c_str()
         + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-        diffInt, dataBytes, uncompressedDataDeltaSize);
+        diffInt, dataBytes, firstUncompressedDataDeltaSize);
+
+    // encode data
     std::string firstPacketCompressed = firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
         + compressLoggerString(firstPacketUncompressed.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+    // set max size
+    size_t maxSize = firstPacketCompressed.size();
+
     retVal.push_back(firstPacketCompressed);
+
+    if (otherPacketMeasurementCount <= 0)
+        return maxSize;
+
+    // second packets
+    size_t ofs = firstPacketMeasurementCount;
+    size_t measurementCount = value.temperature.size();
+    int packetNo = 2;
+    while (ofs < measurementCount) {
+        size_t mc;
+        if (ofs + otherPacketMeasurementCount > measurementCount)
+            mc = measurementCount - ofs;
+        else
+            mc = otherPacketMeasurementCount;
+
+        size_t secondUncompressedDataDeltaSize = mc * dataBytes;
+
+        std::string secondPacket;
+        secondPacket.resize(sizeof(LOGGER_PACKET_SECOND_HDR) + secondUncompressedDataDeltaSize);
+
+        setSecondHeader(secondPacket.c_str(), value, 0x4d, packetNo);   // 4 bytes
+        setDeltaMeasurementsData(secondPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), diffInt, packetNo - 2,
+            dataBytes, firstPacketMeasurementCount * dataBytes, otherPacketMeasurementCount * dataBytes);
+        std::string secondPacketCompressed = secondPacket.substr(0, sizeof(LOGGER_PACKET_SECOND_HDR))
+            + compressLoggerString(secondPacket.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
+        size_t sz = secondPacketCompressed.size();
+        // update max size
+        if (sz > maxSize)
+            maxSize = sz;
+
+        retVal.push_back(secondPacketCompressed);
+
+        packetNo++;
+        ofs += otherPacketMeasurementCount;
+    }
+    return maxSize;
+}
+
+void LoggerBuilder::buildHuffman(
+    std::vector<std::string> &retVal,
+    const LoggerMeasurements &value,
+    const std::vector<double> &baseTemperature
+)
+{
+    size_t sz1 = value.temperature.size();
+    size_t sz2 = 0;
+    while (true) {
+        retVal.clear();
+        size_t maxPacketSize = buildHuffmanChunk(retVal, value, baseTemperature, sz1, sz2);
+        if (maxPacketSize <= 24)
+            break;
+        sz1 = sz1 / 2;
+        sz2 = sz1;
+        if (sz1 == 0)
+            break;
+    }
 }
