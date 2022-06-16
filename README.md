@@ -313,8 +313,8 @@ Each record has
 - "t" sensor temperature (as is, no approximation)
 - "tp" corrected sensor temperature (approximated by the sensor passport)
 - "th" read sensor value as hex string
-- "vcc" bus voltage
-- "vbat" battery voltage
+- "vcc" bus voltage (about 4.5V)
+- "vbat" battery voltage (about 1.5V)
 - "measured" measurement time, unix epoch time (seconds since Jan 1 1970)
 - "parsed" received by network server time, unix epoch time (seconds since Jan 1 1970)
 - "raw" packets as hex strings
@@ -506,6 +506,10 @@ Prefix of the byte itself (which is not in the table)
 
 
 #### Calc bus and battery voltages
+
+Vcc 4.5V
+
+Vbat 1.5V
 
 ```
 Single VccReal = Convert.ToSingle(94 - head[11]) * 0.05814F + 2.6F; 

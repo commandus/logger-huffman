@@ -19,6 +19,9 @@ public:
 };
 
 class LoggerBuilder {
+private:
+    static size_t buildHuffmanChunk(std::vector<std::string> &retVal, const LoggerMeasurements &value, const std::vector<double> &baseTemperature,
+                                    size_t firstPacketMeasurementCount, size_t otherPacketMeasurementCount);
 public:
     LoggerBuilder();
     /**
