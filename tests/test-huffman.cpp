@@ -11,7 +11,7 @@
 
 static const std::string programName = "test-huffman";
 
-std::string composeHuffman_38_19_24(
+std::string composeHuffman_38_19_28(
     double t0,
     double inc,
     double delta
@@ -33,7 +33,7 @@ std::string composeHuffman_38_19_24(
     m.vcc = 4.5;
     m.vbat = 1.5;
 
-    int cnt = 24;
+    int cnt = 28;
 
     for (int i = 0; i < cnt; i++) {
         m.temperature.push_back(t0);
@@ -126,5 +126,5 @@ int main(int argc, char **argv)
 
     parseCmd(value_initial, value_step, value_delta, argc, argv);
     // -10.0, 0.0625, 0.5
-    std::cout << composeHuffman_38_19_24(value_initial, value_step, value_delta) << std::endl;
+    std::cout << composeHuffman_38_19_28(value_initial, value_step, value_delta) << std::endl;
 }
