@@ -76,6 +76,27 @@ LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(
 	return LOGGER_PACKET_UNKNOWN;
 }
 
+int LoggerItem::getHuffmanPacketMeasurementOffset(
+    int packetNum1
+) const {
+    if (!collection)
+        return 0;
+    if (packetNum1 > collection->items.size())
+        return 0;
+    int r = 0;
+    packetNum1--;
+    if (packetNum1 > 0) {
+        std::string s = decompressLoggerString(collection->items[0].packet
+                .substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+        r += s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF);
+        for (int i = 1; i < packetNum1; i++) {
+            std::string s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
+            r += s.size();
+        }
+    }
+    return r;
+}
+
 double LoggerItem::correctTemperatureByPassport(
     uint8_t sensor,
     double value
@@ -890,7 +911,8 @@ bool LoggerItem::get(
                 int16_t r = extractSecondHdr(&h, packet.c_str(), packet.size());
                 if (r)
                     return false;
-                getByDiff(&retval, nullptr, packet, h->packet);
+
+                getByDiff(&retval, nullptr, packet, 6 + (h->packet - 2) * 20);
             }
             break;
         case LOGGER_PACKET_HUFF_1:
@@ -908,7 +930,7 @@ bool LoggerItem::get(
                 int16_t r = extractSecondHdr(&h, s.c_str(), s.size());
                 if (r)
                     return false;
-                getByDiff(&retval, nullptr, s, h->packet);
+                getByDiff(&retval, nullptr, s, getHuffmanPacketMeasurementOffset(h->packet));
             }
             break;
         default:
@@ -960,7 +982,7 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
             int16_t r = extractSecondHdr(&h, packet.c_str(), packet.size());
             if (r)
                 return false;
-            getByDiff(nullptr, &retval, packet, h->packet);
+            getByDiff(nullptr, &retval, packet, getHuffmanPacketMeasurementOffset(h->packet));
             break;
         }
         case LOGGER_PACKET_HUFF_1:
@@ -978,7 +1000,7 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
                 int16_t r = extractSecondHdr(&h, s.c_str(), s.size());
                 if (r)
                     return false;
-                getByDiff(nullptr, &retval, packet, h->packet);
+                getByDiff(nullptr, &retval, s, getHuffmanPacketMeasurementOffset(h->packet));
             }
             break;
         default:
@@ -1181,7 +1203,7 @@ bool LoggerItem::getByDiff(
     std::map<uint8_t, TEMPERATURE_2_BYTES> *retVal,
     std::map<uint8_t, double> *retValT,
     const std::string &aPacket,
-    int packetNo
+    int offset
 ) const
 {
     if (!collection)
@@ -1203,11 +1225,11 @@ bool LoggerItem::getByDiff(
     // get count
     int cnt;
     // get sensor index, 3 or 6 sensor data in first (measurement header) packet plus 10 or 20 in the next packets
-    uint8_t ofs;
 
-    if (packetNo) {
+    uint8_t ofs;
+    if (offset) {
         cnt = (aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
-        ofs = (6 + (packetNo - 2) * 20) / dataBytes;
+        ofs = offset / dataBytes;
     } else {
         // first aPacket
         cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
@@ -1218,7 +1240,7 @@ bool LoggerItem::getByDiff(
     int i = 0;
     for (int c = ofs; c < ofs + cnt; c++) {
         int diff;
-        if (packetNo)
+        if (offset)
             diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), dataBytes, i);
         else
             diff = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
@@ -1842,7 +1864,7 @@ bool LoggerKosaPackets::add(
 	if (mh)
 		memmove(&measurementHeader, mh, sizeof(LOGGER_MEASUREMENT_HDR));
 	bool newOne = packets.items.empty();
-	if (newOne || value == id) {
+	if (newOne || (value.id.kosa == id.kosa && value.id.kosa_year == id.kosa_year)) {
 		if (newOne) {
 			start = time(nullptr);
 			id = value.id;
