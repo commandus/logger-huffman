@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <set>
 
 #include "platform.h"
 #include "util-time-fmt.h"
@@ -83,12 +84,16 @@ int LoggerItem::getHuffmanPacketMeasurementOffset(
     if (!collection || (packetNum1 < 1))
         return 0;
     int r = 0;
+    std::set<uint8_t> packetsCalculated;
     for (int i = 0; i < collection->items.size(); i++) {
         std::string s;
         LOGGER_MEASUREMENT_HDR *hdr;
         LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, collection->items[i].packet.c_str(), collection->items[i].packet.size());
         switch (t) {
             case LOGGER_PACKET_HUFF_1:
+                if (packetsCalculated.find(1) != packetsCalculated.end())
+                    continue;
+                packetsCalculated.insert(1);
                 s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
                 r += s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF);
                 break;
@@ -99,6 +104,9 @@ int LoggerItem::getHuffmanPacketMeasurementOffset(
                     break;
                 if (h->packet > packetNum1)
                     break;
+                if (packetsCalculated.find(h->packet) != packetsCalculated.end())
+                    continue;
+                packetsCalculated.insert(h->packet);
                 s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
                 r += s.size();
                 break;
@@ -1010,7 +1018,8 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
                 int16_t r = extractSecondHdr(&h, s.c_str(), s.size());
                 if (r)
                     return false;
-                getByDiff(nullptr, &retval, s, getHuffmanPacketMeasurementOffset(h->packet));
+                int ofs = getHuffmanPacketMeasurementOffset(h->packet);
+                getByDiff(nullptr, &retval, s, ofs);
             }
             break;
         default:
