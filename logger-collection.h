@@ -106,6 +106,13 @@ protected:
      * @return approximated temperature
      */
     double correctTemperatureByPassport(uint8_t sensor, double value) const;
+    /**
+     * Huffman packet size has variable size. Toi calc offset, we need calc all packets.
+     * Calc measurements size for N packets.
+     * Used to calc offset
+     * @param packetNum1 packet number 1..N
+     * @return bytes occupied by measurements
+     */
     int getHuffmanPacketMeasurementOffset(int packetNum1) const;
 public:
     LoggerItemId id;

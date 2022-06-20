@@ -79,19 +79,29 @@ LOGGER_PACKET_TYPE LOGGER_PACKET_TYPE_2_string(
 int LoggerItem::getHuffmanPacketMeasurementOffset(
     int packetNum1
 ) const {
-    if (!collection)
-        return 0;
-    if (packetNum1 > collection->items.size())
+    packetNum1--;   // it is offset, skip current
+    if (!collection || (packetNum1 < 1))
         return 0;
     int r = 0;
-    packetNum1--;
-    if (packetNum1 > 0) {
-        std::string s = decompressLoggerString(collection->items[0].packet
-                .substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
-        r += s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF);
-        for (int i = 1; i < packetNum1; i++) {
-            std::string s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
-            r += s.size();
+    for (int i = 0; i < collection->items.size(); i++) {
+        std::string s;
+        LOGGER_MEASUREMENT_HDR *hdr;
+        LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, collection->items[i].packet.c_str(), collection->items[i].packet.size());
+        switch (t) {
+            case LOGGER_PACKET_HUFF_1:
+                s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
+                r += s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF);
+                break;
+            case LOGGER_PACKET_HUFF_2:
+                LOGGER_PACKET_SECOND_HDR *h;
+                int16_t notOk = extractSecondHdr(&h, collection->items[i].packet.c_str(), collection->items[i].packet.size());
+                if (notOk)
+                    break;
+                if (h->packet > packetNum1)
+                    break;
+                s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
+                r += s.size();
+                break;
         }
     }
     return r;
