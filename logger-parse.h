@@ -76,7 +76,7 @@ void *getLoggerKosaCollector(void *env);
 
 /**
  * Return passports as text or json
- * @param env passport descriptor
+ * @param env logger descriptor
  * @param format 1- text, 2- JSON, 3- table, 0-nothing
  * @param retVal if n=NULL, nothiong return
  * @param offset 0..
