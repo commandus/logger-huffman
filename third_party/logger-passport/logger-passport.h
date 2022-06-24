@@ -60,6 +60,24 @@ typedef enum {
 } FORMAT_PASSPORT_TYPE;
 
 /**
+ * Return passports count
+ * Passport descriptor must be initialized.
+ * @param descriptor passport collection descriptor
+ * @param retType request return passport
+ * @param offset 0..
+ * @param count how many records to return
+ * @param retVal if not NULL, return sensor passports as JSON or text string
+ * @return count of passports
+ */
+size_t countPassports(
+    void *descriptor,
+    FORMAT_PASSPORT_TYPE retType,
+    std::vector<std::string> *retVal,
+    size_t offset,
+    size_t count
+);
+
+/**
  * Return true if plume has passport.
  * Passport descriptor must be initialized.
  * @param descriptor passport collection descriptor
@@ -95,7 +113,7 @@ bool hasSensor(
 );
 
 /**
- * Check has sensor passport. If second parametr is not NULL, return coefficients
+ * Check has sensor passport. If second parameter is not NULL, return coefficients
  * @param descriptor passport descriptor
  * @param retCoefficients If not NULL, return pointer to array of array: 1 for any temperature (one range), 3 arrays for four ranges
  * @param mac MAC address

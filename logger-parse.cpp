@@ -269,6 +269,16 @@ void *getLoggerKosaCollector(void *env)
     return (void *) ((LoggerParserEnv *) env)->lkc;
 }
 
+size_t lsPassports(void *env, int format, std::vector<std::string> *retVal, size_t offset, size_t count)
+{
+#ifdef ENABLE_LOGGER_PASSPORT
+    return countPassports(env, (FORMAT_PASSPORT_TYPE) format, retVal, offset, count);
+#else
+    return 0;
+#endif
+}
+
+
 /**
  * Return SQL SELECT statement returning packets as hex strings separated by space
  * @param sqlDialect SQL dialect number
