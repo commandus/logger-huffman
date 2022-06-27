@@ -64,6 +64,8 @@ typedef enum {
  * Passport descriptor must be initialized.
  * @param descriptor passport collection descriptor
  * @param retType request return passport
+ * @param year 0- any, >0- filter by year
+ * @param plume 0- any, >0- filter by plume
  * @param offset 0..
  * @param count how many records to return
  * @param retVal if not NULL, return sensor passports as JSON or text string
@@ -73,6 +75,8 @@ size_t countPassports(
     void *descriptor,
     FORMAT_PASSPORT_TYPE retType,
     std::vector<std::string> *retVal,
+    int year,
+    int plume,
     size_t offset,
     size_t count
 );
