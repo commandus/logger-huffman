@@ -269,10 +269,18 @@ void *getLoggerKosaCollector(void *env)
     return (void *) ((LoggerParserEnv *) env)->lkc;
 }
 
-size_t lsPassports(void *env, int format, std::vector<std::string> *retVal, size_t offset, size_t count)
+size_t lsPassports(
+    void *env,
+    int format,
+    std::vector<std::string> *retVal,
+    int year,
+    int plume,
+    size_t offset,
+    size_t count
+)
 {
 #ifdef ENABLE_LOGGER_PASSPORT
-    return countPassports(getPassportDescriptor(env), (FORMAT_PASSPORT_TYPE) format, retVal, offset, count);
+    return countPassports(getPassportDescriptor(env), (FORMAT_PASSPORT_TYPE) format, retVal, year, plume, offset, count);
 #else
     return 0;
 #endif
