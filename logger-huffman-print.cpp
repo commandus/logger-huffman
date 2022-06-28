@@ -261,13 +261,16 @@ int main(int argc, char **argv)
     }
 
     void *loggerParserEnv = initLoggerParser(config.passportDir, onLoggerParserLog, &lkl);
+    if (config.verbosity > 2) {
+        size_t sz = lsPassports(loggerParserEnv, 0, nullptr, 0, 0, 0, 0);
+        std::cerr << sz << " plumes found." << std::endl;
+    }
 
     if (config.printCreateClauses) {
         std::cout << loggerSQLCreateTable1(config.outputFormat, nullptr, "\n") << std::endl;
         doneLoggerParser(loggerParserEnv);
         exit(0);
     }
-
 
     LoggerKosaCollector *c = (LoggerKosaCollector*) getLoggerKosaCollector(loggerParserEnv);
     // LOGGER_PACKET_TYPE t = c->put(DEVICE_ADDR_INT, config.values);
