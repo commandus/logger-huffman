@@ -70,14 +70,15 @@ void doneLoggerParser(void *env)
 {
     if (!env)
         return;
-    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
-    delete c;
 #ifdef ENABLE_LOGGER_PASSPORT
     if (((LoggerParserEnv*) env)->passportDescriptor) {
         stopPassportDirectory(((LoggerParserEnv*) env)->passportDescriptor);
         ((LoggerParserEnv*) env)->passportDescriptor = nullptr;
     }
 #endif
+    LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
+    if (c)
+        delete c;
 }
 
 /**
