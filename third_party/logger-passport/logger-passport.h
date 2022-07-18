@@ -25,23 +25,29 @@ LOG_CALLBACK;
 /**
  * Initialize passport descriptor.
  * Load passports from the directory. Listen for changes in the directory
- * @param config return pointer to LoggerPlumeCollection if success
+ * @param passportDir passport files root folder path
+ * @param onLog log callback. Pass nullptr to disable error tracking
+ * @param enableMonitor true- listen for changes. Default false
  * @return passport descriptor, nullptr if fail
  */
 void *startPassportDirectory(
-    const std::string &passportDir, ///< passport files root
-    LOG_CALLBACK onLog              ///< log callback. Pass nullptr to disable error tracking
+    const std::string &passportDir,
+    LOG_CALLBACK onLog,
+    bool enableMonitor = false
 );
 
 /**
  * Initialize passport descriptor.
  * Load passports from the directories or files. Listen for changes in the directory
- * @param config return pointer to LoggerPlumeCollection if success
+ * @param passportDir passport files or directories list
+ * @param onLog log callback. Pass nullptr to disable error tracking
+ * @param enableMonitor true- listen for changes. Default false
  * @return passport descriptor, nullptr if fail
  */
 void *startPassportDirectory(
-    const std::vector<std::string> &passportDirs,   ///< passport files or directories list
-    LOG_CALLBACK onLog                              ///< log callback. Pass nullptr to disable error tracking
+    const std::vector<std::string> &passportDirs,
+    LOG_CALLBACK onLog,
+    bool enableMonitor = false
 );
 
 /**
