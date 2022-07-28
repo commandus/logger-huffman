@@ -166,7 +166,7 @@ void loggerRemoveCompletedOrExpired(
     if (!env)
         return;
     LoggerKosaCollector *c = ((LoggerParserEnv*) env)->lkc;
-    for (std::vector<LoggerKosaPackets>::const_iterator it(c->koses.begin()); it != c->koses.end(); ) {
+    for (std::vector<LoggerKosaPackets>::iterator it(c->koses.begin()); it != c->koses.end(); ) {
         bool ready2delete = it->packets.completed() | it->expired();
         if (ready2delete) {
             it = c->koses.erase(it);
