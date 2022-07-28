@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		assert(fabs(t - expected[i]) < 0.001);
 	}
 
-	for (int i = 0; i < 6; i++) {
+	for (i = 0; i < 6; i++) {
 		double t = TEMPERATURE_2_BYTES_2_double(*(TEMPERATURE_2_BYTES*) &values2[i]);
         printf("%4x %s %8.4f\n", values2[i], int2bin(values2[i], 16), t);
 	}
