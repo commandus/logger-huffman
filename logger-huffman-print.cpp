@@ -88,6 +88,7 @@ public:
     MODE processingMode;                        // default packet processing
     int verbosity;                              // verbosity level
     bool printCreateClauses;                    // print out create clauses
+    std::string nullTemperatureString;          // default 8888
 };
 
 void onLoggerParserLog(
@@ -121,6 +122,7 @@ int parseCmd(
     struct arg_str *a_output_format = arg_str0("f", "format", formatModeListString.c_str(),"Default json");
 
     struct arg_str *a_passport_dir = arg_str0("p", "passport", "<dir|file>", "Logger passports directory or file name");
+    struct arg_str *a_null_t = arg_str0("n", "<invalid temperature value>", "", "Default 8888");
     struct arg_lit *a_print_create_clauses = arg_lit0("c", "create", "print 'CREATE ..' clauses");
 
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 3, "Set verbosity level");
@@ -144,6 +146,11 @@ int parseCmd(
         config->outputFormat = LOGGER_OUTPUT_FORMAT_JSON;
         config->processingMode = MODE_PACKET;
         config->printCreateClauses = a_print_create_clauses->count > 0;
+        
+        if (a_null_t->count) {
+            config->nullTemperatureString = *a_null_t->sval;
+        } else 
+            config->nullTemperatureString = "8888";
 
         if (a_passport_dir->count) {
             config->passportDir = *a_passport_dir->sval;
@@ -302,7 +309,7 @@ int main(int argc, char **argv)
             outputString = c->toTableString();
             break;
         default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
-            outputString = loggerSQLInsertPackets1(loggerParserEnv, config.outputFormat);
+            outputString = loggerSQLInsertPackets1(loggerParserEnv, config.outputFormat, nullptr, config.nullTemperatureString);
     }
     std::cout << outputString << std::endl;
     doneLoggerParser(loggerParserEnv);

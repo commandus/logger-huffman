@@ -131,13 +131,15 @@ int loggerParsePackets(void *env, uint32_t addr, const std::vector<std::string> 
  * @param retExpired
  * @param packets binary packets
  * @param extraValues  <optional field name>=value
+ * @param nullValueString default "NULL"
  * @return empty string if fails
  */
 int loggerSQLInsertPackets(
     void *env,
     std::vector <std::string> &retClauses,
     int sqlDialect,
-    const std::map<std::string, std::string> *extraValues
+    const std::map<std::string, std::string> *extraValues,
+    const std::string &nullValueString
 )
 {
     if (!env)
@@ -146,7 +148,7 @@ int loggerSQLInsertPackets(
     int cnt = 0;
     for (std::vector<LoggerKosaPackets>::const_iterator it(c->koses.begin()); it != c->koses.end(); it++) {
         if (it->packets.completed() | it->expired()) {
-            std::string s = loggerParsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues);
+            std::string s = loggerParsePacketsToSQLClause(OUTPUT_FORMAT_SQL, sqlDialect, *it, extraValues, nullValueString);
             if (!s.empty())
                 retClauses.push_back(s);
             cnt++;
@@ -225,12 +227,13 @@ std::string loggerSQLInsertPackets1(
     void *env,
     int sqlDialect,
     const std::map<std::string, std::string> *extraValues,
+    const std::string &nullValueString,
     const std::string &separator
 )
 {
     std::vector <std::string> clauses;
     std::stringstream ss;
-    loggerSQLInsertPackets(env, clauses, sqlDialect);
+    loggerSQLInsertPackets(env, clauses, sqlDialect, extraValues, nullValueString);
     bool first = true;
     for (auto it(clauses.begin()); it != clauses.end(); it++) {
         if (first)

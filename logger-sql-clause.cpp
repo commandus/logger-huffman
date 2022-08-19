@@ -302,19 +302,21 @@ void parsePacketStream(
  * @param sqlDialect 0- PostgreSQL, 1- MySQL, 2- Firebird
  * @param packets data
  * @param extraValues <optional field name>=value
+ * @param nullValueString default "NULL"
  * @return empty string if fails
  */
 std::string loggerParsePacketsToSQLClause(
         int outputFormat,
         int sqlDialect,
         const LoggerKosaPackets &packets,
-        const std::map<std::string, std::string> *extraValues
+        const std::map<std::string, std::string> *extraValues,
+        const std::string &nullValueString
 )
 {
     std::stringstream sout;
     std::vector<std::string> packetValueStrings;
     // field values
-    packets.toStrings(packetValueStrings, "NULL");
+    packets.toStrings(packetValueStrings, nullValueString);
     parsePacketStream(&sout, fldNTypesLoggerLora, outputFormat, sqlDialect, packetValueStrings, extraValues);
     return sout.str();
 }
