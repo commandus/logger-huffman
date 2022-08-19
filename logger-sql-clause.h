@@ -29,13 +29,15 @@ enum SQL_DIALECT : int {
  * @param sqlDialect 0- PostgeSQL, 1- MySQL, 1- Firebird
  * @param packetы LoggerKosaPackets
  * @param extraValues  <optional field name>=value
+ * @param nullValueString default "NULL"
  * @return empty string if fails
  */
 std::string loggerParsePacketsToSQLClause(
     int outputFormat,
     int sqlDialect,
     const LoggerKosaPackets &packets,
-    const std::map<std::string, std::string> *extraValues = NULL
+    const std::map<std::string, std::string> *extraValues = NULL,
+    const std::string &nullValueString = "NULL"
 );
 
 /**
