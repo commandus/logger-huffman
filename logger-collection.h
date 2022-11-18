@@ -29,7 +29,7 @@ class LoggerItemId {
 
 		/**
 		 * Set identifier
-		 * @param akosa kosa number
+		 * @param akosa plumePackets number
 		 * @param ameasure measurement no
 		 * @param apacket -1- first packet (w/o data)
 		 */ 
@@ -151,8 +151,8 @@ public:
     int getDataBits() const;
 
     /**
-     * Return kosa year from first packet if exists or base record loaded by LoraWAN device address
-     * Second packet header have kosa number but no kosa year. Restore kosa year.
+     * Return plumePackets year from first packet if exists or base record loaded by LoraWAN device address
+     * Second packet header have plumePackets number but no plumePackets year. Restore plumePackets year.
      * @return 0 if not exists
      */
     uint8_t getKosaYearFromFirstPacketOrLoad(uint8_t kosa);
@@ -197,8 +197,8 @@ class LoggerCollection {
 		uint8_t expectedPackets;	// keep expected packets
 		int errCode;
         LoggerKosaCollector *collector;
-        // kosa owns packet items
-        LoggerKosaPackets *kosa;
+        // plumePackets owns packet items
+        LoggerKosaPackets *plumePackets;
         // point to the first header
 
 		LoggerCollection();
@@ -312,7 +312,7 @@ public:
      */
     void temperatureCommaString(std::ostream &ostrm, const std::string &separator, const std::string &substEmptyValue) const;
     /**
-     * List of corrected temperature values. Correction has mad by approximation using kosa passport.
+     * List of corrected temperature values. Correction has mad by approximation using plumePackets passport.
      * @param ostrm output stream to write temperature values
      * @param separator list separator e.g. ", "
      * @param substEmptyValue substitute substEmptyValue string if sensor has no value, e.g. "null"
@@ -337,16 +337,16 @@ public:
 class LoggerKosaPacketsLoader {
 public:
     /**
-     * Load last kosa record with "base" values by address
-     * @param retVal set kosa packets if found
-     * @param addr kosa address
-     * @return true- kosa with "base" record found
+     * Load last plumePackets record with "base" values by address
+     * @param retVal set plumePackets packets if found
+     * @param addr plumePackets address
+     * @return true- plumePackets with "base" record found
      */
     virtual bool load(LoggerKosaPackets &retVal, uint32_t addr) = 0;
 };
 
 /** 
- * Make an collection of kosa
+ * Make an collection of plumePackets
  */
 class LoggerKosaCollector {
 	public:

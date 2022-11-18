@@ -126,7 +126,7 @@ You need override load() method of LoggerKosaPacketsLoader abstract class to
 implement load last "full" packets to calculate delta packet temperature.
 
 ```c++
-#include "logger-kosa-loader.h"
+#include "logger-plumePackets-loader.h"
 
 class MyLoggerKosaPacketsLoader: public LoggerKosaPacketsLoader {
 public:
@@ -301,7 +301,7 @@ For instance, get SQL statements to create table in SQLite database:
 ```
 ./logger-huffman-print -c -f sqlite
 CREATE TABLE "logger_raw"("id" integer PRIMARY KEY AUTOINCREMENT, "raw" text);
-CREATE TABLE "logger_lora"("id" integer PRIMARY KEY AUTOINCREMENT, "kosa" integer, "year" integer, "no" integer, "measured" integer, "parsed" integer, "vcc" real, "vbat" real, "t" text, "tp" text, "raw" text, "th" text);
+CREATE TABLE "logger_lora"("id" integer PRIMARY KEY AUTOINCREMENT, "plumePackets" integer, "year" integer, "no" integer, "measured" integer, "parsed" integer, "vcc" real, "vbat" real, "t" text, "tp" text, "raw" text, "th" text);
 ```
 Option -f <sql-dialect> select target SQL dialect. 
 
@@ -318,7 +318,7 @@ Each record has
 - "measured" measurement time, unix epoch time (seconds since Jan 1 1970)
 - "parsed" received by network server time, unix epoch time (seconds since Jan 1 1970)
 - "raw" packets as hex strings
-- "kosa" serial number
+- "plumePackets" serial number
 - "year" production year since 2000 year
 
 Examples:
@@ -344,14 +344,14 @@ Specify logger passport directory:
 -b 4b2602050fcdff0010e6ff0011dfff0012dcff0013e1ff00 -b 4b26020614dcff0015dcff0016eaff0017e5ff0018dfff00
 -b 4b26020719dfff001adaff001be6ff00 
 -p ../logger-passport/tests/passport
-INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 2, 1645510616, 1650587407, 4.75, 3.30, '0,26.5,26.5,26.5625,26.5625,26.5625', '0,26.5,26.5,26.5625,26.5625,26.5625', '4a00280002031c140038100f1602161c1400003981190002 4b1c02020006cfaa0101a8000201a8000301a9000401a900 4b1c02030501a90000000000000000000000000000000000'); INSERT INTO "logger_lora"("kosa", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 3, 1645510916, 1650587407, 4.75, 3.30, '0,26.5,26.5625,26.625,26.5,26.5625', '0,26.5,26.5625,26.625,26.5,26.5625', '4a00280003031c140038150f1602161c1400003981190003 4b1c03020006cfaa0101a8000201a9000301aa000401a800 4b1c03030501a90000000000000000000000000000000000');
+INSERT INTO "logger_lora"("plumePackets", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 2, 1645510616, 1650587407, 4.75, 3.30, '0,26.5,26.5,26.5625,26.5625,26.5625', '0,26.5,26.5,26.5625,26.5625,26.5625', '4a00280002031c140038100f1602161c1400003981190002 4b1c02020006cfaa0101a8000201a8000301a9000401a900 4b1c02030501a90000000000000000000000000000000000'); INSERT INTO "logger_lora"("plumePackets", "year", "no", "measured", "parsed", "vcc", "vbat", "t", "tp", "raw") VALUES (28, 20, 3, 1645510916, 1650587407, 4.75, 3.30, '0,26.5,26.5625,26.625,26.5,26.5625', '0,26.5,26.5625,26.625,26.5,26.5625', '4a00280003031c140038150f1602161c1400003981190003 4b1c03020006cfaa0101a8000201a9000301aa000401a800 4b1c03030501a90000000000000000000000000000000000');
 ```
 
 ```
 ./logger-huffman-print -f json 4A00280002031C140038100F160216000000003981190002 4B1C02020006CFAA0101A8000201A8000301A9000401A900 4B1C02030501A900 4A00280003031C140038150F160216000000003981190003 4B1C03020006CFAA0101A8000201A9000301AA000401A800 4B1C03030501A900
-[{"id": {"kosa": 28, "measure": 2, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 2, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}
-}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1407.9375}, {"sensor": 3, "t": -1391.9375}, {"sensor": 4, "t": -1391.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 2, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}, {"id": {"kosa": 28, "measure": 3, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 3, "packets": 3, "kosa": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "kosa": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}
-}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 3, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1391.9375}, {"sensor": 3, "t": -1375.9375}, {"sensor": 4, "t": -1407.9375}]}}, {"item": {"second_packet": {"type": 75, "kosa": 28, "measure": 3, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}]
+[{"id": {"plumePackets": 28, "measure": 2, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "plumePackets": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 2, "packets": 3, "plumePackets": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510616, "localtime": "2022-02-22T15:16:56", "gmt": "2022-02-22T06:16:56" , "plumePackets": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 2}
+}}, {"item": {"second_packet": {"type": 75, "plumePackets": 28, "measure": 2, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1407.9375}, {"sensor": 3, "t": -1391.9375}, {"sensor": 4, "t": -1391.9375}]}}, {"item": {"second_packet": {"type": 75, "plumePackets": 28, "measure": 2, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}, {"id": {"plumePackets": 28, "measure": 3, "packet": -1, "kosa_year": 20}, "start": 1649898291, "expired": false, "completed": true, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "plumePackets": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}, "packets": [{"item": {"first_packet": {"type": 74, "size": 40, "status": 0, "data_bits": 0, "command_change": 0, "measure": 3, "packets": 3, "plumePackets": 28, "kosa_year": 20}, "measurement_header": {"memblockoccupation": 0, "time": 1645510916, "localtime": "2022-02-22T15:21:56", "gmt": "2022-02-22T06:21:56" , "plumePackets": 28, "kosa_year": 20, "vcc": 4.75, "vbat": 3.30, "pcnt": 25, "used": 3}
+}}, {"item": {"second_packet": {"type": 75, "plumePackets": 28, "measure": 3, "packet": 2}, "measurements": [{"sensor": 0, "t": -783.6250}, {"sensor": 1, "t": -1407.9375}, {"sensor": 2, "t": -1391.9375}, {"sensor": 3, "t": -1375.9375}, {"sensor": 4, "t": -1407.9375}]}}, {"item": {"second_packet": {"type": 75, "plumePackets": 28, "measure": 3, "packet": 3}, "measurements": [{"sensor": 5, "t": -1391.9375}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}, {"sensor": 0, "t": 0.0000}]}}]}]
 ```
 
 ```
@@ -525,7 +525,7 @@ T ST    MMPPKKYY================================
     size общая длина данных 28h = 40 (без заголовка в 16 байт?)
         MM measure = 2 мл. Байт номера замера, lsb used (или addr_used?)
 	      PP packets = 3 количество пакетов в замере
-	        KK kosa = 1ch 28 идентификатор косы (номер, дата)
+	        KK plumePackets = 1ch 28 идентификатор косы (номер, дата)
 	          YY kosa_year = 14h = 20  год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
 ================
                 OO = 0 memblockoccupation
@@ -570,7 +570,7 @@ T_ = 4c = huffman delta packet 1
     size = 0a00h общая длина данных
         MM measure = 02 мл. Байт номера замера, lsb used (или addr_used?)
 	      PP packets = 01 количество пакетов в замере
-	        KK kosa = 26h идентификатор косы (номер, дата)
+	        KK plumePackets = 26h идентификатор косы (номер, дата)
 	          YY kosa_year = 13h = 19  год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
                 == Measure header ==
                 OOSSmmhhddMMYYkkyyr1
