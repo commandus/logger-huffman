@@ -246,7 +246,7 @@ std::string LOGGER_MEASUREMENT_HDR_2_table(
  *	measure мл. Байт номера замера, lsb used (или addr_used?)
  *	packets  количество пакетов в замере! (лора по 24 байта с шапками пакетов)
  *	kosa идентификатор косы (номер, дата)
- *	year год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
+ *	kosa_year год косы + 2000 Идентификатор прибора берется из паспорта косы при формате логгера, пишется из епром логгера, пишется в шапку замера.
  */
 std::string LOGGER_PACKET_FIRST_HDR_2_string(
 	const LOGGER_PACKET_FIRST_HDR &value
@@ -534,7 +534,7 @@ bool LoggerItemId::operator!=(
 
 /**
  * Set identifier
- * @param akosa kosa number
+ * @param akosa plume number
  * @param ameasure measurement no
  * @param apacket -1- first packet (w/o data)
  */ 
@@ -690,7 +690,7 @@ bool LoggerItem::operator==(
 {
 	return 
 		(id.kosa == another.id.kosa)
-        && (addr == another.addr)   // diff packet does not contain kosa year, use address instead
+        && (addr == another.addr)   // diff packet does not contain plume production year, use address instead
 		&& (id.measure == another.id.measure);
 }
 
@@ -1172,15 +1172,15 @@ LOGGER_PACKET_TYPE LoggerItem::set(
 bool LoggerItem::setMeasurementHeaderFromDiffIfExists() {
     if (!collection)
         return false;
-    if (!collection->kosa)
+    if (!collection->plumePackets)
         return false;
-    LoggerKosaPackets *baseKosa = collection->kosa->loadBaseKosa(0);
+    LoggerKosaPackets *baseKosa = collection->plumePackets->loadBaseKosa(0);
     if (!baseKosa)
         return false;
     LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(packet.c_str(), packet.size());
     if (!headerMeasurement)
         return false;
-    LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(&collection->kosa->measurementHeader,
+    LOGGER_MEASUREMENT_HDR_DIFF_2_LOGGER_MEASUREMENT_HDR(&collection->plumePackets->measurementHeader,
         headerMeasurement, baseKosa->measurementHeader);
     return true;
 }
@@ -1227,11 +1227,11 @@ bool LoggerItem::getByDiff(
 {
     if (!collection)
         return false;
-    if (!collection->kosa)
+    if (!collection->plumePackets)
         return false;
 
     // get temperature base
-    LoggerKosaPackets *base = collection->kosa->loadBaseKosa(addr);
+    LoggerKosaPackets *base = collection->plumePackets->loadBaseKosa(addr);
     if (!base)
         return false;
     std::map<uint8_t, TEMPERATURE_2_BYTES> baseT;
@@ -1285,8 +1285,8 @@ std::string LoggerItem::delta1ToString(
     if (extractFirstHdr(&h1, aPacket.c_str(), aPacket.size()))
         return ss.str();
     ss << LOGGER_PACKET_FIRST_HDR_2_string(*h1) << std::endl;
-    if (collection && collection->kosa)
-        ss << LOGGER_MEASUREMENT_HDR_2_string(collection->kosa->measurementHeader) << std::endl;
+    if (collection && collection->plumePackets)
+        ss << LOGGER_MEASUREMENT_HDR_2_string(collection->plumePackets->measurementHeader) << std::endl;
     LOGGER_MEASUREMENT_HDR_DIFF *headerMeasurement = extractDiffHdr(aPacket.c_str(), aPacket.size());
     if (headerMeasurement) {
         ss << LOGGER_MEASUREMENT_HDR_DIFF_2_string(headerMeasurement) << std::endl;
@@ -1342,9 +1342,9 @@ std::string LoggerItem::delta1ToJson(
     }
 
     if (collection) {
-        if (collection->kosa) {
+        if (collection->plumePackets) {
             ss << "\"measurement_header\": "
-               << LOGGER_MEASUREMENT_HDR_2_json(collection->kosa->measurementHeader) << ", ";
+               << LOGGER_MEASUREMENT_HDR_2_json(collection->plumePackets->measurementHeader) << ", ";
         }
 
         int dataBits;
@@ -1358,7 +1358,8 @@ std::string LoggerItem::delta1ToJson(
 
         // get diffs
         std::vector<int> diffs;
-        diffs.resize(cnt);
+        if (cnt > 0)
+            diffs.resize(cnt);
         for (int i = 0; i < cnt; i++) {
             diffs[i] = getDiff(aPacket.c_str() + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF), dataBytes, i);
         }
@@ -1506,14 +1507,14 @@ void LoggerMeasurementHeader::assign(
 }
 
 LoggerCollection::LoggerCollection()
-	: errCode(0), expectedPackets(0), kosa(nullptr), collector(nullptr)
+	: errCode(0), expectedPackets(0), plumePackets(nullptr), collector(nullptr)
 {
 }
 
 LoggerCollection::LoggerCollection(
 	const LoggerCollection &value
 )
-	: expectedPackets(value.expectedPackets), errCode(value.errCode), kosa(value.kosa), collector(value.collector)
+	: expectedPackets(value.expectedPackets), errCode(value.errCode), plumePackets(value.plumePackets), collector(value.collector)
 {
 	std::copy(value.items.begin(), value.items.end(), std::back_inserter(items));
 }
@@ -1521,7 +1522,7 @@ LoggerCollection::LoggerCollection(
 LoggerCollection::LoggerCollection(
     LoggerKosaCollector *aCollector
 )
-    : errCode(0), expectedPackets(0), kosa(nullptr), collector(aCollector)
+    : errCode(0), expectedPackets(0), plumePackets(nullptr), collector(aCollector)
 {
 }
 
@@ -1828,7 +1829,7 @@ std::string LoggerCollection::toTableString(
 LoggerKosaPackets::LoggerKosaPackets()
 	: collector(nullptr), start(0), baseKosa(nullptr)
 {
-    packets.kosa = this;
+    packets.plumePackets = this;
     clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
 }
 
@@ -1837,17 +1838,18 @@ LoggerKosaPackets::LoggerKosaPackets(
 )
 	: collector(aCollector), start(0), baseKosa(nullptr)
 {
-    packets.kosa = this;
+    packets.plumePackets = this;
     clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
 }
 
 LoggerKosaPackets::LoggerKosaPackets(
 	const LoggerKosaPackets &value
 )
-	: collector(value.collector), id(value.id), start(value.start), measurementHeader(value.measurementHeader), baseKosa(value.baseKosa)
+	: collector(value.collector), id(value.id), start(value.start), measurementHeader(value.measurementHeader), baseKosa(nullptr)
 {
+    // do not copy baseKosa
 	std::copy(value.packets.items.begin(), value.packets.items.end(), std::back_inserter(packets.items));
-    packets.kosa = this;
+    packets.plumePackets = this;
 }
 
 LoggerKosaPackets::LoggerKosaPackets(
@@ -1858,7 +1860,7 @@ LoggerKosaPackets::LoggerKosaPackets(
     start = time(nullptr);
 	id = value.id;
     packets.items.push_back(value);
-    packets.kosa = this;
+    packets.plumePackets = this;
     clear_LOGGER_MEASUREMENT_HDR(measurementHeader);
 }
 
@@ -2106,7 +2108,8 @@ void LoggerKosaPackets::temperatureCorrectedCommaString(
 			if (it->first == 0)
 				ostrm << std::fixed << std::setprecision(4) << it->second;
 			else
-            	ostrm << std::fixed << std::setprecision(4) << calcTemperature(collector->passportDescriptor, id.kosa, id.kosa_year, it->first - 1, it->second);
+            	ostrm << std::fixed << std::setprecision(4) << calcTemperature(collector->passportDescriptor,
+                    id.kosa, id.kosa_year, it->first - 1, it->second);
             c++;
         }
     }
@@ -2142,6 +2145,7 @@ LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa(uint32_t addr)
     if (!collector->loggerKosaPacketsLoader)
         return nullptr;
     baseKosa = new LoggerKosaPackets;
+
     if (!collector->loggerKosaPacketsLoader->load(*baseKosa, addr)) {
         delete baseKosa;
         baseKosa = nullptr;
@@ -2150,7 +2154,7 @@ LoggerKosaPackets *LoggerKosaPackets::loadBaseKosa(uint32_t addr)
 }
 
 /**
- * SQL fields: kosa, year, no, measured, parsed, vcc, vbat, t, tp, raw, temperature raw integer hex value, temperature(not corrected)
+ * SQL fields: plumePackets, year, no, measured, parsed, vcc, vbat, t, tp, raw, temperature raw integer hex value, temperature(not corrected)
  * @param retval out param values
  * @param substEmptyValue if value is not set, substitute this value, e.g. "null"
  */
@@ -2186,7 +2190,7 @@ void LoggerKosaPackets::toStrings(
 
 void LoggerKosaPackets::updateKosaAfterCopy()
 {
-    packets.kosa = this;
+    packets.plumePackets = this;
     // set parent pointer
     for (auto it(packets.items.begin()); it != packets.items.end(); it++) {
         it->collection = &packets;
@@ -2235,7 +2239,7 @@ void LoggerKosaCollector::add(
                 if (value.expectedPackets) {
                     itKosa->packets.expectedPackets = value.expectedPackets;
                 }
-                itKosa->packets.kosa = &*itKosa;
+                itKosa->packets.plumePackets = &*itKosa;
                 found = true;
                 break;
             }

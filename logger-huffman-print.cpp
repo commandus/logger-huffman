@@ -285,32 +285,31 @@ int main(int argc, char **argv)
     LOGGER_PACKET_TYPE t;
     for (auto it(config.values.begin()); it != config.values.end(); it++) {
         t = (LOGGER_PACKET_TYPE) loggerParsePacket(loggerParserEnv, DEVICE_ADDR_INT, *it);
+        if (t == LOGGER_PACKET_UNKNOWN)
+            printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
+
+        std::string outputString;
+
+        switch (config.outputFormat) {
+            case LOGGER_OUTPUT_FORMAT_JSON:
+                if (config.verbosity)
+                    outputString = c->packetsToJsonString();
+                else
+                    outputString = c->toJsonString();
+                break;
+            case LOGGER_OUTPUT_FORMAT_TEXT:
+                if (config.verbosity)
+                    outputString = c->packetsToString();
+                else
+                    outputString = c->toString();
+                break;
+            case LOGGER_OUTPUT_FORMAT_TABLE:
+                outputString = c->toTableString();
+                break;
+            default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
+                outputString = loggerSQLInsertPackets1(loggerParserEnv, config.outputFormat, nullptr, config.nullTemperatureString);
+        }
+        std::cout << outputString << std::endl;
     }
-
-    if (t == LOGGER_PACKET_UNKNOWN)
-        printErrorAndExit(ERR_LOGGER_HUFFMAN_INVALID_PACKET);
-
-    std::string outputString;
-
-    switch (config.outputFormat) {
-        case LOGGER_OUTPUT_FORMAT_JSON:
-            if (config.verbosity)
-                outputString = c->packetsToJsonString();
-            else
-                outputString = c->toJsonString();
-            break;
-        case LOGGER_OUTPUT_FORMAT_TEXT:
-            if (config.verbosity)
-                outputString = c->packetsToString();
-            else
-                outputString = c->toString();
-            break;
-        case LOGGER_OUTPUT_FORMAT_TABLE:
-            outputString = c->toTableString();
-            break;
-        default: // LOGGER_OUTPUT_FORMAT_PG LOGGER_OUTPUT_FORMAT_MYSQL LOGGER_OUTPUT_FORMAT_FB LOGGER_OUTPUT_FORMAT_SQLITE
-            outputString = loggerSQLInsertPackets1(loggerParserEnv, config.outputFormat, nullptr, config.nullTemperatureString);
-    }
-    std::cout << outputString << std::endl;
     doneLoggerParser(loggerParserEnv);
 }
