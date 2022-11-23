@@ -42,6 +42,7 @@ lib_LIBRARIES = liblogger-huffman.a
 liblogger_huffman_a_SOURCES = $(LIBLOGGERHUFFMANSRC)
 # $(HDRS)
 liblogger_huffman_a_CXXFLAGS = -std=c++11 $(COMMON_C_FLAGS) -fPIC $(EXTRA_DEF)
+liblogger_huffman_a_CFLAGS = -fPIC
 L_LOGGER_HUFFMAN = -L. -llogger-huffman $(EXTRA_LIB)
 
 # Static library used for build binaries, so build library first.
