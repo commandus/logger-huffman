@@ -268,7 +268,7 @@ uint8_t double2vcc(
 	double value
 )
 {
-	return 94 - (value - 2.6)/ 0.05814;
+	return (uint8_t) 94 - (value - 2.6)/ 0.05814;
 }
 
 uint8_t  double2vbat(

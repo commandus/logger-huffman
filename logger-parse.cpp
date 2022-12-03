@@ -193,7 +193,7 @@ int loggerSQLCreateTable(
 {
     retClauses.push_back(createTableSQLClauseLoggerRaw(OUTPUT_FORMAT_SQL, sqlDialect, extraValues));
     retClauses.push_back(createTableSQLClauseLoggerLora(OUTPUT_FORMAT_SQL, sqlDialect, extraValues));
-    return retClauses.size(); 
+    return (int) retClauses.size(); 
 }
 
 /**

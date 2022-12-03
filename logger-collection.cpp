@@ -95,7 +95,7 @@ int LoggerItem::getHuffmanPacketMeasurementOffset(
                     continue;
                 packetsCalculated.insert(1);
                 s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_FIRST_HDR)));
-                r += s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF);
+                r += (int) (s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF));
                 break;
             case LOGGER_PACKET_HUFF_2:
                 LOGGER_PACKET_SECOND_HDR *h;
@@ -108,7 +108,7 @@ int LoggerItem::getHuffmanPacketMeasurementOffset(
                     continue;
                 packetsCalculated.insert(h->packet);
                 s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
-                r += s.size();
+                r += (int) s.size();
                 break;
         }
     }
@@ -759,7 +759,6 @@ std::string LoggerItem::toString() const
 		case LOGGER_PACKET_PKT_2:
 			{
 				std::stringstream ss;
-				LOGGER_PACKET_SECOND_HDR *h2;
 				bool first = true;
 				for (int p = 0; p < 5; p++) {
 					LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
