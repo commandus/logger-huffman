@@ -1,3 +1,9 @@
+#
+# Options:
+#
+# -DENABLE_LOGGER_PASSPORT=on
+#
+
 cmake_minimum_required(VERSION 3.9)
 set(PROJECT_NAME "logger-huffman")
 project(${PROJECT_NAME} VERSION 1.0)
@@ -7,9 +13,13 @@ set(CMAKE_CXX_STANDARD 11)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-option(ENABLE_LOGGER_PASSPORT "Enable logger passport feature" OFF) #OFF by default
+option(ENABLE_LOGGER_PASSPORT "Enable logger passport feature" OFF)
 if(ENABLE_LOGGER_PASSPORT)
-	find_library(LIB_LOGGER_PASSPORT NAMES logger-passport PATHS "../logger-passport" )
+	find_library(LIB_LOGGER_PASSPORT
+		NAMES logger-passport
+		HINTS "." ".." "../../logger-passport" "~/src/logger-passport"
+			"../../logger-passport/build/Release"
+	)
 	set(EXTRA_LIBS ${LIB_LOGGER_PASSPORT} Threads::Threads)
 	set(EXTRA_DEFS ENABLE_LOGGER_PASSPORT)
 endif(ENABLE_LOGGER_PASSPORT)
