@@ -4,7 +4,6 @@
 #include "logger-huffman.h"
 #include "errlist.h"
 
-
 #if BYTE_ORDER == BIG_ENDIAN
 #define SWAP_DELTA2_BYTES   1
 #else
