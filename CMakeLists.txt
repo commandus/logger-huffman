@@ -18,7 +18,7 @@ if(ENABLE_LOGGER_PASSPORT)
 	find_library(LIB_LOGGER_PASSPORT
 		NAMES logger-passport
 		HINTS "." ".." "../../logger-passport" "~/src/logger-passport"
-			"../../logger-passport/build/Release"
+			"../logger-passport/build/Release"
 	)
 	set(EXTRA_LIBS ${LIB_LOGGER_PASSPORT} Threads::Threads)
 	set(EXTRA_DEFS ENABLE_LOGGER_PASSPORT)
