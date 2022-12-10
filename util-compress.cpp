@@ -335,7 +335,7 @@ size_t BitBufferWriter::bitSize() const
  */
 uint8_t BitBufferWriter::pop()
 {
-    uint8_t sz = size();
+    uint8_t sz = (uint8_t) size();
     uint8_t r;
     if (sz) {
         r = buffer[0];
