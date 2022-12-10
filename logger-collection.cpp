@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
@@ -733,7 +737,7 @@ std::string LoggerItem::toString() const
 			{
 				std::stringstream ss;
 				ss << LOGGER_MEASUREMENT_HDR_2_string(*hdr) << std::endl;
-				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+				int cnt = (int) ((packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW));
 				for (int i = 0; i < cnt; i++) {
                     LOGGER_DATA_TEMPERATURE_RAW *tp;
 					double r = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
@@ -810,7 +814,7 @@ std::string LoggerItem::toJsonString() const
 			{
 				ss << "\"measurement_header\": " <<  LOGGER_MEASUREMENT_HDR_2_json(*hdr)
 					<< ", \"measurements\": [";
-				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+				int cnt = (int) ((packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW));
 				for (int i = 0; i < cnt; i++) {
 					LOGGER_DATA_TEMPERATURE_RAW *tp;
 					double r = extractMeasurementHeaderData(&tp, i, packet.c_str(), packet.size());
@@ -897,7 +901,7 @@ bool LoggerItem::get(
     LOGGER_PACKET_TYPE t = extractMeasurementHeader(&hdr, packet.c_str(), packet.size());
     switch (t) {
         case LOGGER_PACKET_RAW: {
-            int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+            int cnt = (int) ((packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW));
             for (int i = 0; i < cnt; i++) {
                 LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) packet.c_str()
                     + sizeof(LOGGER_MEASUREMENT_HDR) + sizeof(LOGGER_DATA_TEMPERATURE_RAW) * i);
@@ -909,7 +913,7 @@ bool LoggerItem::get(
             break;
         case LOGGER_PACKET_PKT_2:
             {
-                int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+                int cnt = (int) (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
                 for (int p = 0; p < cnt; p++) {
                     LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
                     if (!v)
@@ -968,7 +972,7 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
 	switch (t) {
 		case LOGGER_PACKET_RAW:
 			{
-				int cnt = (packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+				int cnt = (int) ((packet.size() - sizeof(LOGGER_MEASUREMENT_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW));
 				for (int i = 0; i < cnt; i++) {
                     LOGGER_DATA_TEMPERATURE_RAW *p = (LOGGER_DATA_TEMPERATURE_RAW *) ((char *) packet.c_str()
                         + sizeof(LOGGER_MEASUREMENT_HDR) + sizeof(LOGGER_DATA_TEMPERATURE_RAW) * i);
@@ -980,7 +984,7 @@ bool LoggerItem::getTemperature(std::map<uint8_t, double> &retval) const
 			break;
 		case LOGGER_PACKET_PKT_2:
 			{
-                int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW);
+                int cnt = (int) ((packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW));
 				for (int p = 0; p < cnt; p++) {
 					LOGGER_DATA_TEMPERATURE_RAW *v = extractSecondHdrData(p, packet.c_str(), packet.size());
 					if (!v)
@@ -1246,11 +1250,11 @@ bool LoggerItem::getByDiff(
 
     uint8_t ofs;
     if (offset) {
-        cnt = (aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes;
+        cnt = (uint8_t) ((aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR)) / dataBytes);
         ofs = offset / dataBytes;
     } else {
         // first aPacket
-        cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
+        cnt = (int) ((aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes);
         ofs = 0;
     }
 
@@ -1305,7 +1309,7 @@ std::string LoggerItem::delta2ToString(
 
     int dataBits = getDataBits();
     int dataBytes = bytesRequiredForBits(dataBits);
-    int cnt = (packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes;
+    int cnt = (int) ((packet.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes);
 
     // get diffs
     std::vector<int> diffs;
@@ -1353,7 +1357,7 @@ std::string LoggerItem::delta1ToJson(
             dataBits = getDataBits();
         int dataBytes = bytesRequiredForBits(dataBits);
 
-        int cnt = (aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes;
+        int cnt = (int)((aPacket.size() - sizeof(LOGGER_PACKET_FIRST_HDR) - sizeof(LOGGER_MEASUREMENT_HDR_DIFF)) / dataBytes);
 
         // get diffs
         std::vector<int> diffs;
@@ -1389,7 +1393,7 @@ std::string LoggerItem::delta2ToJson(
 
     int dataBits = getDataBits();
     int dataBytes = bytesRequiredForBits(dataBits);
-    int cnt = (aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes;
+    int cnt = (int) ((aPacket.size() - sizeof(LOGGER_PACKET_SECOND_HDR )) / dataBytes);
 
     // get diffs
     std::vector<int> diffs;
@@ -1633,7 +1637,7 @@ void LoggerCollection::putRaw(
     item.addr = addr;
     if (item.packet.size() < MAX_BUFFER_SIZE)
 	    item.packet = item.packet + std::string((const char *) buffer, size);
-	expectedPackets = items.size();
+	expectedPackets = (uint8_t) items.size();
 }
 
 LOGGER_PACKET_TYPE

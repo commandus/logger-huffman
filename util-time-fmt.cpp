@@ -1,6 +1,10 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "util-time-fmt.h"
 
-#include <time.h>
+#include <ctime>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>

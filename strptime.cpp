@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#endif
+
 /*
 * Copyright (c) 1999 Kungliga Tekniska Hï¿œgskolan
 * (Royal Institute of Technology, Stockholm, Sweden).
@@ -108,7 +112,7 @@ match_string(const char **buf, const char **strs)
 	int i = 0;
 
 	for (i = 0; strs[i] != NULL; ++i) {
-		int len = strlen(strs[i]);
+		int len = (int) strlen(strs[i]);
 
 		if (stricmp(*buf, strs[i]) == 0) {
 			*buf += len;

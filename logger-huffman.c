@@ -1,6 +1,10 @@
-#include <time.h>
-#include "platform.h"
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
+#include <time.h>
+
+#include "platform.h"
 #include "logger-huffman.h"
 #include "errlist.h"
 
@@ -267,14 +271,14 @@ uint8_t double2vcc(
 	double value
 )
 {
-	return (uint8_t) 94 - (value - 2.6)/ 0.05814;
+	return (uint8_t) (94 - (value - 2.6)/ 0.05814);
 }
 
 uint8_t  double2vbat(
 	double value
 )
 {
-	return (value + 0.08) / 4 * 1023.0 / 1100.0 * 1000.0 / 6.1;
+	return (uint8_t) ((value + 0.08) / 4 * 1023.0 / 1100.0 * 1000.0 / 6.1);
 }
 
 uint16_t LOGGER_MEASUREMENT_HDR_USED(uint16_t value) {
@@ -363,7 +367,7 @@ void LOGGER_MEASUREMENT_HDR_delta(
 {
     // retval.used = h1->used - h0->used;						// 0 record number diff
     retval->used = h1->used;                                    // does not compress
-    retval->delta_sec = LOGGER_MEASUREMENT_HDR2time_t(h1, 1) - LOGGER_MEASUREMENT_HDR2time_t(h0, 1);				        // 2 seconds
+    retval->delta_sec = (int8_t) (LOGGER_MEASUREMENT_HDR2time_t(h1, 1) - LOGGER_MEASUREMENT_HDR2time_t(h0, 1));				        // 2 seconds
     retval->kosa = h1->kosa - h0->kosa;							// 3 номер косы в году
     retval->kosa_year = h1->kosa_year - h0->kosa_year;			// 4 год косы - 2000 (номер года последние 2 цифры)
     retval->rfu1 = h1->rfu1 - h0->rfu1;							// 5 reserved

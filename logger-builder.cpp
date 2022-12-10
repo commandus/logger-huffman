@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "logger-builder.h"
 #include "logger-huffman.h"
 #include "util-compress.h"
@@ -26,13 +30,13 @@ static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
     switch (typ) {
         case 0x4a:
             // one extra packet for first header and measurement
-            h1->packets = measurements.temperature.size() / ((24 - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW)) + 1;
+            h1->packets = (uint8_t) (measurements.temperature.size() / ((24 - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW)) + 1);
             if (measurements.temperature.size() % ((24 - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW)))
                 h1->packets++;
             break;
         case 0x48:
             {
-                int cnt = measurements.temperature.size();
+                int cnt = (int) measurements.temperature.size();
                 // 6 or 3 measurements in first packet
                 int dataBytes = bytesRequiredForBits(bitsPerSample);
                 int measurementsInFirstPacket = 6 / dataBytes;
@@ -46,17 +50,17 @@ static LOGGER_PACKET_FIRST_HDR* setFirstHeader(
             }
             break;
         case 0x4c:
-            h1->packets = measurements.temperature.size() / ((24 - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW)) + 1;
+            h1->packets = (uint8_t) (measurements.temperature.size() / ((24 - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW)) + 1);
             if (measurements.temperature.size() % ((24 - sizeof(LOGGER_PACKET_SECOND_HDR)) / sizeof(LOGGER_DATA_TEMPERATURE_RAW)))
                 h1->packets++;
             break;
         default:
             h1->packets = 1;
     }
-    h1->size = measurements.temperature.size() * 8;       // ?!! TODO
+    h1->size = (uint16_t) measurements.temperature.size() * 8;       // ?!! TODO
     h1->kosa = measurements.kosa;
     h1->kosa_year = measurements.kosa_year;
-    h1->measure = measurements.measure;
+    h1->measure = (uint8_t) measurements.measure;
     return h1;
 }
 
@@ -70,7 +74,7 @@ static LOGGER_PACKET_SECOND_HDR *setSecondHeader(
     LOGGER_PACKET_SECOND_HDR* h2 = (LOGGER_PACKET_SECOND_HDR*) buffer;
     h2->typ = typ;
     h2->kosa = measurements.kosa;
-    h2->measure = measurements.measure;
+    h2->measure = (uint8_t) measurements.measure;
     h2->packet = packetNumber;
     return h2;
 }
@@ -128,7 +132,7 @@ static size_t setDeltaMeasurementsData(
             break;  // range out
         if (bytesPerSample == 1) {
             int8_t *t = (int8_t *) buffer + c;
-            *t = diffInt[ofs];
+            *t = (int8_t) diffInt[ofs];
 
         } else {
             int16_t *t = (int16_t *) buffer + c;
@@ -165,7 +169,7 @@ static size_t setDeltaMeasurementsDataFirstPacket(
             break;  // range out
         if (bytesPerSample == 1) {
             int8_t *t = (int8_t *) buffer + c;
-            *t = diffInt[c];
+            *t = (int8_t) diffInt[c];
 
         } else {
             int16_t *t = (int16_t *) buffer + c;
@@ -333,7 +337,7 @@ void LoggerBuilder::build(
     int bitsPerSample = calcDeltas(&diffInt, value.temperature, baseTemperature);
     int dataBytes = bytesRequiredForBits(bitsPerSample);
 
-    int cnt = diffInt.size();   // diffInt may be less than value.temperature
+    int cnt = (int) diffInt.size();   // diffInt may be less than value.temperature
     // 6 or 3 measurements in first packet
     int measurementsInFirstPacket = 6 / dataBytes;
     bool firstPacketShorter24Bytes = false;
@@ -396,7 +400,7 @@ size_t LoggerBuilder::buildHuffmanChunk(
 
     setDeltaMeasurementsDataFirstPacket(firstPacketUncompressed.c_str()
         + sizeof(LOGGER_PACKET_FIRST_HDR) + sizeof(LOGGER_MEASUREMENT_HDR_DIFF),
-        diffInt, dataBytes, firstUncompressedDataDeltaSize);
+        diffInt, dataBytes, (int) firstUncompressedDataDeltaSize);
 
     // encode data
     std::string firstPacketCompressed = firstPacketUncompressed.substr(0, sizeof(LOGGER_PACKET_FIRST_HDR))
@@ -427,7 +431,7 @@ size_t LoggerBuilder::buildHuffmanChunk(
 
         setSecondHeader(secondPacket.c_str(), value, 0x4d, packetNo);   // 4 bytes
         setDeltaMeasurementsData(secondPacket.c_str() + sizeof(LOGGER_PACKET_SECOND_HDR), diffInt, packetNo - 2,
-            dataBytes, firstPacketMeasurementCount * dataBytes, otherPacketMeasurementCount * dataBytes);
+            dataBytes, (int) (firstPacketMeasurementCount * dataBytes), (int) (otherPacketMeasurementCount * dataBytes));
         std::string secondPacketCompressed = secondPacket.substr(0, sizeof(LOGGER_PACKET_SECOND_HDR))
             + compressLoggerString(secondPacket.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
         size_t sz = secondPacketCompressed.size();
