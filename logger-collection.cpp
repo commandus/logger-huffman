@@ -102,6 +102,7 @@ int LoggerItem::getHuffmanPacketMeasurementOffset(
                 r += (int) (s.size() - sizeof(LOGGER_MEASUREMENT_HDR_DIFF));
                 break;
             case LOGGER_PACKET_HUFF_2:
+            {
                 LOGGER_PACKET_SECOND_HDR *h;
                 int16_t notOk = extractSecondHdr(&h, collection->items[i].packet.c_str(), collection->items[i].packet.size());
                 if (notOk)
@@ -113,7 +114,10 @@ int LoggerItem::getHuffmanPacketMeasurementOffset(
                 packetsCalculated.insert(h->packet);
                 s = decompressLoggerString(collection->items[i].packet.substr(sizeof(LOGGER_PACKET_SECOND_HDR)));
                 r += (int) s.size();
+            }
                 break;
+            default:
+                break;    
         }
     }
     return r;
@@ -1609,6 +1613,8 @@ LOGGER_PACKET_TYPE LoggerCollection::put1(
                     }
                     item.id.packet = h2->packet;
                 }
+                break;
+            default:
                 break;
         }
     }
